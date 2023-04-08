@@ -1,0 +1,8 @@
+list(APPEND SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/nanovg.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/nanovg.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/fontstash.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/stb_image.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/stb_truetype.h
+)
+set(SOURCES ${SOURCES} PARENT_SCOPE)
