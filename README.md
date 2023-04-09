@@ -20,5 +20,5 @@ can run the app.
 ```bash
 mkdir build
 cd build
-cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios/ios.toolchain.cmake -DPLATFORM=OS64
+cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios/ios.toolchain.cmake -DPLATFORM=OS64 -DENABLE_BITCODE=0
 ```

@@ -31,6 +31,7 @@ static void app_close_keyboard(void* ptr) {
     _view.device = MTLCreateSystemDefaultDevice();
     _view.backgroundColor = UIColor.blackColor;
     _view.multipleTouchEnabled = YES;
+    _view.preferredFramesPerSecond = 60;
 
     if(!_view.device) {
         NSLog(@"Metal is not supported on this device");

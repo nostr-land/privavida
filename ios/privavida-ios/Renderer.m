@@ -45,7 +45,7 @@ static void redraw(void* ptr) {
     }
 
     _device = view.device;
-    ((CAMetalLayer*)view.layer).maximumDrawableCount = 2;
+    // ((CAMetalLayer*)view.layer).maximumDrawableCount = 2;
 
     // Initialise NanoVG    
     _vg = nvgCreateMTL((__bridge void *)(view.layer), NVG_ANTIALIAS | NVG_STENCIL_STROKES);
