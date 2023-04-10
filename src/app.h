@@ -42,6 +42,7 @@ typedef struct {
     void* opaque_ptr;
     void (*open)(void* opaque_ptr);
     void (*close)(void* opaque_ptr);
+    void (*rect)(void* opaque_ptr, float* x, float* y, float* width, float* height);
 } AppKeyboard;
 
 void app_init(NVGcontext* vg, AppRedraw redraw, AppKeyboard keyboard);

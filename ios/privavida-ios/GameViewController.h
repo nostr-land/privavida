@@ -15,5 +15,6 @@
 
 - (void)openKeyboard;
 - (void)closeKeyboard;
+- (CGRect)keyboardRect;
 
 @end

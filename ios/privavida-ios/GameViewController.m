@@ -12,6 +12,7 @@
     MTKView *_view;
     Renderer *_renderer;
     BOOL _wantsKeyboardOpen;
+    CGRect _keyboardRect;
 }
 
 static void app_open_keyboard(void* ptr) {
@@ -20,6 +21,14 @@ static void app_open_keyboard(void* ptr) {
 
 static void app_close_keyboard(void* ptr) {
     [(__bridge GameViewController*)ptr closeKeyboard];
+}
+
+static void app_keyboard_rect(void* ptr, float* x, float* y, float* width, float* height) {
+    CGRect rect = [(__bridge GameViewController*)ptr keyboardRect];
+    *x = rect.origin.x;
+    *y = rect.origin.y;
+    *width = rect.size.width;
+    *height = rect.size.height;
 }
 
 - (void)viewDidLoad {
@@ -43,12 +52,15 @@ static void app_close_keyboard(void* ptr) {
     app_keyboard.opaque_ptr = (__bridge void*)self;
     app_keyboard.open = app_open_keyboard;
     app_keyboard.close = app_close_keyboard;
-    
+    app_keyboard.rect = app_keyboard_rect;
+
     _renderer = [[Renderer alloc] initWithMetalKitView:_view andAppKeyboard:app_keyboard];
 
     [_renderer mtkView:_view drawableSizeWillChange:_view.bounds.size];
 
     _view.delegate = _renderer;
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillChange:) name:UIKeyboardWillChangeFrameNotification object:nil];
 }
 
 - (int)convertTouches:(NSSet<UITouch *>*)touches withOutput:(AppTouch *)touches_out {
@@ -89,11 +101,6 @@ static void app_close_keyboard(void* ptr) {
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    if ([self isFirstResponder]) {
-        [self resignFirstResponder];
-    } else {
-        [self becomeFirstResponder];
-    }
     AppTouchEvent next_event;
     next_event.type = TOUCH_START;
     next_event.num_touches = [self convertTouches:[event allTouches] withOutput:next_event.touches];
@@ -151,6 +158,16 @@ static void app_close_keyboard(void* ptr) {
 - (void)closeKeyboard {
     _wantsKeyboardOpen = NO;
     [self resignFirstResponder];
+}
+
+- (CGRect)keyboardRect {
+    return _keyboardRect;
+}
+
+- (void)keyboardWillChange:(NSNotification *)notification {
+    _keyboardRect = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    _keyboardRect = [self.view convertRect:_keyboardRect fromView:nil];
+    [_renderer redraw];
 }
 
 @end
