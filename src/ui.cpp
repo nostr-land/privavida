@@ -102,7 +102,7 @@ void gestures_process_touches(AppTouchEvent* events, int num_events) {
                     gtouch->x = touch.x;
                     gtouch->y = touch.y;
                     if (!(gtouch->flags & TOUCH_MOVED) &&
-                        (fabsf(gtouch->x - gtouch->initial_x) + fabsf(gtouch->y - gtouch->initial_y) > 4)) {
+                        (abs(gtouch->x - gtouch->initial_x) + abs(gtouch->y - gtouch->initial_y) > 4)) {
                         gtouch->flags |= TOUCH_MOVED;
                     }
                     break;

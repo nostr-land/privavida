@@ -31,7 +31,7 @@ void ScrollView::update() {
 
     // Touch end?
     if (state.state == DRAGGING && touch_ended(state.touch_id, &touch)) {
-        if (fabsf(state.scroll_velocity_y) > 0) {
+        if (abs(state.scroll_velocity_y) > 0) {
             state.state = ANIMATE_INERTIA;
             state.scroll_initial_y = state.scroll_y;
             ui::touch_accept(touch.id);
@@ -47,7 +47,7 @@ void ScrollView::update() {
         state.scroll_y = state.scroll_initial_y - dy;
         state.scroll_velocity_y = state.scroll_y - scroll_y_prev;
 
-        if (fabsf(dy) > threshold) {
+        if (abs(dy) > threshold) {
             ui::touch_accept(state.touch_id);
         }
     }
@@ -57,7 +57,7 @@ void ScrollView::update() {
         ui::redraw();
         state.scroll_y += state.scroll_velocity_y;
         state.scroll_velocity_y *= 0.97;
-        if (fabsf(state.scroll_velocity_y) < 0.25) {
+        if (abs(state.scroll_velocity_y) < 0.25) {
             state.scroll_velocity_y = 0;
             state.state = IDLE;
         }
