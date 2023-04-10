@@ -27,19 +27,24 @@ struct ScrollView {
     };
 
     ScrollView(ScrollView::State* state) : state(*state) {};
+    ~ScrollView();
+    ScrollView(ScrollView&&) = delete;
 
-    ScrollView& content_size(float width, float height) {
-        this->content_width  = width;
-        this->content_height = height;
+    ScrollView& inner_size(float width, float height) {
+        this->inner_width  = width;
+        this->inner_height = height;
         return *this;
     }
     ScrollView& min_threshold(float threshold) {
         this->threshold = threshold;
         return *this;
     }
-    void update(std::function<void(float visible_x, float visible_y, float visible_width, float visible_height)> inner_update);
+    void update();
 
+    // Parameters and state
     State& state;
-    float content_width, content_height;
+    float inner_width, inner_height;
+    float outer_width, outer_height;
+
     float threshold = 5;
 };

@@ -174,7 +174,7 @@ static bool is_point_inside_rect(float* xform, float* extent, float x, float y) 
     );
 }
 
-static bool touch_inside(GestureTouch* touch, float x, float y, float width, float height) {
+static bool touch_inside(float touch_x, float touch_y, float x, float y, float width, float height) {
     float xform[6], extent[2];
     nvgCurrentTransform(vg, xform);
     
@@ -185,7 +185,7 @@ static bool touch_inside(GestureTouch* touch, float x, float y, float width, flo
     xform[4] = x;
     xform[5] = y;
     
-    if (!is_point_inside_rect(xform, extent, touch->x, touch->y)) {
+    if (!is_point_inside_rect(xform, extent, touch_x, touch_y)) {
         return false;
     }
 
@@ -194,13 +194,13 @@ static bool touch_inside(GestureTouch* touch, float x, float y, float width, flo
         return true;
     }
 
-    return is_point_inside_rect(scissor->xform, scissor->extent, touch->x, touch->y);
+    return is_point_inside_rect(scissor->xform, scissor->extent, touch_x, touch_y);
 }
 
 bool touch_start(float x, float y, float width, float height, GestureTouch* touch) {
     for (int i = 0; i < num_touches; ++i) {
         if ((touches[i].flags & (TOUCH_ENDED | TOUCH_ACCEPTED)) == 0 &&
-            touch_inside(&touches[i], x, y, width, height)) {
+            touch_inside(touches[i].initial_x, touches[i].initial_y, x, y, width, height)) {
             *touch = touches[i];
             return true;
         }
@@ -234,7 +234,7 @@ bool simple_tap(float x, float y, float width, float height) {
         // Looking for a touch that ended, that was never accepted,
         // and that never moved
         if (touches[i].flags == TOUCH_ENDED &&
-            touch_inside(&touches[i], x, y, width, height)) {
+            touch_inside(touches[i].x, touches[i].y, x, y, width, height)) {
             return true;
         }
     }

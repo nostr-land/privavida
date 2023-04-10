@@ -12,14 +12,14 @@ static float clamp(float min, float x, float max) {
     return x < min ? min : x > max ? max : x;
 }
 
-void ScrollView::update(std::function<void(float visible_x, float visible_y, float visible_width, float visible_height)> inner_update) {
+void ScrollView::update() {
     
-    float container_width  = ui::view.width;
-    float container_height = ui::view.height;
+    outer_width = ui::view.width;
+    outer_height = ui::view.height;
 
     // Drag start?
     ui::GestureTouch touch;
-    if (state.state != DRAGGING && touch_start(0, 0, container_width, container_height, &touch)) {
+    if (state.state != DRAGGING && touch_start(0, 0, outer_width, outer_height, &touch)) {
         if (state.state == ANIMATE_INERTIA) {
             ui::touch_accept(touch.id); // if we were animating and a new touch starts, we accept it
         }
@@ -63,14 +63,16 @@ void ScrollView::update(std::function<void(float visible_x, float visible_y, flo
         }
     }
 
-    state.scroll_y = clamp(0, state.scroll_y, content_height - container_height);
+    state.scroll_y = clamp(0, state.scroll_y, inner_height - outer_height);
 
     ui::save();
-    nvgIntersectScissor(ui::vg, 0, 0, container_width, container_height);
+    nvgIntersectScissor(ui::vg, 0, 0, outer_width, outer_height);
     ui::sub_view(-state.scroll_x, -state.scroll_y,
-                 container_width  > content_width  ? container_width :  content_width,
-                 container_height > content_height ? container_height : content_height);
-    inner_update(state.scroll_x, state.scroll_y, container_width, container_height);
+                 outer_width  > inner_width  ? outer_width :  inner_width,
+                 outer_height > inner_height ? outer_height : inner_height);
+}
+
+ScrollView::~ScrollView() {
     ui::restore();
     ui::restore();
 }
