@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+        }
+        canvas {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" height="400px" width="400px"></canvas>
+    <script src="index.js"></script>
+    <script>
+        const windowSize = Module.cwrap('window_size', 'void', ['number', 'number']);
+        setInterval(() => {
+            const rect = document.querySelector('#canvas').getBoundingClientRect();
+            canvas.setAttribute('width', rect.width * 2);
+            canvas.setAttribute('height', rect.height * 2);
+            windowSize(rect.width, rect.height, 2);
+        }, 1000);
+    </script>
+</body>
+</html>
