@@ -7,9 +7,7 @@
 
 #pragma once
 
-extern "C" {
 #include "app.h"
-}
 
 constexpr unsigned char TOUCH_ACCEPTED = 0x01; // Once a gesture accepts a touch no other gestures can use it
 constexpr unsigned char TOUCH_ENDED    = 0x04; // A touch sticks around in our state for one extra frame with flag TOUCH_ENDED

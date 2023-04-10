@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A45C11BA29E35E6B0030E993 /* libprivavida-core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A47B409C29E1B381005E1111 /* libprivavida-core.a */; };
+		A4C3F38629E4A33000090C89 /* libprivavida-core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A47B409C29E1B381005E1111 /* libprivavida-core.a */; };
 		A4C5A5F726D1B752007C5F37 /* nanovg_mtl.m in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F426D1B752007C5F37 /* nanovg_mtl.m */; };
 		A4C5A5F826D1B752007C5F37 /* nanovg_mtl_shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F626D1B752007C5F37 /* nanovg_mtl_shaders.metal */; };
 		A4C5A61E26D1C009007C5F37 /* SFRegular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4C5A61626D1C009007C5F37 /* SFRegular.ttf */; };
@@ -69,7 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A45C11BA29E35E6B0030E993 /* libprivavida-core.a in Frameworks */,
+				A4C3F38629E4A33000090C89 /* libprivavida-core.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -396,6 +396,7 @@
 					"@executable_path/Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "";
+				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = com.bartholomewjoyce.privavida;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -416,6 +417,7 @@
 					"@executable_path/Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "";
+				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = com.bartholomewjoyce.privavida;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = "1,2";

@@ -5,40 +5,26 @@
 //  Created by Bartholomew Joyce on 08/05/2023.
 //
 
-extern "C" {
 #include "app.h"
-}
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "gestures.hpp"
+#include "ui.hpp"
+#include "views/Root.hpp"
 
-static NVGcontext* vg;
-static AppRedraw redraw;
-static AppKeyboard keyboard;
-static bool should_redraw = true;
 static const char* temp_directory = NULL;
 
 static AppTouchEvent touch_event_queue[1024];
 static int touch_event_queue_size = 0;
 
-constexpr int num_lines = 50;
-constexpr int max_line_len = 100;
-static char* lines[num_lines];
-
-static bool keyboard_open = false;
-static int selected_idx = 0;
-
 void app_init(NVGcontext* vg_, AppRedraw redraw_, AppKeyboard keyboard_) {
-    vg = vg_;
-    redraw = redraw_;
-    keyboard = keyboard_;
-    
-    for (int i = 0; i < num_lines; ++i) {
-        lines[i] = (char*)malloc(max_line_len);
-        snprintf(lines[i], max_line_len, "%d", i + 1);
-    }
+    ui::vg = vg_;
+    ui::redraw_ = redraw_;
+    ui::keyboard = keyboard_;
+
+    Root::init();
 }
 
 void app_set_temp_directory(const char* temp_directory_) {
@@ -47,102 +33,22 @@ void app_set_temp_directory(const char* temp_directory_) {
     temp_directory = copy;
 }
 
-void app_key_backspace() {
-
-    auto len = strlen(lines[selected_idx]);
-    if (len > 0) lines[selected_idx][len - 1] = '\0';
-
-    redraw.redraw(redraw.opaque_ptr);
-}
-
-void app_key_character(const char* ch) {
-    if (strcmp(ch, "\n") == 0) {
-        selected_idx++;
-        return;
-    }
-
-    auto len = strlen(lines[selected_idx]);
-    snprintf(lines[selected_idx] + len, max_line_len - len, "%s", ch);
-
-    redraw.redraw(redraw.opaque_ptr);
-}
-
-static ScrollGesture::State sg_state;
-
 void app_render(float window_width, float window_height, float pixel_density) {
-    gestures_process_touches(touch_event_queue, touch_event_queue_size);
+    ui::gestures_process_touches(touch_event_queue, touch_event_queue_size);
     touch_event_queue_size = 0;
 
-    nvgBeginFrame(vg, window_width, window_height, pixel_density);
+    ui::reset();
+    ui::view.width = window_width;
+    ui::view.height = window_height;
 
-    // Background
-    nvgFillColor(vg, (NVGcolor){ 0.0, 0.0, 0.0, 1.0 });
-    nvgBeginPath(vg);
-    nvgRect(vg, 0, 0, window_width, window_height);
-    nvgFill(vg);
+    nvgBeginFrame(ui::vg, window_width, window_height, pixel_density);
+    Root::update();
+    nvgEndFrame(ui::vg);
 
-    constexpr float BLOCK_HEIGHT = 100.0;
-    auto scroll_y = ScrollGesture(&sg_state)
-                        .bounds(0, BLOCK_HEIGHT * 50 - window_height)
-                        .update(redraw);
-    int start_block = (int)(scroll_y / BLOCK_HEIGHT);
-    int y = start_block * BLOCK_HEIGHT - scroll_y;
-
-    for (int i = start_block;; ++i) {
-        
-        if (i == selected_idx && keyboard_open) {
-            nvgBeginPath(vg);
-            nvgRect(vg, 0.0, y, window_width, BLOCK_HEIGHT);
-            nvgFillColor(vg, (NVGcolor){ 0.2, 0.2, 0.2, 1.0 });
-            nvgFill(vg);
-        } else if (i % 2 == 0) {
-            nvgBeginPath(vg);
-            nvgRect(vg, 0.0, y, window_width, BLOCK_HEIGHT);
-            nvgFillColor(vg, (NVGcolor){ 0.1, 0.1, 0.1, 1.0 });
-            nvgFill(vg);
-        }
-
-        if (simple_tap(0, y, window_width, BLOCK_HEIGHT)) {
-            if (keyboard_open) {
-                if (selected_idx == i) {
-                    keyboard_open = false;
-                    keyboard.close(keyboard.opaque_ptr);
-                }
-            } else {
-                keyboard_open = true;
-                keyboard.open(keyboard.opaque_ptr);
-            }
-            redraw.redraw(redraw.opaque_ptr);
-            selected_idx = i;
-        }
-
-        nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-        nvgFillColor(vg, (NVGcolor){ 1.0, 1.0, 1.0, 1.0 });
-        nvgFontFace(vg, "bold");
-        nvgFontSize(vg, 28.0);
-        nvgText(vg, window_width * 0.5, y + BLOCK_HEIGHT * 0.5, lines[i], NULL);
-        
-        y += BLOCK_HEIGHT;
-        if (y >= window_height) break;
-    }
-
-    // Frame count
-    float kb_x, kb_y, kb_width, kb_height;
-    keyboard.rect(keyboard.opaque_ptr, &kb_x, &kb_y, &kb_width, &kb_height);
-    nvgTextAlign(vg, NVG_ALIGN_BOTTOM | NVG_ALIGN_LEFT);
-    nvgFillColor(vg, (NVGcolor){ 1.0, 1.0, 1.0, 1.0 });
-    nvgFontFace(vg, "mono");
-    nvgFontSize(vg, 16.0);
-    char buf[32];
-    static int frame_count = 0;
-    snprintf(buf, 30, "Frame count: %d", frame_count++);
-    nvgText(vg, 10.0, kb_y - 10.0, buf, NULL);
-
-    nvgEndFrame(vg);
-    redraw.redraw(redraw.opaque_ptr);
+    ui::redraw();
 }
 
 void app_touch_event(AppTouchEvent* event) {
     touch_event_queue[touch_event_queue_size++] = *event;
-    redraw.redraw(redraw.opaque_ptr);
+    ui::redraw();
 }

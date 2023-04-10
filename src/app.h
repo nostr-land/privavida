@@ -8,6 +8,14 @@
 #ifndef app_h
 #define app_h
 
+// This is the platform-independent C interface for the app
+// As long as you implement the bindings for the app on your
+// specific platform you can run the privavida-core.
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <nanovg.h>
 #define MAX_TOUCHES 16
 
@@ -51,5 +59,9 @@ void app_render(float window_width, float window_height, float pixel_density);
 void app_touch_event(AppTouchEvent* event);
 void app_key_backspace(void);
 void app_key_character(const char* ch);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* app_h */
