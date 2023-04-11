@@ -8,6 +8,7 @@ emcc \
     src/views/Conversations.cpp \
     src/views/ScrollView.cpp \
     -I include/ \
+    -I lib/ \
     -o emscripten/index.js \
     --embed-file assets/SFBold.ttf \
     --embed-file assets/SFRegular.ttf \

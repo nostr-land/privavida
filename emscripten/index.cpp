@@ -3,8 +3,8 @@
 
 #include <nanovg.h>
 #define NANOVG_GLES2_IMPLEMENTATION
-#include "nanovg_gl.h"
-#include "nanovg_gl_utils.h"
+#include <nanovg/nanovg_gl.h>
+#include <nanovg/nanovg_gl_utils.h>
 
 #include <app.h>
 
