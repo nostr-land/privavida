@@ -43,18 +43,14 @@ typedef struct {
 
 typedef struct {
     void* opaque_ptr;
-    void (*redraw)(void* opaque_ptr);
-} AppRedraw;
-
-typedef struct {
-    void* opaque_ptr;
     void (*open)(void* opaque_ptr);
     void (*close)(void* opaque_ptr);
     void (*rect)(void* opaque_ptr, float* x, float* y, float* width, float* height);
 } AppKeyboard;
 
-void app_init(NVGcontext* vg, AppRedraw redraw, AppKeyboard keyboard);
+void app_init(NVGcontext* vg, AppKeyboard keyboard);
 void app_set_temp_directory(const char* temp_directory);
+int  app_wants_to_render();
 void app_render(float window_width, float window_height, float pixel_density);
 void app_touch_event(AppTouchEvent* event);
 void app_key_backspace(void);

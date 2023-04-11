@@ -23,10 +23,6 @@ void window_size(int window_width_, int window_height_, int pixel_ratio_) {
 }
 
 void main_loop() {
-    // if (!redraw_requested) {
-    //     return;
-    // }
-
     emscripten_webgl_make_context_current(ctx);
 
     glViewport(0, 0, window_width * pixel_ratio, window_height * pixel_ratio);
@@ -38,7 +34,6 @@ void main_loop() {
     glEnable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
-    redraw_requested = false;
     app_render(window_width, window_height, pixel_ratio);
 }
 
@@ -94,11 +89,6 @@ int main() {
     emscripten_set_touchmove_callback  ("#canvas", NULL, 0, touch_event);
     emscripten_set_touchcancel_callback("#canvas", NULL, 0, touch_event);
 
-    AppRedraw redraw;
-    redraw.redraw = [](void* opaque_ptr) {
-        redraw_requested = true;
-    };
-
     AppKeyboard keyboard;
     keyboard.open = [](void* opaque_ptr) {};
     keyboard.close = [](void* opaque_ptr) {};
@@ -109,7 +99,7 @@ int main() {
         *height = 0;
     };
 
-    app_init(vg, redraw, keyboard);
+    app_init(vg, keyboard);
     emscripten_set_main_loop(&main_loop, 0, 1);
     // nvgDeleteGLES2(vg);
 

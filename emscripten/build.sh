@@ -2,9 +2,10 @@ emcc \
     emscripten/index.cpp \
     lib/nanovg/nanovg.c \
     src/app.cpp \
-    src/gestures.cpp \
     src/ui.cpp \
+    src/utils/animation.cpp \
     src/views/Root.cpp \
+    src/views/Conversations.cpp \
     src/views/ScrollView.cpp \
     -I include/ \
     -o emscripten/index.js \

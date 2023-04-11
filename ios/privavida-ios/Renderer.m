@@ -27,15 +27,9 @@ static const char* get_asset_name(const char* asset_name, const char* asset_type
     }
 }
 
-static void redraw(void* ptr) {
-    [(__bridge Renderer*)ptr redraw];
-}
-
 @implementation Renderer
 {
-    id <MTLDevice> _device;
     NVGcontext* _vg;
-    BOOL _should_redraw;
 }
 
 -(nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view andAppKeyboard:(AppKeyboard)app_keyboard {
@@ -43,9 +37,6 @@ static void redraw(void* ptr) {
     if (!self) {
         return self;
     }
-
-    _device = view.device;
-    // ((CAMetalLayer*)view.layer).maximumDrawableCount = 2;
 
     // Initialise NanoVG    
     _vg = nvgCreateMTL((__bridge void *)(view.layer), NVG_ANTIALIAS | NVG_STENCIL_STROKES);
@@ -63,13 +54,8 @@ static void redraw(void* ptr) {
     nvgCreateFont(_vg, "bold",     get_asset_name("SFBold",          "ttf"));
     nvgCreateFont(_vg, "boldi",    get_asset_name("SFBoldItalic",    "ttf"));
     nvgCreateFont(_vg, "thin",     get_asset_name("SFThin",          "ttf"));
-    
-    _should_redraw = YES;
-    AppRedraw app_redraw;
-    app_redraw.opaque_ptr = (__bridge void*)self;
-    app_redraw.redraw = redraw;
 
-    app_init(_vg, app_redraw, app_keyboard);
+    app_init(_vg, app_keyboard);
 
     char temp[1024];
     [[[[NSFileManager defaultManager] temporaryDirectory] path] getCString:temp maxLength:1024 encoding:NSUTF8StringEncoding];
@@ -79,11 +65,9 @@ static void redraw(void* ptr) {
 }
 
 - (void)drawInMTKView:(nonnull MTKView *)view {
-    /// Per frame updates here
-    if (!_should_redraw) {
+    if (!app_wants_to_render()) {
         return;
     }
-    _should_redraw = NO;
 
     float width = view.drawableSize.width;
     float height = view.drawableSize.height;
@@ -94,12 +78,7 @@ static void redraw(void* ptr) {
 }
 
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
-    /// No-op
     [self drawInMTKView:view];
-}
-
-- (void)redraw {
-    _should_redraw = YES;
 }
 
 @end

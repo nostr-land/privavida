@@ -167,7 +167,6 @@ static void app_keyboard_rect(void* ptr, float* x, float* y, float* width, float
 - (void)keyboardWillChange:(NSNotification *)notification {
     _keyboardRect = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
     _keyboardRect = [self.view convertRect:_keyboardRect fromView:nil];
-    [_renderer redraw];
 }
 
 @end

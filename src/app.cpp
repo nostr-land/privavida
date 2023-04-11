@@ -12,6 +12,7 @@
 #include <math.h>
 #include <string.h>
 #include "ui.hpp"
+#include "utils/animation.hpp"
 #include "views/Root.hpp"
 
 static const char* temp_directory = NULL;
@@ -19,11 +20,10 @@ static const char* temp_directory = NULL;
 static AppTouchEvent touch_event_queue[1024];
 static int touch_event_queue_size = 0;
 
-void app_init(NVGcontext* vg_, AppRedraw redraw_, AppKeyboard keyboard_) {
+void app_init(NVGcontext* vg_, AppKeyboard keyboard_) {
     ui::vg = vg_;
-    ui::redraw_ = redraw_;
     ui::keyboard = keyboard_;
-
+    ui::redraw_requested = true;
     Root::init();
 }
 
@@ -33,19 +33,31 @@ void app_set_temp_directory(const char* temp_directory_) {
     temp_directory = copy;
 }
 
+int app_wants_to_render() {
+    return (ui::redraw_requested || animation::is_animating());
+}
+
 void app_render(float window_width, float window_height, float pixel_density) {
-    ui::gestures_process_touches(touch_event_queue, touch_event_queue_size);
-    touch_event_queue_size = 0;
+    while (true) {
+        nvgBeginFrame(ui::vg, window_width, window_height, pixel_density);
 
-    ui::reset();
-    ui::view.width = window_width;
-    ui::view.height = window_height;
+        ui::gestures_process_touches(touch_event_queue, touch_event_queue_size);
+        touch_event_queue_size = 0;
 
-    nvgBeginFrame(ui::vg, window_width, window_height, pixel_density);
-    Root::update();
+        animation::update_animation();
+
+        ui::reset();
+        ui::view.width = window_width;
+        ui::view.height = window_height;
+
+        ui::redraw_requested = false;
+        Root::update();
+        if (!ui::redraw_requested) break;
+
+        nvgCancelFrame(ui::vg);
+    }
+
     nvgEndFrame(ui::vg);
-
-    ui::redraw();
 }
 
 void app_touch_event(AppTouchEvent* event) {

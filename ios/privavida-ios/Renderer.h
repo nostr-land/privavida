@@ -14,7 +14,5 @@
 
 -(nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view andAppKeyboard:(AppKeyboard)app_keyboard;
 
--(void)redraw;
-
 @end
 

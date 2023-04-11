@@ -13,7 +13,7 @@
 namespace ui {
 
 // Redraw
-extern AppRedraw redraw_;
+extern bool redraw_requested;
 void redraw();
 
 // Viewport

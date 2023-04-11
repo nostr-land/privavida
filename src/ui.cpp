@@ -13,9 +13,9 @@
 namespace ui {
 
 // Redraw
-AppRedraw redraw_;
+bool redraw_requested;
 void redraw() {
-    redraw_.redraw(redraw_.opaque_ptr);
+    redraw_requested = true;
 }
 
 // Viewport
@@ -256,6 +256,9 @@ void keyboard_close() {
 
 void keyboard_rect(float* x, float* y, float* width, float* height) {
     keyboard.rect(keyboard.opaque_ptr, x, y, width, height);
+    if (*height == 0) {
+        *y = view.height;
+    }
 }
 
 }

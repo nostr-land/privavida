@@ -3704,9 +3704,26 @@ function dbg(text) {
       } while (HEAPU32[((ptr)>>2)]);
     }
 
+  var nowIsMonotonic = true;;
+  function __emscripten_get_now_is_monotonic() {
+      return nowIsMonotonic;
+    }
+
   function _abort() {
       abort('native code called abort()');
     }
+
+  function _emscripten_date_now() {
+      return Date.now();
+    }
+
+  var _emscripten_get_now;if (ENVIRONMENT_IS_NODE) {
+    _emscripten_get_now = () => {
+      var t = process.hrtime();
+      return t[0] * 1e3 + t[1] / 1e6;
+    };
+  } else _emscripten_get_now = () => performance.now();
+  ;
 
   function _emscripten_memcpy_big(dest, src, num) {
       HEAPU8.copyWithin(dest, src, src + num);
@@ -4451,13 +4468,6 @@ function dbg(text) {
       return 0;
     }
   
-  var _emscripten_get_now;if (ENVIRONMENT_IS_NODE) {
-    _emscripten_get_now = () => {
-      var t = process.hrtime();
-      return t[0] * 1e3 + t[1] / 1e6;
-    };
-  } else _emscripten_get_now = () => performance.now();
-  ;
   
   
     /**
@@ -6012,7 +6022,10 @@ var wasmImports = {
   "__syscall_ioctl": ___syscall_ioctl,
   "__syscall_openat": ___syscall_openat,
   "_emscripten_fs_load_embedded_files": __emscripten_fs_load_embedded_files,
+  "_emscripten_get_now_is_monotonic": __emscripten_get_now_is_monotonic,
   "abort": _abort,
+  "emscripten_date_now": _emscripten_date_now,
+  "emscripten_get_now": _emscripten_get_now,
   "emscripten_memcpy_big": _emscripten_memcpy_big,
   "emscripten_resize_heap": _emscripten_resize_heap,
   "emscripten_set_main_loop": _emscripten_set_main_loop,
@@ -6129,7 +6142,7 @@ var _emscripten_stack_get_current = function() {
 var ___cxa_is_pointer_type = createExportWrapper("__cxa_is_pointer_type");
 /** @type {function(...*):?} */
 var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji");
-var ___emscripten_embedded_file_data = Module['___emscripten_embedded_file_data'] = 988632;
+var ___emscripten_embedded_file_data = Module['___emscripten_embedded_file_data'] = 988664;
 
 // include: postamble.js
 // === Auto-generated postamble setup entry stuff ===

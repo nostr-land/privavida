@@ -14,7 +14,8 @@ struct ScrollView {
     enum DragState {
         IDLE,
         DRAGGING,
-        ANIMATE_INERTIA
+        ANIMATE_INERTIA,
+        ANIMATE_RUBBER_BAND
     };
 
     struct State {
@@ -23,7 +24,8 @@ struct ScrollView {
         float scroll_y = 0;
         int touch_id;
         float scroll_initial_y;
-        float scroll_velocity_y;
+        float scroll_velocity_y_mag;
+        float scroll_velocity_y_dir;
     };
 
     ScrollView(ScrollView::State* state) : state(*state) {};
