@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A407D3A329E564490025AF52 /* profile.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A407D39F29E564490025AF52 /* profile.jpeg */; };
 		A4C3F38629E4A33000090C89 /* libprivavida-core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A47B409C29E1B381005E1111 /* libprivavida-core.a */; };
 		A4C5A5F726D1B752007C5F37 /* nanovg_mtl.m in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F426D1B752007C5F37 /* nanovg_mtl.m */; };
 		A4C5A5F826D1B752007C5F37 /* nanovg_mtl_shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F626D1B752007C5F37 /* nanovg_mtl_shaders.metal */; };
@@ -38,6 +39,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A407D39F29E564490025AF52 /* profile.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = profile.jpeg; sourceTree = "<group>"; };
 		A47B409529E1B381005E1111 /* privavida-core.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "privavida-core.xcodeproj"; path = "../build/privavida-core.xcodeproj"; sourceTree = "<group>"; };
 		A4C5A5F426D1B752007C5F37 /* nanovg_mtl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = nanovg_mtl.m; sourceTree = "<group>"; };
 		A4C5A5F526D1B752007C5F37 /* nanovg_mtl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nanovg_mtl.h; sourceTree = "<group>"; };
@@ -105,6 +107,7 @@
 		A4C5A61526D1C009007C5F37 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				A407D39F29E564490025AF52 /* profile.jpeg */,
 				A4C5A61626D1C009007C5F37 /* SFRegular.ttf */,
 				A4C5A61726D1C009007C5F37 /* SFRegularItalic.ttf */,
 				A4C5A61826D1C009007C5F37 /* SFMediumItalic.ttf */,
@@ -235,6 +238,7 @@
 				A4D058BB26D043CC001CB0B5 /* Assets.xcassets in Resources */,
 				A4C5A62426D1C009007C5F37 /* SFMedium.ttf in Resources */,
 				A4D058B926D043CA001CB0B5 /* Main.storyboard in Resources */,
+				A407D3A329E564490025AF52 /* profile.jpeg in Resources */,
 				A4F7BC8126D5923F0070D1D5 /* LaunchScreen.storyboard in Resources */,
 				A4C5A62026D1C009007C5F37 /* SFMediumItalic.ttf in Resources */,
 			);

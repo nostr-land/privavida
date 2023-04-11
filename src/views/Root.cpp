@@ -10,10 +10,7 @@
 #include "../ui.hpp"
 
 void Root::init() {
-    // for (int i = 0; i < num_lines; ++i) {
-    //     lines[i] = (char*)malloc(max_line_len);
-    //     snprintf(lines[i], max_line_len, "%d", i + 1);
-    // }
+    Conversations::init();
 }
 
 void Root::update() {

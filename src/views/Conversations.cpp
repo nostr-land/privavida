@@ -46,6 +46,12 @@ static int selected_idx = 0;
 
 static ScrollView::State sv_state;
 
+static int profile_img_id = -1;
+
+void Conversations::init() {
+    profile_img_id = nvgCreateImage(ui::vg, ui::get_asset_name("profile", "jpeg"), 0);
+}
+
 void Conversations::update() {
 
     float kb_x, kb_y, kb_width, kb_height;
@@ -104,11 +110,16 @@ void Conversations::update() {
                 return ui::redraw();
             }
 
-            nvgFillColor(ui::vg, (NVGcolor){ 0.5, 0.5, 0.7, 1.0 });
-            nvgBeginPath(ui::vg);
-            nvgCircle(ui::vg, 0.5 * BLOCK_HEIGHT, y + 0.5 * BLOCK_HEIGHT, 0.5 * BLOCK_HEIGHT - 10.0);
-            nvgFill(ui::vg);
-            
+            constexpr float PROFILE_PADDING = 10.0;
+            {
+                SubView sub(PROFILE_PADDING, y + PROFILE_PADDING, BLOCK_HEIGHT - 2.0 * PROFILE_PADDING, BLOCK_HEIGHT - 2.0 * PROFILE_PADDING);
+                auto paint = nvgImagePattern(ui::vg, 0, 0, ui::view.width, ui::view.height, 0.0, profile_img_id, 1.0);
+                nvgFillPaint(ui::vg, paint);
+                nvgBeginPath(ui::vg);
+                nvgCircle(ui::vg, 0.5 * ui::view.width, 0.5 * ui::view.width, 0.5 * ui::view.width);
+                nvgFill(ui::vg);
+            }
+
             constexpr float CONTENT_PADDING = 10.0;
             float CONTENT_HEIGHT = BLOCK_HEIGHT - 2 * CONTENT_PADDING;
 

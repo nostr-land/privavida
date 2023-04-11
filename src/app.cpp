@@ -19,11 +19,24 @@ static const char* temp_directory = NULL;
 
 static AppTouchEvent touch_event_queue[1024];
 static int touch_event_queue_size = 0;
+static AppGetAssetName get_asset_name;
 
-void app_init(NVGcontext* vg_, AppKeyboard keyboard_) {
+void app_init(NVGcontext* vg_, AppKeyboard keyboard_, AppGetAssetName get_asset_name_) {
     ui::vg = vg_;
     ui::keyboard = keyboard_;
     ui::redraw_requested = true;
+    ui::get_asset_name_fptr = get_asset_name_;
+
+    // nvgCreateFont(vg_, "mono",     ui::get_asset_name("PTMono",          "ttf"));
+    nvgCreateFont(vg_, "regular",  ui::get_asset_name("SFRegular",       "ttf"));
+    // nvgCreateFont(vg_, "regulari", ui::get_asset_name("SFRegularItalic", "ttf"));
+    // nvgCreateFont(vg_, "medium",   ui::get_asset_name("SFMedium",        "ttf"));
+    // nvgCreateFont(vg_, "mediumi",  ui::get_asset_name("SFMediumItalic",  "ttf"));
+    nvgCreateFont(vg_, "bold",     ui::get_asset_name("SFBold",          "ttf"));
+    // nvgCreateFont(vg_, "boldi",    ui::get_asset_name("SFBoldItalic",    "ttf"));
+    // nvgCreateFont(vg_, "thin",     ui::get_asset_name("SFThin",          "ttf"));
+    // nvgCreateImage(vg_, ui::get_asset_name("profile", "jpeg"), 0);
+
     Root::init();
 }
 

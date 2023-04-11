@@ -48,9 +48,11 @@ typedef struct {
     void (*rect)(void* opaque_ptr, float* x, float* y, float* width, float* height);
 } AppKeyboard;
 
-void app_init(NVGcontext* vg, AppKeyboard keyboard);
+typedef const char* (*AppGetAssetName)(const char* asset_name, const char* asset_type);
+
+void app_init(NVGcontext* vg, AppKeyboard keyboard, AppGetAssetName get_asset_name);
 void app_set_temp_directory(const char* temp_directory);
-int  app_wants_to_render();
+int  app_wants_to_render(void);
 void app_render(float window_width, float window_height, float pixel_density);
 void app_touch_event(AppTouchEvent* event);
 void app_scroll_event(int x, int y, int dx, int dy);

@@ -102,6 +102,12 @@ EM_BOOL scroll_event(int event_type, const EmscriptenWheelEvent* event, void* us
     return 1;
 }
 
+static const char* get_asset_name(const char* asset_name, const char* asset_type) {
+    static char buf[256];
+    sprintf(buf, "ios/privavida-ios/Resources/%s.%s", asset_name, asset_type);
+    return buf;
+}
+
 int main() {
 
     EmscriptenWebGLContextAttributes attr;
@@ -116,9 +122,6 @@ int main() {
         printf("Could not init nanovg.\n");
         return -1;
     }
-
-    nvgCreateFont(vg, "regular", "ios/privavida-ios/Resources/SFRegular.ttf");
-    nvgCreateFont(vg, "bold", "ios/privavida-ios/Resources/SFBold.ttf");
 
     emscripten_set_touchstart_callback ("#canvas", NULL, 0, touch_event);
     emscripten_set_touchend_callback   ("#canvas", NULL, 0, touch_event);
@@ -139,7 +142,7 @@ int main() {
         *height = 0;
     };
 
-    app_init(vg, keyboard);
+    app_init(vg, keyboard, get_asset_name);
     emscripten_set_main_loop(&main_loop, 0, 1);
     // nvgDeleteGLES2(vg);
 

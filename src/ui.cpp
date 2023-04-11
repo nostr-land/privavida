@@ -287,4 +287,10 @@ void keyboard_rect(float* x, float* y, float* width, float* height) {
     }
 }
 
+// Assets
+AppGetAssetName get_asset_name_fptr;
+const char* get_asset_name(const char* asset_name, const char* asset_type) {
+    return get_asset_name_fptr(asset_name, asset_type);
+}
+
 }

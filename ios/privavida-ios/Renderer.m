@@ -45,17 +45,7 @@ static const char* get_asset_name(const char* asset_name, const char* asset_type
         exit(1);
     }
 
-    // Load our fonts
-    nvgCreateFont(_vg, "mono",     get_asset_name("PTMono",          "ttf"));
-    nvgCreateFont(_vg, "regular",  get_asset_name("SFRegular",       "ttf"));
-    nvgCreateFont(_vg, "regulari", get_asset_name("SFRegularItalic", "ttf"));
-    nvgCreateFont(_vg, "medium",   get_asset_name("SFMedium",        "ttf"));
-    nvgCreateFont(_vg, "mediumi",  get_asset_name("SFMediumItalic",  "ttf"));
-    nvgCreateFont(_vg, "bold",     get_asset_name("SFBold",          "ttf"));
-    nvgCreateFont(_vg, "boldi",    get_asset_name("SFBoldItalic",    "ttf"));
-    nvgCreateFont(_vg, "thin",     get_asset_name("SFThin",          "ttf"));
-
-    app_init(_vg, app_keyboard);
+    app_init(_vg, app_keyboard, get_asset_name);
 
     char temp[1024];
     [[[[NSFileManager defaultManager] temporaryDirectory] path] getCString:temp maxLength:1024 encoding:NSUTF8StringEncoding];

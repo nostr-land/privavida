@@ -58,4 +58,8 @@ void keyboard_open();
 void keyboard_close();
 void keyboard_rect(float* x, float* y, float* width, float* height);
 
+// Assets
+extern AppGetAssetName get_asset_name_fptr;
+const char* get_asset_name(const char* asset_name, const char* asset_type);
+
 }
