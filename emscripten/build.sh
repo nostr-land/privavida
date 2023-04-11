@@ -9,8 +9,8 @@ emcc \
     src/views/ScrollView.cpp \
     -I include/ \
     -o emscripten/index.js \
-    --embed-file ios/privavida-ios/Resources/SFBold.ttf \
-    --embed-file ios/privavida-ios/Resources/SFRegular.ttf \
-    --embed-file ios/privavida-ios/Resources/profile.jpeg \
+    --embed-file assets/SFBold.ttf \
+    --embed-file assets/SFRegular.ttf \
+    --embed-file assets/profile.jpeg \
     -sEXPORTED_FUNCTIONS=_window_size,_main \
     -sEXPORTED_RUNTIME_METHODS=cwrap

@@ -104,7 +104,7 @@ EM_BOOL scroll_event(int event_type, const EmscriptenWheelEvent* event, void* us
 
 static const char* get_asset_name(const char* asset_name, const char* asset_type) {
     static char buf[256];
-    sprintf(buf, "ios/privavida-ios/Resources/%s.%s", asset_name, asset_type);
+    sprintf(buf, "assets/%s.%s", asset_name, asset_type);
     return buf;
 }
 

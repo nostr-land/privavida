@@ -7,18 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A407D3A329E564490025AF52 /* profile.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A407D39F29E564490025AF52 /* profile.jpeg */; };
+		A407D3AD29E568C80025AF52 /* SFRegularItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3A429E568C80025AF52 /* SFRegularItalic.ttf */; };
+		A407D3AE29E568C80025AF52 /* SFMedium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3A529E568C80025AF52 /* SFMedium.ttf */; };
+		A407D3AF29E568C80025AF52 /* SFMediumItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3A629E568C80025AF52 /* SFMediumItalic.ttf */; };
+		A407D3B029E568C80025AF52 /* PTMono.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3A729E568C80025AF52 /* PTMono.ttf */; };
+		A407D3B129E568C80025AF52 /* SFThin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3A829E568C80025AF52 /* SFThin.ttf */; };
+		A407D3B229E568C80025AF52 /* profile.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A407D3A929E568C80025AF52 /* profile.jpeg */; };
+		A407D3B329E568C80025AF52 /* SFBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AA29E568C80025AF52 /* SFBold.ttf */; };
+		A407D3B429E568C80025AF52 /* SFBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */; };
+		A407D3B529E568C80025AF52 /* SFRegular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AC29E568C80025AF52 /* SFRegular.ttf */; };
 		A4C3F38629E4A33000090C89 /* libprivavida-core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A47B409C29E1B381005E1111 /* libprivavida-core.a */; };
 		A4C5A5F726D1B752007C5F37 /* nanovg_mtl.m in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F426D1B752007C5F37 /* nanovg_mtl.m */; };
 		A4C5A5F826D1B752007C5F37 /* nanovg_mtl_shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F626D1B752007C5F37 /* nanovg_mtl_shaders.metal */; };
-		A4C5A61E26D1C009007C5F37 /* SFRegular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4C5A61626D1C009007C5F37 /* SFRegular.ttf */; };
-		A4C5A61F26D1C009007C5F37 /* SFRegularItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4C5A61726D1C009007C5F37 /* SFRegularItalic.ttf */; };
-		A4C5A62026D1C009007C5F37 /* SFMediumItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4C5A61826D1C009007C5F37 /* SFMediumItalic.ttf */; };
-		A4C5A62126D1C009007C5F37 /* SFThin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4C5A61926D1C009007C5F37 /* SFThin.ttf */; };
-		A4C5A62226D1C009007C5F37 /* SFBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4C5A61A26D1C009007C5F37 /* SFBoldItalic.ttf */; };
-		A4C5A62326D1C009007C5F37 /* SFBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4C5A61B26D1C009007C5F37 /* SFBold.ttf */; };
-		A4C5A62426D1C009007C5F37 /* SFMedium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4C5A61C26D1C009007C5F37 /* SFMedium.ttf */; };
-		A4C5A62526D1C009007C5F37 /* PTMono.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4C5A61D26D1C009007C5F37 /* PTMono.ttf */; };
 		A4D058AD26D043CA001CB0B5 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = A4D058AC26D043CA001CB0B5 /* AppDelegate.m */; };
 		A4D058B026D043CA001CB0B5 /* Renderer.m in Sources */ = {isa = PBXBuildFile; fileRef = A4D058AF26D043CA001CB0B5 /* Renderer.m */; };
 		A4D058B326D043CA001CB0B5 /* GameViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A4D058B226D043CA001CB0B5 /* GameViewController.m */; };
@@ -39,19 +39,19 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A407D39F29E564490025AF52 /* profile.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = profile.jpeg; sourceTree = "<group>"; };
+		A407D3A429E568C80025AF52 /* SFRegularItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFRegularItalic.ttf; path = ../../../assets/SFRegularItalic.ttf; sourceTree = "<group>"; };
+		A407D3A529E568C80025AF52 /* SFMedium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFMedium.ttf; path = ../../../assets/SFMedium.ttf; sourceTree = "<group>"; };
+		A407D3A629E568C80025AF52 /* SFMediumItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFMediumItalic.ttf; path = ../../../assets/SFMediumItalic.ttf; sourceTree = "<group>"; };
+		A407D3A729E568C80025AF52 /* PTMono.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = PTMono.ttf; path = ../../../assets/PTMono.ttf; sourceTree = "<group>"; };
+		A407D3A829E568C80025AF52 /* SFThin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFThin.ttf; path = ../../../assets/SFThin.ttf; sourceTree = "<group>"; };
+		A407D3A929E568C80025AF52 /* profile.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = profile.jpeg; path = ../../../assets/profile.jpeg; sourceTree = "<group>"; };
+		A407D3AA29E568C80025AF52 /* SFBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFBold.ttf; path = ../../../assets/SFBold.ttf; sourceTree = "<group>"; };
+		A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFBoldItalic.ttf; path = ../../../assets/SFBoldItalic.ttf; sourceTree = "<group>"; };
+		A407D3AC29E568C80025AF52 /* SFRegular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFRegular.ttf; path = ../../../assets/SFRegular.ttf; sourceTree = "<group>"; };
 		A47B409529E1B381005E1111 /* privavida-core.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "privavida-core.xcodeproj"; path = "../build/privavida-core.xcodeproj"; sourceTree = "<group>"; };
 		A4C5A5F426D1B752007C5F37 /* nanovg_mtl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = nanovg_mtl.m; sourceTree = "<group>"; };
 		A4C5A5F526D1B752007C5F37 /* nanovg_mtl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nanovg_mtl.h; sourceTree = "<group>"; };
 		A4C5A5F626D1B752007C5F37 /* nanovg_mtl_shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = nanovg_mtl_shaders.metal; sourceTree = "<group>"; };
-		A4C5A61626D1C009007C5F37 /* SFRegular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SFRegular.ttf; sourceTree = "<group>"; };
-		A4C5A61726D1C009007C5F37 /* SFRegularItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SFRegularItalic.ttf; sourceTree = "<group>"; };
-		A4C5A61826D1C009007C5F37 /* SFMediumItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SFMediumItalic.ttf; sourceTree = "<group>"; };
-		A4C5A61926D1C009007C5F37 /* SFThin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SFThin.ttf; sourceTree = "<group>"; };
-		A4C5A61A26D1C009007C5F37 /* SFBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SFBoldItalic.ttf; sourceTree = "<group>"; };
-		A4C5A61B26D1C009007C5F37 /* SFBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SFBold.ttf; sourceTree = "<group>"; };
-		A4C5A61C26D1C009007C5F37 /* SFMedium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SFMedium.ttf; sourceTree = "<group>"; };
-		A4C5A61D26D1C009007C5F37 /* PTMono.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PTMono.ttf; sourceTree = "<group>"; };
 		A4D058A826D043CA001CB0B5 /* privavida-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "privavida-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A4D058AB26D043CA001CB0B5 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		A4D058AC26D043CA001CB0B5 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -107,15 +107,15 @@
 		A4C5A61526D1C009007C5F37 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				A407D39F29E564490025AF52 /* profile.jpeg */,
-				A4C5A61626D1C009007C5F37 /* SFRegular.ttf */,
-				A4C5A61726D1C009007C5F37 /* SFRegularItalic.ttf */,
-				A4C5A61826D1C009007C5F37 /* SFMediumItalic.ttf */,
-				A4C5A61926D1C009007C5F37 /* SFThin.ttf */,
-				A4C5A61A26D1C009007C5F37 /* SFBoldItalic.ttf */,
-				A4C5A61B26D1C009007C5F37 /* SFBold.ttf */,
-				A4C5A61C26D1C009007C5F37 /* SFMedium.ttf */,
-				A4C5A61D26D1C009007C5F37 /* PTMono.ttf */,
+				A407D3A929E568C80025AF52 /* profile.jpeg */,
+				A407D3A729E568C80025AF52 /* PTMono.ttf */,
+				A407D3AA29E568C80025AF52 /* SFBold.ttf */,
+				A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */,
+				A407D3A529E568C80025AF52 /* SFMedium.ttf */,
+				A407D3A629E568C80025AF52 /* SFMediumItalic.ttf */,
+				A407D3AC29E568C80025AF52 /* SFRegular.ttf */,
+				A407D3A429E568C80025AF52 /* SFRegularItalic.ttf */,
+				A407D3A829E568C80025AF52 /* SFThin.ttf */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -229,18 +229,18 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A4C5A62326D1C009007C5F37 /* SFBold.ttf in Resources */,
-				A4C5A61F26D1C009007C5F37 /* SFRegularItalic.ttf in Resources */,
-				A4C5A62226D1C009007C5F37 /* SFBoldItalic.ttf in Resources */,
-				A4C5A62526D1C009007C5F37 /* PTMono.ttf in Resources */,
-				A4C5A61E26D1C009007C5F37 /* SFRegular.ttf in Resources */,
-				A4C5A62126D1C009007C5F37 /* SFThin.ttf in Resources */,
+				A407D3B529E568C80025AF52 /* SFRegular.ttf in Resources */,
+				A407D3B229E568C80025AF52 /* profile.jpeg in Resources */,
+				A407D3AD29E568C80025AF52 /* SFRegularItalic.ttf in Resources */,
+				A407D3B329E568C80025AF52 /* SFBold.ttf in Resources */,
 				A4D058BB26D043CC001CB0B5 /* Assets.xcassets in Resources */,
-				A4C5A62426D1C009007C5F37 /* SFMedium.ttf in Resources */,
+				A407D3B129E568C80025AF52 /* SFThin.ttf in Resources */,
+				A407D3B429E568C80025AF52 /* SFBoldItalic.ttf in Resources */,
+				A407D3AF29E568C80025AF52 /* SFMediumItalic.ttf in Resources */,
+				A407D3B029E568C80025AF52 /* PTMono.ttf in Resources */,
+				A407D3AE29E568C80025AF52 /* SFMedium.ttf in Resources */,
 				A4D058B926D043CA001CB0B5 /* Main.storyboard in Resources */,
-				A407D3A329E564490025AF52 /* profile.jpeg in Resources */,
 				A4F7BC8126D5923F0070D1D5 /* LaunchScreen.storyboard in Resources */,
-				A4C5A62026D1C009007C5F37 /* SFMediumItalic.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
