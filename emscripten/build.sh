@@ -13,5 +13,6 @@ emcc \
     --embed-file assets/SFBold.ttf \
     --embed-file assets/SFRegular.ttf \
     --embed-file assets/profile.jpeg \
-    -sEXPORTED_FUNCTIONS=_window_size,_main \
-    -sEXPORTED_RUNTIME_METHODS=cwrap
+    -sEXPORTED_FUNCTIONS=_window_size,_main,_fs_mounted \
+    -sEXPORTED_RUNTIME_METHODS=cwrap,ccall \
+    -lidbfs.js

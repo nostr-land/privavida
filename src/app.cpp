@@ -15,17 +15,14 @@
 #include "utils/animation.hpp"
 #include "views/Root.hpp"
 
-static const char* temp_directory = NULL;
-
 static AppTouchEvent touch_event_queue[1024];
 static int touch_event_queue_size = 0;
-static AppGetAssetName get_asset_name;
 
-void app_init(NVGcontext* vg_, AppKeyboard keyboard_, AppGetAssetName get_asset_name_) {
+void app_init(NVGcontext* vg_, AppKeyboard keyboard_, AppStorage storage_) {
     ui::vg = vg_;
     ui::keyboard = keyboard_;
     ui::redraw_requested = true;
-    ui::get_asset_name_fptr = get_asset_name_;
+    ui::storage = storage_;
 
     // nvgCreateFont(vg_, "mono",     ui::get_asset_name("PTMono",          "ttf"));
     nvgCreateFont(vg_, "regular",  ui::get_asset_name("SFRegular",       "ttf"));
@@ -38,12 +35,6 @@ void app_init(NVGcontext* vg_, AppKeyboard keyboard_, AppGetAssetName get_asset_
     // nvgCreateImage(vg_, ui::get_asset_name("profile", "jpeg"), 0);
 
     Root::init();
-}
-
-void app_set_temp_directory(const char* temp_directory_) {
-    char* copy = (char*)malloc(strlen(temp_directory_) + 1);
-    strcpy(copy, temp_directory_);
-    temp_directory = copy;
 }
 
 int app_wants_to_render() {

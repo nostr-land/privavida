@@ -20,6 +20,7 @@ void window_size(int window_width_, int window_height_, int pixel_ratio_) {
     window_height = window_height_;
     pixel_ratio = pixel_ratio_;
 }
+void fs_mounted(void);
 }
 
 void main_loop() {
@@ -35,6 +36,20 @@ void main_loop() {
     glDisable(GL_DEPTH_TEST);
 
     app_render(window_width, window_height, pixel_ratio);
+}
+
+static void user_data_flush() {
+    EM_ASM(
+        if (!window.flushing) {
+            window.flushing = true;
+            FS.syncfs(false, err => {
+                if (err) {
+                    console.error(err)
+                }
+                window.flushing = false;
+            });
+        }
+    );
 }
 
 EM_BOOL touch_event(int event_type, const EmscriptenTouchEvent* event, void* user_data) {
@@ -110,6 +125,22 @@ static const char* get_asset_name(const char* asset_name, const char* asset_type
 
 int main() {
 
+    EM_ASM(
+        FS.mkdir('/idbfs');
+        FS.mount(IDBFS, {}, '/idbfs');
+        FS.syncfs(true, err => {
+            if (err) {
+                console.error(err)
+            } else {
+                Module.ccall('fs_mounted', 'void', [], [])
+            }
+        });
+    );
+
+}
+
+void fs_mounted() {
+
     EmscriptenWebGLContextAttributes attr;
     emscripten_webgl_init_context_attributes(&attr);
     attr.alpha = 0;
@@ -120,7 +151,7 @@ int main() {
     vg = nvgCreateGLES2(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
     if (vg == NULL) {
         printf("Could not init nanovg.\n");
-        return -1;
+        return;
     }
 
     emscripten_set_touchstart_callback ("#canvas", NULL, 0, touch_event);
@@ -142,9 +173,12 @@ int main() {
         *height = 0;
     };
 
-    app_init(vg, keyboard, get_asset_name);
+    AppStorage storage;
+    storage.get_asset_name = &get_asset_name;
+    storage.user_data_dir = "/idbfs";
+    storage.user_data_flush = &user_data_flush;
+
+    app_init(vg, keyboard, storage);
     emscripten_set_main_loop(&main_loop, 0, 1);
     // nvgDeleteGLES2(vg);
-
-    return 0;
 }

@@ -45,11 +45,16 @@ static const char* get_asset_name(const char* asset_name, const char* asset_type
         exit(1);
     }
 
-    app_init(_vg, app_keyboard, get_asset_name);
+    char* user_data_dir = (char*)malloc(1024);
+    NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    [[paths firstObject] getCString:user_data_dir maxLength:1024 encoding:NSUTF8StringEncoding];
 
-    char temp[1024];
-    [[[[NSFileManager defaultManager] temporaryDirectory] path] getCString:temp maxLength:1024 encoding:NSUTF8StringEncoding];
-    app_set_temp_directory(temp);
+    AppStorage storage;
+    storage.get_asset_name = &get_asset_name;
+    storage.user_data_dir = user_data_dir;
+    storage.user_data_flush = NULL; // Automatic on iOS!
+
+    app_init(_vg, app_keyboard, storage);
 
     return self;
 }

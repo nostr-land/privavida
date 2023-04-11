@@ -8,6 +8,7 @@
 #include "ui.hpp"
 #include "app.h"
 #include <string.h>
+#include <stdio.h>
 #include <math.h>
 
 namespace ui {
@@ -287,10 +288,20 @@ void keyboard_rect(float* x, float* y, float* width, float* height) {
     }
 }
 
-// Assets
-AppGetAssetName get_asset_name_fptr;
+// Storage
+AppStorage storage;
 const char* get_asset_name(const char* asset_name, const char* asset_type) {
-    return get_asset_name_fptr(asset_name, asset_type);
+    return storage.get_asset_name(asset_name, asset_type);
+}
+const char* get_user_data_path(const char* filename) {
+    static char buf[256];
+    snprintf(buf, sizeof(buf), "%s/%s", storage.user_data_dir, filename);
+    return buf;
+}
+void user_data_flush() {
+    if (storage.user_data_flush) {
+        storage.user_data_flush();
+    }
 }
 
 }

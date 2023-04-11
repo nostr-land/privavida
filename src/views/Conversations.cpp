@@ -24,22 +24,7 @@ struct Contact {
     const char* line2;
 };
 
-static std::vector<Contact> contact_list = {
-    Contact("John Stone", "what time can u be at mine tmr?", "19:00 could be good for me"),
-    Contact("Ponnappa Priya", "Mathieu: Alright parfait", ""),
-    Contact("Mia Wong", "That is working out nicely then!", ""),
-    Contact("Peter Stanbridge", "I'm on my way back right now", ""),
-    Contact("Natalie Lee-Walsh", "We need to have you out at the next", "large event. Some really incredible..."),
-    Contact("Ang Li", "Comme ça t'es au courant !", ""),
-    Contact("Nguta Ithya", "Beatrix: Photo", ""),
-    Contact("Tamzyn French", "Aller !", ""),
-    Contact("Salome Simoes", "Hey man, just came across this -", "came in a couple months ago"),
-    Contact("Trevor Virtue", "got it.", ""),
-    Contact("Tarryn Campbell-Gillies", "thanksss", ""),
-    Contact("Eugenia Anders", "You reacted ❤️ to \"Done!\"", ""),
-    Contact("Andrew Kazantzis", "Ok moi pareil", ""),
-    Contact("Verona Blair", "Mathis: Soirée chez moi vendredi", "soir, vous êtes tous invités, comme...")
-};
+static std::vector<Contact> contact_list;
 
 static bool keyboard_open = false;
 static int selected_idx = 0;
@@ -50,6 +35,72 @@ static int profile_img_id = -1;
 
 void Conversations::init() {
     profile_img_id = nvgCreateImage(ui::vg, ui::get_asset_name("profile", "jpeg"), 0);
+
+    // Load conversations
+    const char* filename = ui::get_user_data_path("conversations.txt");
+    FILE* f = fopen(filename, "r");
+    if (!f) {
+        printf("no conversations %s, creating...\n", filename);
+        f = fopen(filename, "w");
+
+        char data[] = (
+            "John Stone\twhat time can u be at mine tmr?\t19:00 could be good for me\n"
+            "Ponnappa Priya\tMathieu: Alright parfait\t\n"
+            "Mia Wong\tThat is working out nicely then!\t\n"
+            "Peter Stanbridge\tI'm on my way back right now\t\n"
+            "Natalie Lee-Walsh\tWe need to have you out at the next\tlarge event. Some really incredible...\n"
+            "Ang Li\tComme ça t'es au courant !\t\n"
+            "Nguta Ithya\tBeatrix: Photo\t\n"
+            "Tamzyn French\tAller !\t\n"
+            "Salome Simoes\tHey man, just came across this -\tcame in a couple months ago\n"
+            "Trevor Virtue\tgot it.\t\n"
+            "Tarryn Campbell-Gillies\tthanksss\t\n"
+            "Eugenia Anders\tYou reacted ❤️ to \"Done!\"\t\n"
+            "Andrew Kazantzis\tOk moi pareil\t\n"
+            "Verona Blair\tMathis: Soirée chez moi vendredi\tsoir, vous êtes tous invités, comme...\n"
+        );
+
+        fwrite(data, 1, strlen(data), f);
+        fclose(f);
+        ui::user_data_flush();
+
+        f = fopen(filename, "r");
+    }
+
+    {
+        fseek(f, 0, SEEK_END);
+        size_t len = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        
+        char* data = (char*)malloc(len + 1);
+        data[len] = '\0';
+
+        {
+            auto ch = data;
+            size_t n;
+            while ((n = fread(ch, 1, len, f)) > 0) {
+                ch += n;
+            }
+        }
+        fclose(f);
+
+        auto ch = data;
+        while (*ch != '\0') {
+            auto name = ch;
+            for (; *ch != '\t'; ++ch) {}
+            *ch++ = '\0';
+
+            auto line1 = ch;
+            for (; *ch != '\t'; ++ch) {}
+            *ch++ = '\0';
+
+            auto line2 = ch;
+            for (; *ch != '\n'; ++ch) {}
+            *ch++ = '\0';
+
+            contact_list.push_back(Contact(name, line1, line2));
+        }
+    }
 }
 
 void Conversations::update() {
