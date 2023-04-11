@@ -47,6 +47,11 @@ void touch_accept(int touch_id);
 bool touch_ended(int touch_id, GestureTouch* touch);
 bool simple_tap(float x, float y, float width, float height);
 
+// Scroll events
+// (This is just for desktop/web use)
+void set_scroll(int x, int y, int dx, int dy);
+bool get_scroll(float x, float y, float width, float height, float* dx, float* dy);
+
 // Keyboard
 extern AppKeyboard keyboard;
 void keyboard_open();

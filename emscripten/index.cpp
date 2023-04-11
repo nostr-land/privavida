@@ -66,6 +66,42 @@ EM_BOOL touch_event(int event_type, const EmscriptenTouchEvent* event, void* use
     return 1;
 }
 
+static int mouse_x, mouse_y;
+
+EM_BOOL mouse_event(int event_type, const EmscriptenMouseEvent* event, void* user_data) {
+
+    AppTouchEvent app_event;
+
+    AppTouch touch;
+    touch.id = 1;
+    touch.x = mouse_x = event->targetX;
+    touch.y = mouse_y = event->targetY;
+
+    app_event.num_touches = 1;
+    app_event.touches[0] = touch;
+
+    app_event.num_touches_changed = 1;
+    app_event.touches_changed[0] = touch;
+
+    switch (event_type) {
+        case EMSCRIPTEN_EVENT_MOUSEDOWN: app_event.type = TOUCH_START; break;
+        case EMSCRIPTEN_EVENT_MOUSEUP: {
+            app_event.type = TOUCH_END;
+            app_event.num_touches = 0;
+            break;
+        }
+        case EMSCRIPTEN_EVENT_MOUSEMOVE: app_event.type = TOUCH_MOVE;  break;
+    }
+
+    app_touch_event(&app_event);
+    return 1;
+}
+
+EM_BOOL scroll_event(int event_type, const EmscriptenWheelEvent* event, void* user_data) {
+    app_scroll_event(mouse_x, mouse_y, event->deltaX, event->deltaY);
+    return 1;
+}
+
 int main() {
 
     EmscriptenWebGLContextAttributes attr;
@@ -88,6 +124,10 @@ int main() {
     emscripten_set_touchend_callback   ("#canvas", NULL, 0, touch_event);
     emscripten_set_touchmove_callback  ("#canvas", NULL, 0, touch_event);
     emscripten_set_touchcancel_callback("#canvas", NULL, 0, touch_event);
+    emscripten_set_mousedown_callback  ("#canvas", NULL, 0, mouse_event);
+    emscripten_set_mouseup_callback    ("#canvas", NULL, 0, mouse_event);
+    emscripten_set_mousemove_callback  ("#canvas", NULL, 0, mouse_event);
+    emscripten_set_wheel_callback      ("#canvas", NULL, 0, scroll_event);
 
     AppKeyboard keyboard;
     keyboard.open = [](void* opaque_ptr) {};

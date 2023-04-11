@@ -243,6 +243,32 @@ bool simple_tap(float x, float y, float width, float height) {
 }
 
 
+// Scroll events
+struct ScrollData {
+    int x, y;
+    int dx, dy;
+};
+static ScrollData scroll_data = { 0 }; 
+void set_scroll(int x, int y, int dx, int dy) {
+    scroll_data.x = x;
+    scroll_data.y = y;
+    scroll_data.dx = dx;
+    scroll_data.dy = dy;
+}
+bool get_scroll(float x, float y, float width, float height, float* dx, float* dy) {
+    if ((scroll_data.dx == 0 && scroll_data.dy == 0) ||
+        !touch_inside(scroll_data.x, scroll_data.y, x, y, width, height)) {
+        return false;
+    }
+
+    *dx = scroll_data.dx;
+    *dy = scroll_data.dy;
+    scroll_data.dx = 0;
+    scroll_data.dy = 0;
+    return true;
+}
+
+
 // Keyboard
 AppKeyboard keyboard;
 

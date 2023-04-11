@@ -52,6 +52,8 @@ void app_render(float window_width, float window_height, float pixel_density) {
 
         ui::redraw_requested = false;
         Root::update();
+        ui::set_scroll(0, 0, 0, 0);
+
         if (!ui::redraw_requested) break;
 
         nvgCancelFrame(ui::vg);
@@ -63,4 +65,8 @@ void app_render(float window_width, float window_height, float pixel_density) {
 void app_touch_event(AppTouchEvent* event) {
     touch_event_queue[touch_event_queue_size++] = *event;
     ui::redraw();
+}
+
+void app_scroll_event(int x, int y, int dx, int dy) {
+    ui::set_scroll(x, y, dx, dy);
 }

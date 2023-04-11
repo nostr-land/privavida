@@ -53,6 +53,7 @@ void app_set_temp_directory(const char* temp_directory);
 int  app_wants_to_render();
 void app_render(float window_width, float window_height, float pixel_density);
 void app_touch_event(AppTouchEvent* event);
+void app_scroll_event(int x, int y, int dx, int dy);
 void app_key_backspace(void);
 void app_key_character(const char* ch);
 

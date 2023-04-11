@@ -22,13 +22,28 @@
     <canvas id="canvas" height="400px" width="400px"></canvas>
     <script src="index.js"></script>
     <script>
-        const windowSize = Module.cwrap('window_size', 'void', ['number', 'number']);
-        setInterval(() => {
-            const rect = document.querySelector('#canvas').getBoundingClientRect();
-            canvas.setAttribute('width', rect.width * 2);
-            canvas.setAttribute('height', rect.height * 2);
-            windowSize(rect.width, rect.height, 2);
-        }, 1000);
+        Module.onRuntimeInitialized = () => {
+            const windowSize = Module.cwrap('window_size', 'void', ['number', 'number']);
+            let widthPrev = 0;
+            let heightPrev = 0;
+            function updateSize() {
+                const [width, height] = [window.innerWidth, window.innerHeight];
+                if (widthPrev === width && heightPrev === height) {
+                    return;
+                }
+
+                canvas.style.setProperty('width', width + 'px');
+                canvas.style.setProperty('height', height + 'px');
+                canvas.setAttribute('width', width * 2);
+                canvas.setAttribute('height', height * 2);
+                windowSize(width, height, 2);
+                widthPrev = width;
+                heightPrev = height;
+            };
+
+            window.onresize = updateSize;
+            updateSize();
+        };
     </script>
 </body>
 </html>

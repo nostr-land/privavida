@@ -73,6 +73,12 @@ void ScrollView::update() {
         animation::start((void*)&state);
     }
 
+    float dx, dy;
+    if (ui::get_scroll(0, 0, ui::view.width, ui::view.height, &dx, &dy)) {
+        state.scroll_y += dy;
+        state.scroll_y = clamp(0, state.scroll_y, max_scroll_y);
+    }
+
     // Update scroll y
     if (state.state == ANIMATE_INERTIA) {
         double elapsed = animation::get_time_elapsed((void*)&state);
