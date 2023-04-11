@@ -73,4 +73,5 @@ void app_touch_event(AppTouchEvent* event) {
 
 void app_scroll_event(int x, int y, int dx, int dy) {
     ui::set_scroll(x, y, dx, dy);
+    ui::redraw();
 }

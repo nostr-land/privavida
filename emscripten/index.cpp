@@ -10,20 +10,26 @@
 
 static EMSCRIPTEN_WEBGL_CONTEXT_HANDLE ctx;
 static NVGcontext* vg;
-static bool redraw_requested = false;
 
 static float window_width, window_height, pixel_ratio;
+static bool force_render = false;
 
 extern "C" {
 void window_size(int window_width_, int window_height_, int pixel_ratio_) {
     window_width = window_width_;
     window_height = window_height_;
     pixel_ratio = pixel_ratio_;
+    force_render = true;
 }
 void fs_mounted(void);
 }
 
 void main_loop() {
+    if (!app_wants_to_render() && !force_render) {
+        return;
+    }
+    force_render = false;
+
     emscripten_webgl_make_context_current(ctx);
 
     glViewport(0, 0, window_width * pixel_ratio, window_height * pixel_ratio);
