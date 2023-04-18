@@ -12,7 +12,7 @@
 //   allows it to accept per-frame update and drawable resize callbacks.
 @interface Renderer : NSObject <MTKViewDelegate>
 
--(nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view andAppKeyboard:(AppKeyboard)app_keyboard;
+-(nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view andAppKeyboard:(AppKeyboard)app_keyboard andAppNetworking:(AppNetworking)app_networking;
 
 @end
 

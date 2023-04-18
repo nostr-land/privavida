@@ -1,4 +1,5 @@
 #include <emscripten/html5.h>
+#include <emscripten/websocket.h>
 #include <GLES2/gl2.h>
 
 #include <nanovg.h>
@@ -129,6 +130,74 @@ static const char* get_asset_name(const char* asset_name, const char* asset_type
     return buf;
 }
 
+EM_BOOL websocket_open_event(int event_type, const EmscriptenWebSocketOpenEvent* event, void* user_data) {
+    AppWebsocketEvent app_event;
+    app_event.type = WEBSOCKET_OPEN;
+    app_event.ws = event->socket;
+    app_websocket_event(&app_event);
+    return 1;
+}
+
+EM_BOOL websocket_message_event(int event_type, const EmscriptenWebSocketMessageEvent* event, void* user_data) {
+    if (!event->isText) return 0;
+    AppWebsocketEvent app_event;
+    app_event.type = WEBSOCKET_MESSAGE;
+    app_event.ws = event->socket;
+    app_event.data = (const char*)event->data;
+    app_event.data_length = strlen((const char*)event->data);
+    app_websocket_event(&app_event);
+    return 1;
+}
+
+EM_BOOL websocket_error_event(int event_type, const EmscriptenWebSocketErrorEvent* event, void* user_data) {
+    AppWebsocketEvent app_event;
+    app_event.type = WEBSOCKET_ERROR;
+    app_event.ws = event->socket;
+    app_websocket_event(&app_event);
+    return 1;
+}
+
+EM_BOOL websocket_close_event(int event_type, const EmscriptenWebSocketCloseEvent* event, void* user_data) {
+    AppWebsocketEvent app_event;
+    app_event.type = WEBSOCKET_CLOSE;
+    app_event.ws = event->socket;
+    app_event.code = event->code;
+    app_event.data = event->reason;
+    app_event.data_length = strlen(event->reason);
+    app_websocket_event(&app_event);
+    return 1;
+}
+
+AppWebsocketHandle websocket_open(void* opaque_ptr, const char* url) {
+    EmscriptenWebSocketCreateAttributes attributes;
+    emscripten_websocket_init_create_attributes(&attributes);
+
+    attributes.url = url;
+    attributes.protocols = "binary";
+    attributes.createOnMainThread = 1;
+
+    auto socket = emscripten_websocket_new(&attributes);
+    if (socket <= 0) {
+        return socket;
+    }
+
+    emscripten_websocket_set_onopen_callback   (socket, NULL, websocket_open_event);
+    emscripten_websocket_set_onerror_callback  (socket, NULL, websocket_error_event);
+    emscripten_websocket_set_onclose_callback  (socket, NULL, websocket_close_event);
+    emscripten_websocket_set_onmessage_callback(socket, NULL, websocket_message_event);
+
+    return socket;
+}
+
+void websocket_send(void* opaque_ptr, AppWebsocketHandle ws, const char* data) {
+    emscripten_websocket_send_utf8_text(ws, data);
+}
+
+void websocket_close(void* opaque_ptr, AppWebsocketHandle ws, unsigned short code, const char* reason) {
+    emscripten_websocket_close(ws, code, reason);
+    emscripten_websocket_delete(ws);
+}
+
 int main() {
 
     EM_ASM(
@@ -184,7 +253,12 @@ void fs_mounted() {
     storage.user_data_dir = "/idbfs";
     storage.user_data_flush = &user_data_flush;
 
-    app_init(vg, keyboard, storage);
+    AppNetworking networking;
+    networking.websocket_open  = &websocket_open;
+    networking.websocket_send  = &websocket_send;
+    networking.websocket_close = &websocket_close;
+
+    app_init(vg, keyboard, storage, networking);
     emscripten_set_main_loop(&main_loop, 0, 1);
     // nvgDeleteGLES2(vg);
 }

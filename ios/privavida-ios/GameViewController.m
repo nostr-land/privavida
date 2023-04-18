@@ -31,6 +31,18 @@ static void app_keyboard_rect(void* ptr, float* x, float* y, float* width, float
     *height = rect.size.height;
 }
 
+static AppWebsocketHandle app_ws_open(void* ptr, const char* url) {
+    return -1;
+}
+
+static void app_ws_send(void* ptr, AppWebsocketHandle ws, const char* data) {
+    
+}
+
+static void app_ws_close(void* ptr, AppWebsocketHandle ws, unsigned short code, const char* reason) {
+    
+}
+
 - (void)viewDidLoad {
 
     [super viewDidLoad];
@@ -54,7 +66,15 @@ static void app_keyboard_rect(void* ptr, float* x, float* y, float* width, float
     app_keyboard.close = app_close_keyboard;
     app_keyboard.rect = app_keyboard_rect;
 
-    _renderer = [[Renderer alloc] initWithMetalKitView:_view andAppKeyboard:app_keyboard];
+    AppNetworking app_networking;
+    app_networking.opaque_ptr = (__bridge void*)self;
+    app_networking.websocket_open = app_ws_open;
+    app_networking.websocket_send = app_ws_send;
+    app_networking.websocket_close = app_ws_close;
+    
+    _renderer = [[Renderer alloc] initWithMetalKitView:_view
+                                        andAppKeyboard:app_keyboard
+                                      andAppNetworking:app_networking];
 
     [_renderer mtkView:_view drawableSizeWillChange:_view.bounds.size];
 

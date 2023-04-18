@@ -32,7 +32,7 @@ static const char* get_asset_name(const char* asset_name, const char* asset_type
     NVGcontext* _vg;
 }
 
--(nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view andAppKeyboard:(AppKeyboard)app_keyboard {
+-(nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view andAppKeyboard:(AppKeyboard)app_keyboard andAppNetworking:(AppNetworking)app_networking {
     self = [super init];
     if (!self) {
         return self;
@@ -53,8 +53,8 @@ static const char* get_asset_name(const char* asset_name, const char* asset_type
     storage.get_asset_name = &get_asset_name;
     storage.user_data_dir = user_data_dir;
     storage.user_data_flush = NULL; // Automatic on iOS!
-
-    app_init(_vg, app_keyboard, storage);
+    
+    app_init(_vg, app_keyboard, storage, app_networking);
 
     return self;
 }

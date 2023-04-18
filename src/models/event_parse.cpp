@@ -312,6 +312,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
         } else {
             return error();
         }
+        return true;
     }
 };
 
