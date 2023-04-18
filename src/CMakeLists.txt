@@ -5,5 +5,6 @@ list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/ui.cpp
 )
 add_subdirectory(views)
+add_subdirectory(models)
 add_subdirectory(utils)
 set(SOURCES ${SOURCES} PARENT_SCOPE)
