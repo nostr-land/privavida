@@ -14,6 +14,9 @@
 #include "ui.hpp"
 #include "utils/animation.hpp"
 #include "views/Root.hpp"
+#include "models/event_parse.hpp"
+#include "models/event_stringify.hpp"
+#include "models/hex.hpp"
 
 static AppTouchEvent touch_event_queue[1024];
 static int touch_event_queue_size = 0;
@@ -35,6 +38,7 @@ void app_init(NVGcontext* vg_, AppKeyboard keyboard_, AppStorage storage_) {
     // nvgCreateImage(vg_, ui::get_asset_name("profile", "jpeg"), 0);
 
     Root::init();
+
 }
 
 int app_wants_to_render() {

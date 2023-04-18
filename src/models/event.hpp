@@ -63,3 +63,35 @@ struct Event {
         return (0xFF000000 & event->__header__) >> 24;
     }
 };
+
+//
+/// event_finish()
+//
+//   Will set the created_at property, the pubkey property,
+//   compute the hash, and sign the event.
+//
+bool event_finish(Event* event, const uint8_t* seckey);
+
+//
+/// event_compute_hash()
+//
+//   Given an event, will compute its hash.
+//
+void event_compute_hash(const Event* event, uint8_t* hash_out);
+
+//
+/// validate_event()
+//
+//   Given an event, will check whether the id and sig are correct.
+//   Based on the result the event->validity property will be set
+//   to reflect the result. The function will return true if the
+//   event is valid.
+//
+bool event_validate(Event* event);
+
+//
+/// event_check_hash()
+//
+//   Given an event, will verify that the signature is correct.
+//
+bool event_verify_signature(const Event* event);

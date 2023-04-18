@@ -1,15 +1,15 @@
 //
-//  event_write.cpp
+//  event_stringify.cpp
 //  privavida-core
 //
 //  Created by Bartholomew Joyce on 18/07/2018.
 //
 
-#include "event_write.hpp"
+#include "event_stringify.hpp"
 #include "hex.hpp"
 #include <rapidjson/writer.h>
 
-void event_write(const Event* event, char* output) {
+void event_stringify(const Event* event, char* output) {
 
     auto _base = (const void*)event;
     char buffer[128];

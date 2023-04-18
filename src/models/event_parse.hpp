@@ -37,13 +37,11 @@ enum EventParseError {
 };
 
 struct EventParseResult {
-    uint32_t text_content_len;
+    uint32_t event_size;
     uint32_t num_tags;
     uint32_t num_tag_values;
 };
 
-EventParseError event_parse(const char* input, size_t input_len, uint8_t* buffer, EventParseResult& result);
+EventParseError event_parse(const char* input, size_t input_len, uint8_t* tlv_out, EventParseResult& result);
 
-size_t event_get_size(const EventParseResult& result);
-
-void event_create(Event* event, const uint8_t* buffer, const EventParseResult& result);
+void event_create(Event* event_out, const uint8_t* tlv, const EventParseResult& result);

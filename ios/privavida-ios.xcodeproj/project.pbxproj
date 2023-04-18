@@ -16,7 +16,7 @@
 		A407D3B329E568C80025AF52 /* SFBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AA29E568C80025AF52 /* SFBold.ttf */; };
 		A407D3B429E568C80025AF52 /* SFBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */; };
 		A407D3B529E568C80025AF52 /* SFRegular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AC29E568C80025AF52 /* SFRegular.ttf */; };
-		A4C3F38629E4A33000090C89 /* libprivavida-core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A47B409C29E1B381005E1111 /* libprivavida-core.a */; };
+		A480DA5329EF2E03003CA565 /* libprivavida-core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A47B409C29E1B381005E1111 /* libprivavida-core.a */; };
 		A4C5A5F726D1B752007C5F37 /* nanovg_mtl.m in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F426D1B752007C5F37 /* nanovg_mtl.m */; };
 		A4C5A5F826D1B752007C5F37 /* nanovg_mtl_shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F626D1B752007C5F37 /* nanovg_mtl_shaders.metal */; };
 		A4D058AD26D043CA001CB0B5 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = A4D058AC26D043CA001CB0B5 /* AppDelegate.m */; };
@@ -71,7 +71,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A4C3F38629E4A33000090C89 /* libprivavida-core.a in Frameworks */,
+				A480DA5329EF2E03003CA565 /* libprivavida-core.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -391,6 +391,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = RL589P5V5W;
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../include";
@@ -403,6 +404,7 @@
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = com.bartholomewjoyce.privavida;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -412,6 +414,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = RL589P5V5W;
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../include";
@@ -424,6 +427,7 @@
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = com.bartholomewjoyce.privavida;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;

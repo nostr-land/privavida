@@ -1,0 +1,6 @@
+[submodule "lib/rapidjson"]
+	path = lib/rapidjson
+	url = https://github.com/Tencent/rapidjson
+[submodule "lib/secp256k1"]
+	path = lib/secp256k1
+	url = git@github.com:bitcoin-core/secp256k1.git

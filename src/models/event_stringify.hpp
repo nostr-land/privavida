@@ -1,5 +1,5 @@
 //
-//  event_write.hpp
+//  event_stringify.hpp
 //  privavida-core
 //
 //  Created by Bartholomew Joyce on 18/07/2018.
@@ -9,4 +9,4 @@
 
 #include "event.hpp"
 
-void event_write(const Event* event, char* output);
+void event_stringify(const Event* event, char* output);

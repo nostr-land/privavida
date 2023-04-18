@@ -315,11 +315,15 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
     }
 };
 
-EventParseError event_parse(const char* input, size_t input_len, uint8_t* buffer, EventParseResult& result) {
+static inline int align_8(int n) {
+    return n + (8 - n%8) % 8;
+}
+
+EventParseError event_parse(const char* input, size_t input_len, uint8_t* tlv_out, EventParseResult& result) {
     
     ReaderHandler handler;
-    handler.buffer_ptr = buffer;
-    
+    handler.buffer_ptr = tlv_out;
+
     rapidjson::StringStream stream(input);
 
     char parse_buf[input_len];
@@ -332,40 +336,33 @@ EventParseError event_parse(const char* input, size_t input_len, uint8_t* buffer
         return handler.err;
     }
 
-    result.text_content_len = handler.text_content_len;
+    result.event_size = align_8(
+        sizeof(Event) +
+        align_8(handler.text_content_len) +
+        handler.num_tags * sizeof(RelArray<RelArray<RelString>>) +
+        handler.num_tag_values * sizeof(RelArray<RelString>)
+    );
     result.num_tags = handler.num_tags;
     result.num_tag_values = handler.num_tag_values;
     return PARSE_NO_ERR;
 }
 
-static inline int align_8(int n) {
-    return n + (8 - n%8) % 8;
-}
-
-size_t event_get_size(const EventParseResult& result) {
-    return align_8(
-        sizeof(Event) +
-        align_8(result.text_content_len + result.num_tag_values + 1) +
-        result.num_tags * sizeof(RelArray<RelArray<RelString>>) +
-        result.num_tag_values * sizeof(RelArray<RelString>)
-    );
-}
-
-void event_create(Event* event, const uint8_t* buffer, const EventParseResult& result) {
+void event_create(Event* event, const uint8_t* tlv, const EventParseResult& result) {
     
     auto _base = (void*)event;
     memset(_base, 0, sizeof(Event));
 
-    int main_size = (int)(event->__buffer - (uint8_t*)event);
-    int text_size = align_8(result.text_content_len + result.num_tag_values + 1);
+    int fixed_size = sizeof(Event);
+    int total_size = result.event_size;
+    
     int tags_size = sizeof(RelArray<RelString>) * result.num_tags;
     int vals_size = sizeof(RelString) * result.num_tag_values;
-    
-    int data_offset = main_size;
-    int text_offset = main_size;
-    int tags_offset = main_size + text_size;
-    int vals_offset = main_size + text_size + tags_size;
-    int total_size  = main_size + text_size + tags_size + vals_size;
+
+    int data_offset = fixed_size;
+    int tags_offset = fixed_size;
+    int vals_offset = fixed_size + tags_size;
+    int text_offset = fixed_size + tags_size + vals_size;
+
     event->__header__ = (Event::VERSION << 24) | (uint32_t)total_size;
 
     event->tags.size = result.num_tags;
@@ -379,7 +376,7 @@ void event_create(Event* event, const uint8_t* buffer, const EventParseResult& r
     int tag_index = 0;
     int tag_value_index = 0;
 
-    const uint8_t* ch = buffer;
+    const uint8_t* ch = tlv;
     while (*ch != TYPE_END) {
         uint8_t field_type = (*ch & TYPE_PART_FIELD);
 
