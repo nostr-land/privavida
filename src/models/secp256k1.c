@@ -4,6 +4,7 @@
 // to include secp256k1 into the libprivavida-core.a
 // object. So that's what's happening here.
 
+#define ENABLE_MODULE_ECDH
 #define ENABLE_MODULE_EXTRAKEYS
 #define ENABLE_MODULE_SCHNORRSIG
 

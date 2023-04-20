@@ -10,9 +10,11 @@ emcc \
     src/views/ScrollView.cpp \
     src/models/event.cpp \
     src/models/event_parse.cpp \
+    src/models/relay_message_parse.cpp \
     src/models/event_stringify.cpp \
     src/models/hex.cpp \
     src/models/secp256k1.c \
+    src/network/network.cpp \
     -I include/ \
     -I lib/ \
     -I lib/rapidjson/include/ \

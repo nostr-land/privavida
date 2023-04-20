@@ -14,6 +14,7 @@ set(SECP256K1_BUILD_EXHAUSTIVE_TESTS OFF CACHE BOOL "Build exhaustive tests.")
 add_subdirectory(src)
 add_subdirectory(lib/nanovg)
 add_subdirectory(lib/sha256)
+add_subdirectory(lib/websocketpp)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fobjc-abi-version=2 -fobjc-arc -std=gnu++17 -stdlib=libc++ -isysroot ${CMAKE_OSX_SYSROOT}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fobjc-abi-version=2 -fobjc-arc -isysroot ${CMAKE_OSX_SYSROOT}")
@@ -25,4 +26,5 @@ target_include_directories(${APP_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/rapidjson/include
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/secp256k1/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocketpp
 )

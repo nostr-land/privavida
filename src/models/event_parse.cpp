@@ -14,47 +14,68 @@
 #include <rapidjson/reader.h>
 
 // This parser is designed to work without doing any heap allocations.
-// The way it manages to do this is by building an intermediate
+// The way it manages to do this by building an intermediate
 // representation of the JSON data that is gauranteed to be smaller
 // than the source string.
 // This intermediate representation is a simple kind of TLV (type-length-value)
-// binary encoding of a Nostr event.
+// binary encoding of a Nostr event. It is similar to NIP-19 bech32-encoded
+// TLV values, however it supports two length encodings: 16-bit and 32-bit
 
-// There are 8 field types that are encoded in the 4 most-significant-bits
-// of the type:
-#define TYPE_PART_FIELD       0xF0
-#define TYPE_END              0x00
-#define TYPE_FIELD_ID         0x10
-#define TYPE_FIELD_PUBKEY     0x20
-#define TYPE_FIELD_SIG        0x30
-#define TYPE_FIELD_KIND       0x40
-#define TYPE_FIELD_CONTENT    0x50
-#define TYPE_FIELD_CREATED_AT 0x60
-#define TYPE_FIELD_TAG        0x70 // Start of a tag
-#define TYPE_FIELD_TAG_VAL    0x80 // Start of a tag value
 
-// The length of the TLV entry is encoded either in 19 bits or 32 bits:
-#define TYPE_LENGTH_19BIT 0x08 // Length is encoded in 19-bits: 3 LSBs of type field + 2 bytes
-#define TYPE_LENGTH_32BIT 0x07 // Length is encoded in 32-bits: 4 bytes following type field
-#define TYPE_PART_3LSB    0x07
+// There are 9 value types (including a TYPE_END value to signal the end)
+enum TLV_Type : uint8_t {
+    TYPE_END        = 0x00,
+    TYPE_ID         = 0x01,
+    TYPE_PUBKEY     = 0x02,
+    TYPE_SIG        = 0x03,
+    TYPE_KIND       = 0x04,
+    TYPE_CONTENT    = 0x05,
+    TYPE_CREATED_AT = 0x06,
+    TYPE_TAG        = 0x07, // Start of a tag
+    TYPE_TAG_VAL    = 0x08, // Start of a tag value
 
-// The 19-bit type encoding seems kind of weird, but it is necessary to be able
-// to encode TLV headers (the type and value part) in no more than 3 bytes to
-// guarantee that the TLV is smaller than the JSON input under all circumstances.
+    TYPE_FLAG_32BIT = 0x80, // When flag is set, length is encoded in 4 bytes
+};
+
+// Tags are encoded using TYPE_TAG and TYPE_TAG_VAL.
+//
+//  [
+//    ["e", "abcd"],
+//    ["p", "abcd", "wss://"],
+//    ["title", "hi"]
+//  ]
+//              |
+//              |    becomes
+//              |
+//              V
+//
+//    TYPE_TAG(e), TYPE_TAG_VAL(abcd),
+//    TYPE_TAG(p), TYPE_TAG_VAL(abcd), TYPE_TAG_VAL(wss://),
+//    TYPE_TAG(title), TYPE_TAG_VAL(hi)
+//
+
 
 static void write_tlv(uint8_t*& buffer_ptr, uint8_t type, uint32_t length, const uint8_t* value) {
 
+    union {
+        uint8_t  bytes[4];
+        uint16_t len16;
+        uint32_t len32;
+    };
+
     // Write type and length
-    if (length < (1 << 19)) {
-        *buffer_ptr++ = type | TYPE_LENGTH_19BIT | (uint8_t)(length >> 16);
-        *buffer_ptr++ = (uint8_t)((length >> 8) % 256);
-        *buffer_ptr++ = (uint8_t)(length % 256);
+    if (length < (1 << 16)) {
+        len16 = (unsigned short)length;
+        *buffer_ptr++ = type;
+        *buffer_ptr++ = bytes[0];
+        *buffer_ptr++ = bytes[1];
     } else {
-        *buffer_ptr++ = type | TYPE_LENGTH_32BIT;
-        *buffer_ptr++ = (uint8_t)(length >> 24);
-        *buffer_ptr++ = (uint8_t)((length >> 16) % 256);
-        *buffer_ptr++ = (uint8_t)((length >> 8) % 256);
-        *buffer_ptr++ = (uint8_t)(length % 256);
+        len32 = length;
+        *buffer_ptr++ = type | TYPE_FLAG_32BIT;
+        *buffer_ptr++ = bytes[0];
+        *buffer_ptr++ = bytes[1];
+        *buffer_ptr++ = bytes[2];
+        *buffer_ptr++ = bytes[3];
     }
 
     // Write value
@@ -74,23 +95,24 @@ static void write_end(uint8_t*& buffer_ptr) {
 #define FLAG_PARSED_CREATED_AT 0x20
 #define FLAG_PARSED_TAGS       0x40
 
-enum ReaderState {
-    STATE_STARTED,
-    STATE_IN_ROOT,
-    STATE_AT_ID,
-    STATE_AT_PUBKEY,
-    STATE_AT_SIG,
-    STATE_AT_KIND,
-    STATE_AT_CREATED_AT,
-    STATE_AT_CONTENT,
-    STATE_AT_TAGS,
-    STATE_IN_TAGS,
-    STATE_IN_TAG,
-    STATE_IN_OTHER
-};
+struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, EventReader> {
+    enum ReaderState {
+        STATE_STARTED,
+        STATE_IN_ROOT,
+        STATE_AT_ID,
+        STATE_AT_PUBKEY,
+        STATE_AT_SIG,
+        STATE_AT_KIND,
+        STATE_AT_CREATED_AT,
+        STATE_AT_CONTENT,
+        STATE_AT_TAGS,
+        STATE_IN_TAGS,
+        STATE_IN_TAG,
+        STATE_IN_OTHER,
+        STATE_ENDED
+    };
 
-struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, ReaderHandler> {
-    EventParseError err = PARSE_NO_ERR;
+    ParseError err = PARSE_NO_ERR;
     ReaderState state = STATE_STARTED;
     int other_depth;
     uint8_t flags = 0;
@@ -100,7 +122,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
     int text_content_len = 0;
     bool is_first_element = false;
 
-    bool error(EventParseError err) {
+    bool error(ParseError err) {
         this->err = err;
         return false;
     }
@@ -118,7 +140,13 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
             case STATE_IN_TAGS:       err = PARSE_ERR_INVALID_TAGS;       break;
             case STATE_IN_TAG:        err = PARSE_ERR_INVALID_TAGS;       break;
             case STATE_IN_OTHER:      err = PARSE_ERR_INVALID_EVENT;      break;
+            case STATE_ENDED:         err = PARSE_ERR_INVALID_EVENT;      break;
         }
+        return false;
+    }
+    bool done() {
+        write_end(buffer_ptr);
+        state = STATE_ENDED;
         return false;
     }
 
@@ -152,11 +180,11 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
             state = other_depth ? STATE_IN_OTHER : STATE_IN_ROOT;
         } else if (state == STATE_AT_KIND) {
             state = STATE_IN_ROOT;
-            write_tlv(buffer_ptr, TYPE_FIELD_KIND, 4, (uint8_t*)&u);
+            write_tlv(buffer_ptr, TYPE_KIND, 4, (uint8_t*)&u);
         } else if (state == STATE_AT_CREATED_AT) {
             state = STATE_IN_ROOT;
             uint64_t value = u;
-            write_tlv(buffer_ptr, TYPE_FIELD_CREATED_AT, 8, (uint8_t*)&value);
+            write_tlv(buffer_ptr, TYPE_CREATED_AT, 8, (uint8_t*)&value);
         } else {
             return error();
         }
@@ -175,7 +203,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
             state = other_depth ? STATE_IN_OTHER : STATE_IN_ROOT;
         } else if (state == STATE_AT_CREATED_AT) {
             state = STATE_IN_ROOT;
-            write_tlv(buffer_ptr, TYPE_FIELD_CREATED_AT, 8, (uint8_t*)&u);
+            write_tlv(buffer_ptr, TYPE_CREATED_AT, 8, (uint8_t*)&u);
         } else {
             return error();
         }
@@ -195,26 +223,26 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
             if (length != 2 * sizeof(Event::id)) return error();
             uint8_t bytes[sizeof(Event::id)];
             if (!hex_decode(bytes, str, sizeof(Event::id))) return error();
-            write_tlv(buffer_ptr, TYPE_FIELD_ID, length, bytes);
+            write_tlv(buffer_ptr, TYPE_ID, length, bytes);
             state = STATE_IN_ROOT;
         } else if (state == STATE_AT_PUBKEY) {
             if (length != 2 * sizeof(Event::pubkey)) return error();
             uint8_t bytes[sizeof(Event::pubkey)];
             if (!hex_decode(bytes, str, sizeof(Event::pubkey))) return error();
-            write_tlv(buffer_ptr, TYPE_FIELD_PUBKEY, length, bytes);
+            write_tlv(buffer_ptr, TYPE_PUBKEY, length, bytes);
             state = STATE_IN_ROOT;
         } else if (state == STATE_AT_SIG) {
             if (length != 2 * sizeof(Event::sig)) return error();
             uint8_t bytes[sizeof(Event::sig)];
             if (!hex_decode(bytes, str, sizeof(Event::sig))) return error();
-            write_tlv(buffer_ptr, TYPE_FIELD_SIG, length, bytes);
+            write_tlv(buffer_ptr, TYPE_SIG, length, bytes);
             state = STATE_IN_ROOT;
         } else if (state == STATE_AT_CONTENT) {
-            write_tlv(buffer_ptr, TYPE_FIELD_CONTENT, length, (const uint8_t*)str);
+            write_tlv(buffer_ptr, TYPE_CONTENT, length, (const uint8_t*)str);
             text_content_len += length + 1;
             state = STATE_IN_ROOT;
         } else if (state == STATE_IN_TAG) {
-            uint8_t type = is_first_element ? TYPE_FIELD_TAG : TYPE_FIELD_TAG_VAL;
+            uint8_t type = is_first_element ? TYPE_TAG : TYPE_TAG_VAL;
             write_tlv(buffer_ptr, type, length, (const uint8_t*)str);
             text_content_len += length + 1;
             is_first_element = false;
@@ -279,8 +307,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
             }
             return true;
         } else if (state == STATE_IN_ROOT) {
-            write_end(buffer_ptr);
-            return true;
+            return done();
         }
         return error();
     }
@@ -320,20 +347,24 @@ static inline int align_8(int n) {
     return n + (8 - n%8) % 8;
 }
 
-EventParseError event_parse(const char* input, size_t input_len, uint8_t* tlv_out, EventParseResult& result) {
-    
-    ReaderHandler handler;
+static inline size_t max(size_t a, size_t b) {
+    return a < b ? b : a;
+}
+
+ParseError event_parse(const char* input, size_t input_len, uint8_t* tlv_out, EventParseResult& result) {
+
+    EventReader handler;
     handler.buffer_ptr = tlv_out;
 
-    rapidjson::StringStream stream(input);
-
-    char parse_buf[input_len];
-    rapidjson::MemoryPoolAllocator<> allocator(parse_buf, input_len);
-
+    auto stack_size = max(input_len, 512);
+    char stack_memory[stack_size];
+    rapidjson::MemoryPoolAllocator<> allocator(stack_memory, stack_size);
     rapidjson::GenericReader<rapidjson::UTF8<>, rapidjson::UTF8<>, rapidjson::MemoryPoolAllocator<>> reader(&allocator);
+
+    rapidjson::StringStream stream(input);
     reader.Parse(stream, handler);
 
-    if (reader.HasParseError()) {
+    if (reader.HasParseError() && handler.state != EventReader::STATE_ENDED) {
         return handler.err;
     }
 
@@ -379,39 +410,36 @@ void event_create(Event* event, const uint8_t* tlv, const EventParseResult& resu
 
     const uint8_t* ch = tlv;
     while (*ch != TYPE_END) {
-        uint8_t field_type = (*ch & TYPE_PART_FIELD);
+        uint8_t field_type = *ch++;
 
         uint32_t len;
-        if (*ch & TYPE_LENGTH_19BIT) {
-            len = (*ch++ & TYPE_PART_3LSB) << 16;
-            len += *ch++ << 8;
-            len += *ch++;
+        if (field_type & TYPE_FLAG_32BIT) {
+            field_type ^= TYPE_FLAG_32BIT;
+            len = *(uint32_t*)ch;
+            ch += 4;
         } else {
-            ch++;
-            len =  *ch++ << 24;
-            len += *ch++ << 16;
-            len += *ch++ << 8;
-            len += *ch++;
+            len = *(uint16_t*)ch;
+            ch += 2;
         }
 
         switch (field_type) {
-            case TYPE_FIELD_ID: {
+            case TYPE_ID: {
                 memcpy(event->id, ch, sizeof(event->id));
                 break;
             }
-            case TYPE_FIELD_PUBKEY: {
+            case TYPE_PUBKEY: {
                 memcpy(event->pubkey, ch, sizeof(event->pubkey));
                 break;
             }
-            case TYPE_FIELD_SIG: {
+            case TYPE_SIG: {
                 memcpy(event->sig, ch, sizeof(event->sig));
                 break;
             }
-            case TYPE_FIELD_KIND: {
+            case TYPE_KIND: {
                 event->kind = *(uint32_t*)ch;
                 break;
             }
-            case TYPE_FIELD_CONTENT: {
+            case TYPE_CONTENT: {
                 RelString str;
                 str.data.offset = text_offset;
                 str.size = len;
@@ -425,11 +453,11 @@ void event_create(Event* event, const uint8_t* tlv, const EventParseResult& resu
                 
                 break;
             }
-            case TYPE_FIELD_CREATED_AT: {
+            case TYPE_CREATED_AT: {
                 event->created_at = *(uint64_t*)ch;
                 break;
             }
-            case TYPE_FIELD_TAG: {
+            case TYPE_TAG: {
                 RelString str;
                 str.data.offset = text_offset;
                 str.size = len;
@@ -449,7 +477,7 @@ void event_create(Event* event, const uint8_t* tlv, const EventParseResult& resu
                 tag_index++;
                 break;
             }
-            case TYPE_FIELD_TAG_VAL: {
+            case TYPE_TAG_VAL: {
                 RelString str;
                 str.data.offset = text_offset;
                 str.size = len;

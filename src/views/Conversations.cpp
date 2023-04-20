@@ -8,6 +8,8 @@
 #include "Conversations.hpp"
 #include "ScrollView.hpp"
 #include "SubView.hpp"
+#include "../network/network.hpp"
+#include "../models/hex.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -24,8 +26,6 @@ struct Contact {
     const char* line2;
 };
 
-static std::vector<Contact> contact_list;
-
 static bool keyboard_open = false;
 static int selected_idx = 0;
 
@@ -35,72 +35,6 @@ static int profile_img_id = -1;
 
 void Conversations::init() {
     profile_img_id = nvgCreateImage(ui::vg, ui::get_asset_name("profile", "jpeg"), 0);
-
-    // Load conversations
-    const char* filename = ui::get_user_data_path("conversations.txt");
-    FILE* f = fopen(filename, "r");
-    if (!f) {
-        printf("no conversations %s, creating...\n", filename);
-        f = fopen(filename, "w");
-
-        char data[] = (
-            "John Stone\twhat time can u be at mine tmr?\t19:00 could be good for me\n"
-            "Ponnappa Priya\tMathieu: Alright parfait\t\n"
-            "Mia Wong\tThat is working out nicely then!\t\n"
-            "Peter Stanbridge\tI'm on my way back right now\t\n"
-            "Natalie Lee-Walsh\tWe need to have you out at the next\tlarge event. Some really incredible...\n"
-            "Ang Li\tComme ça t'es au courant !\t\n"
-            "Nguta Ithya\tBeatrix: Photo\t\n"
-            "Tamzyn French\tAller !\t\n"
-            "Salome Simoes\tHey man, just came across this -\tcame in a couple months ago\n"
-            "Trevor Virtue\tgot it.\t\n"
-            "Tarryn Campbell-Gillies\tthanksss\t\n"
-            "Eugenia Anders\tYou reacted ❤️ to \"Done!\"\t\n"
-            "Andrew Kazantzis\tOk moi pareil\t\n"
-            "Verona Blair\tMathis: Soirée chez moi vendredi\tsoir, vous êtes tous invités, comme...\n"
-        );
-
-        fwrite(data, 1, strlen(data), f);
-        fclose(f);
-        ui::user_data_flush();
-
-        f = fopen(filename, "r");
-    }
-
-    {
-        fseek(f, 0, SEEK_END);
-        size_t len = ftell(f);
-        fseek(f, 0, SEEK_SET);
-        
-        char* data = (char*)malloc(len + 1);
-        data[len] = '\0';
-
-        {
-            auto ch = data;
-            size_t n;
-            while ((n = fread(ch, 1, len, f)) > 0) {
-                ch += n;
-            }
-        }
-        fclose(f);
-
-        auto ch = data;
-        while (*ch != '\0') {
-            auto name = ch;
-            for (; *ch != '\t'; ++ch) {}
-            *ch++ = '\0';
-
-            auto line1 = ch;
-            for (; *ch != '\t'; ++ch) {}
-            *ch++ = '\0';
-
-            auto line2 = ch;
-            for (; *ch != '\n'; ++ch) {}
-            *ch++ = '\0';
-
-            contact_list.push_back(Contact(name, line1, line2));
-        }
-    }
 }
 
 void Conversations::update() {
@@ -129,17 +63,17 @@ void Conversations::update() {
     {
         SubView sub(0, HEADER_HEIGHT, ui::view.width, kb_y - HEADER_HEIGHT);
         ScrollView sv(&sv_state);
-        sv.inner_size(ui::view.width, contact_list.size() * BLOCK_HEIGHT).update();
+        sv.inner_size(ui::view.width, network::events.size() * BLOCK_HEIGHT).update();
 
         int start_block = (int)(sv.state.scroll_y / BLOCK_HEIGHT);
         if (start_block < 0) start_block = 0;
         int end_block = start_block + (int)(sv.outer_height / BLOCK_HEIGHT) + 1;
 
-        for (int i = start_block; i <= end_block && i < contact_list.size(); ++i) {
+        for (int i = start_block; i <= end_block && i < network::events.size(); ++i) {
 
-            auto& contact = contact_list[i];
+            auto event = network::events[i];
             int y = i * BLOCK_HEIGHT;
-            
+
             if (i == selected_idx && keyboard_open) {
                 nvgBeginPath(ui::vg);
                 nvgRect(ui::vg, 0.0, y, ui::view.width, BLOCK_HEIGHT);
@@ -179,13 +113,23 @@ void Conversations::update() {
             nvgFontSize(ui::vg, 16.0);
             nvgFontFace(ui::vg, "bold");
             
-            nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (1.0 / 6.0), contact.name, NULL);
+            char name[sizeof(event->pubkey) * 2 + 1];
+            hex_encode(name, event->pubkey, sizeof(event->pubkey));
+            name[sizeof(event->pubkey) * 2] = '\0';
+
+            nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (1.0 / 6.0), name, NULL);
+
+            char line1[sizeof(event->id) * 2 + 1];
+            hex_encode(line1, event->id, sizeof(event->id));
+            line1[sizeof(event->id) * 2] = '\0';
+
+            auto line2 = event->content.data.get(event);
             
             nvgFillColor(ui::vg, (NVGcolor){ 0.8, 0.8, 0.8, 1.0 });
             nvgFontSize(ui::vg, 15.0);
             nvgFontFace(ui::vg, "regular");
-            nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (3.0 / 6.0), contact.line1, NULL);
-            nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (5.0 / 6.0), contact.line2, NULL);
+            nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (3.0 / 6.0), line1, NULL);
+            nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (5.0 / 6.0), line2, NULL);
 
             nvgFillColor(ui::vg, (NVGcolor){ 0.2, 0.2, 0.2, 1.0 });
             nvgBeginPath(ui::vg);

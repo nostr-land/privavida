@@ -1,0 +1,5 @@
+list(APPEND SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/network.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/network.cpp
+)
+set(SOURCES ${SOURCES} PARENT_SCOPE)

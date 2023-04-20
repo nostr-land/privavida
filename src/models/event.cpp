@@ -77,9 +77,7 @@ void event_compute_hash(const Event* event, uint8_t* hash_out) {
             writer.StartArray();
             auto tag = event->tags.get(_base, i).get(_base);
             for (int j = 0; j < tag.size; ++j) {
-                if (tag[j].size) {
-                    writer.String(tag[j].data.get(_base), tag[j].size);
-                }
+                writer.String(tag[j].data.get(_base), tag[j].size);
             }
             writer.EndArray();
         }
