@@ -10,6 +10,8 @@ list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/event_stringify.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/hex.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/hex.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/secp256k1.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/nostr_bech32.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/nostr_bech32.cpp
 )
+add_subdirectory(c)
 set(SOURCES ${SOURCES} PARENT_SCOPE)
