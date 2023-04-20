@@ -13,7 +13,9 @@ emcc \
     src/models/relay_message_parse.cpp \
     src/models/event_stringify.cpp \
     src/models/hex.cpp \
-    src/models/secp256k1.c \
+    src/models/nostr_entity.cpp \
+    src/models/c/secp256k1.c \
+    src/models/c/bech32.c \
     src/network/network.cpp \
     -I include/ \
     -I lib/ \

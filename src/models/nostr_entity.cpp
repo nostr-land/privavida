@@ -215,7 +215,7 @@ void NostrEntity::encode(const NostrEntity* entity, char* output, uint32_t* outp
 
     size_t words_len = 0;
     uint8_t words[data_len * 2];
-    if (!bech32_convert_bits(words, &words_len, 5, data, data_len, 8, 0)) {
+    if (!bech32_convert_bits(words, &words_len, 5, data, data_len, 8, 1)) {
         return;
     }
 
