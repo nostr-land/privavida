@@ -220,21 +220,21 @@ struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Even
         if (state == STATE_IN_OTHER) {
             state = other_depth ? STATE_IN_OTHER : STATE_IN_ROOT;
         } else if (state == STATE_AT_ID) {
-            if (length != 2 * sizeof(Event::id)) return error();
-            uint8_t bytes[sizeof(Event::id)];
-            if (!hex_decode(bytes, str, sizeof(Event::id))) return error();
+            if (length != 2 * sizeof(EventId)) return error();
+            uint8_t bytes[sizeof(EventId)];
+            if (!hex_decode(bytes, str, sizeof(EventId))) return error();
             write_tlv(buffer_ptr, TYPE_ID, length, bytes);
             state = STATE_IN_ROOT;
         } else if (state == STATE_AT_PUBKEY) {
-            if (length != 2 * sizeof(Event::pubkey)) return error();
-            uint8_t bytes[sizeof(Event::pubkey)];
-            if (!hex_decode(bytes, str, sizeof(Event::pubkey))) return error();
+            if (length != 2 * sizeof(Pubkey)) return error();
+            uint8_t bytes[sizeof(Pubkey)];
+            if (!hex_decode(bytes, str, sizeof(Pubkey))) return error();
             write_tlv(buffer_ptr, TYPE_PUBKEY, length, bytes);
             state = STATE_IN_ROOT;
         } else if (state == STATE_AT_SIG) {
-            if (length != 2 * sizeof(Event::sig)) return error();
-            uint8_t bytes[sizeof(Event::sig)];
-            if (!hex_decode(bytes, str, sizeof(Event::sig))) return error();
+            if (length != 2 * sizeof(Signature)) return error();
+            uint8_t bytes[sizeof(Signature)];
+            if (!hex_decode(bytes, str, sizeof(Signature))) return error();
             write_tlv(buffer_ptr, TYPE_SIG, length, bytes);
             state = STATE_IN_ROOT;
         } else if (state == STATE_AT_CONTENT) {
@@ -424,15 +424,15 @@ void event_create(Event* event, const uint8_t* tlv, const EventParseResult& resu
 
         switch (field_type) {
             case TYPE_ID: {
-                memcpy(event->id, ch, sizeof(event->id));
+                memcpy(event->id.data, ch, sizeof(event->id));
                 break;
             }
             case TYPE_PUBKEY: {
-                memcpy(event->pubkey, ch, sizeof(event->pubkey));
+                memcpy(event->pubkey.data, ch, sizeof(event->pubkey));
                 break;
             }
             case TYPE_SIG: {
-                memcpy(event->sig, ch, sizeof(event->sig));
+                memcpy(event->sig.data, ch, sizeof(event->sig));
                 break;
             }
             case TYPE_KIND: {

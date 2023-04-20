@@ -20,11 +20,11 @@ void event_stringify(const Event* event, char* output) {
     writer.StartObject();
 
     writer.String("id");
-    hex_encode(buffer, event->id, sizeof(event->id));
+    hex_encode(buffer, event->id.data, sizeof(event->id));
     writer.String(buffer, sizeof(event->id) * 2);
 
     writer.String("pubkey");
-    hex_encode(buffer, event->pubkey, sizeof(event->pubkey));
+    hex_encode(buffer, event->pubkey.data, sizeof(event->pubkey));
     writer.String(buffer, sizeof(event->pubkey) * 2);
 
     writer.String("kind");
@@ -49,7 +49,7 @@ void event_stringify(const Event* event, char* output) {
     writer.EndArray();
 
     writer.String("sig");
-    hex_encode(buffer, event->sig, sizeof(event->sig));
+    hex_encode(buffer, event->sig.data, sizeof(event->sig));
     writer.String(buffer, sizeof(event->sig) * 2);
 
     writer.EndObject();

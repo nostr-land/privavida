@@ -54,7 +54,7 @@ struct EventParseResult {
 struct RelayMessageParseResult {
     RelayMessageType message_type;
     char subscription_id[65];
-    uint8_t event_id[sizeof(Event::id)];
+    uint8_t event_id[sizeof(EventId)];
     bool ok;
     const char* message;
     uint64_t count;

@@ -23,6 +23,16 @@ enum EventContentEncryptionState {
     EVENT_CONTENT_DECRYPT_FAILED
 };
 
+struct EventId {
+    uint8_t data[32];
+};
+struct Pubkey {
+    uint8_t data[32];
+};
+struct Signature {
+    uint8_t data[64];
+};
+
 //
 /// Event
 //
@@ -44,9 +54,9 @@ struct Event {
     // Regular note data
     uint32_t  kind;
     uint64_t  created_at;
-    uint8_t   id[32];
-    uint8_t   pubkey[32];
-    uint8_t   sig[64];
+    EventId   id;
+    Pubkey    pubkey;
+    Signature sig;
     RelString content;
     RelArray<RelArray<RelString>> tags;
 

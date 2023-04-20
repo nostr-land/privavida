@@ -132,8 +132,8 @@ struct RelayMessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
             return next(STATE_AT_EVENT);
 
         } else if (state == STATE_AT_OK_EVENT_ID) {
-            if (length != 2 * sizeof(Event::id)) return false;
-            if (!hex_decode(result->ok.event_id, str, sizeof(Event::id))) return false;
+            if (length != 2 * sizeof(EventId)) return false;
+            if (!hex_decode(result->ok.event_id, str, sizeof(EventId))) return false;
             return next(STATE_AT_OK_BOOLEAN);
 
         } else if (state == STATE_AT_AUTH_CHALLENGE_STRING ||

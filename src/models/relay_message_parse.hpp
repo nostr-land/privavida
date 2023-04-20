@@ -41,7 +41,7 @@ struct RelayMessage {
         const char* message;
     };
     struct RelayMessageOk {
-        uint8_t event_id[sizeof(Event::id)];
+        uint8_t event_id[sizeof(EventId)];
         bool ok;
         const char* message;
     };

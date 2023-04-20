@@ -10,6 +10,7 @@
 #include "SubView.hpp"
 #include "../network/network.hpp"
 #include "../models/hex.hpp"
+#include "../models/nostr_entity.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -113,15 +114,13 @@ void Conversations::update() {
             nvgFontSize(ui::vg, 16.0);
             nvgFontFace(ui::vg, "bold");
             
-            char name[sizeof(event->pubkey) * 2 + 1];
-            hex_encode(name, event->pubkey, sizeof(event->pubkey));
-            name[sizeof(event->pubkey) * 2] = '\0';
+            char name[100];
+            NostrEntity::encode_npub(&event->pubkey, name, NULL);
 
             nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (1.0 / 6.0), name, NULL);
 
-            char line1[sizeof(event->id) * 2 + 1];
-            hex_encode(line1, event->id, sizeof(event->id));
-            line1[sizeof(event->id) * 2] = '\0';
+            char line1[100];
+            NostrEntity::encode_note(&event->id, line1, NULL);
 
             auto line2 = event->content.data.get(event);
             

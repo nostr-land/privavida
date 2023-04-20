@@ -16,7 +16,7 @@ extern "C" {
 #include <secp256k1_schnorrsig.h>
 }
 
-static_assert(sizeof(Event::id) == 32);
+static_assert(sizeof(EventId) == 32);
 
 // This is struct that implements the rapidjson interface for
 // an output stream. This allows us to stream the output from
@@ -60,9 +60,9 @@ void event_compute_hash(const Event* event, uint8_t* hash_out) {
 
         // <pubkey, as a (lowercase) hex string>,
         {
-            char hex[sizeof(Event::pubkey) * 2];
-            hex_encode(hex, event->pubkey, sizeof(Event::pubkey));
-            writer.String(hex, sizeof(Event::pubkey) * 2);
+            char hex[sizeof(Pubkey) * 2];
+            hex_encode(hex, event->pubkey.data, sizeof(Pubkey));
+            writer.String(hex, sizeof(Pubkey) * 2);
         }
 
         // <created_at, as a number>,
@@ -100,7 +100,7 @@ bool event_validate(Event* event) {
     uint8_t hash[32];
     event_compute_hash(event, hash);
 
-    auto hash_event_id = (const uint64_t*)event->id;
+    auto hash_event_id = (const uint64_t*)event->id.data;
     auto hash_computed = (const uint64_t*)hash;
     if (hash_event_id[0] != hash_computed[0] ||
         hash_event_id[1] != hash_computed[1] ||
@@ -112,8 +112,8 @@ bool event_validate(Event* event) {
 
     // Verify signature
     secp256k1_xonly_pubkey pubkey;
-    if (!secp256k1_xonly_pubkey_parse(secp256k1_context, &pubkey, event->pubkey) ||
-        !secp256k1_schnorrsig_verify(secp256k1_context, event->sig, event->id, 32, &pubkey)) {
+    if (!secp256k1_xonly_pubkey_parse(secp256k1_context, &pubkey, event->pubkey.data) ||
+        !secp256k1_schnorrsig_verify(secp256k1_context, event->sig.data, event->id.data, 32, &pubkey)) {
         event->validity = EVENT_INVALID_SIG;
         return false;
     }
@@ -140,7 +140,7 @@ bool event_finish(Event* event, const uint8_t* seckey) {
             return false;
         }
 
-        secp256k1_xonly_pubkey_serialize(secp256k1_context, event->pubkey, &xonly_pubkey);
+        secp256k1_xonly_pubkey_serialize(secp256k1_context, event->pubkey.data, &xonly_pubkey);
     }
 
     // event->created_at
@@ -150,7 +150,7 @@ bool event_finish(Event* event, const uint8_t* seckey) {
 
     // event->id
     {
-        event_compute_hash(event, event->id);
+        event_compute_hash(event, event->id.data);
     }
 
     // event->sig
@@ -160,7 +160,7 @@ bool event_finish(Event* event, const uint8_t* seckey) {
             return false;
         }
 
-        if (!secp256k1_schnorrsig_sign32(secp256k1_context, event->sig, event->id, &keypair, NULL)) {
+        if (!secp256k1_schnorrsig_sign32(secp256k1_context, event->sig.data, event->id.data, &keypair, NULL)) {
             return false;
         }
     }
