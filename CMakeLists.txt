@@ -26,5 +26,4 @@ target_include_directories(${APP_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/rapidjson/include
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/secp256k1/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocketpp
 )

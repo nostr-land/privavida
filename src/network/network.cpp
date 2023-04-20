@@ -33,6 +33,11 @@ void app_websocket_event(const AppWebsocketEvent* event) {
     } else if (event->type != WEBSOCKET_MESSAGE) {
         return;
     }
+    
+    if (event->data_length == 0) {
+        printf("received empty string\n");
+        return;
+    }
 
     uint8_t buffer[event->data_length];
 

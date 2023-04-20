@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -16,6 +16,8 @@
 		A407D3B329E568C80025AF52 /* SFBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AA29E568C80025AF52 /* SFBold.ttf */; };
 		A407D3B429E568C80025AF52 /* SFBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */; };
 		A407D3B529E568C80025AF52 /* SFRegular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AC29E568C80025AF52 /* SFRegular.ttf */; };
+		A45DD56C29F13E8E0073B3E6 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = A45DD56B29F13E8E0073B3E6 /* Starscream */; };
+		A45DD57129F143A00073B3E6 /* Networking.swift in Sources */ = {isa = PBXBuildFile; fileRef = A45DD57029F143A00073B3E6 /* Networking.swift */; };
 		A480DA5329EF2E03003CA565 /* libprivavida-core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A47B409C29E1B381005E1111 /* libprivavida-core.a */; };
 		A4C5A5F726D1B752007C5F37 /* nanovg_mtl.m in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F426D1B752007C5F37 /* nanovg_mtl.m */; };
 		A4C5A5F826D1B752007C5F37 /* nanovg_mtl_shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F626D1B752007C5F37 /* nanovg_mtl_shaders.metal */; };
@@ -48,6 +50,8 @@
 		A407D3AA29E568C80025AF52 /* SFBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFBold.ttf; path = ../../../assets/SFBold.ttf; sourceTree = "<group>"; };
 		A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFBoldItalic.ttf; path = ../../../assets/SFBoldItalic.ttf; sourceTree = "<group>"; };
 		A407D3AC29E568C80025AF52 /* SFRegular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFRegular.ttf; path = ../../../assets/SFRegular.ttf; sourceTree = "<group>"; };
+		A45DD57029F143A00073B3E6 /* Networking.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Networking.swift; sourceTree = "<group>"; };
+		A45DD57229F144A20073B3E6 /* privavida-ios-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "privavida-ios-Bridging-Header.h"; sourceTree = "<group>"; };
 		A47B409529E1B381005E1111 /* privavida-core.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "privavida-core.xcodeproj"; path = "../build/privavida-core.xcodeproj"; sourceTree = "<group>"; };
 		A4C5A5F426D1B752007C5F37 /* nanovg_mtl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = nanovg_mtl.m; sourceTree = "<group>"; };
 		A4C5A5F526D1B752007C5F37 /* nanovg_mtl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nanovg_mtl.h; sourceTree = "<group>"; };
@@ -72,6 +76,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A480DA5329EF2E03003CA565 /* libprivavida-core.a in Frameworks */,
+				A45DD56C29F13E8E0073B3E6 /* Starscream in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -148,11 +153,13 @@
 				A4D058AF26D043CA001CB0B5 /* Renderer.m */,
 				A4D058B126D043CA001CB0B5 /* GameViewController.h */,
 				A4D058B226D043CA001CB0B5 /* GameViewController.m */,
+				A45DD57029F143A00073B3E6 /* Networking.swift */,
 				A4D058B726D043CA001CB0B5 /* Main.storyboard */,
 				A4F7BC8026D5923F0070D1D5 /* LaunchScreen.storyboard */,
 				A4D058BA26D043CC001CB0B5 /* Assets.xcassets */,
 				A4D058BC26D043CC001CB0B5 /* Info.plist */,
 				A4D058BD26D043CC001CB0B5 /* main.m */,
+				A45DD57229F144A20073B3E6 /* privavida-ios-Bridging-Header.h */,
 			);
 			path = "privavida-ios";
 			sourceTree = "<group>";
@@ -173,6 +180,9 @@
 			dependencies = (
 			);
 			name = "privavida-ios";
+			packageProductDependencies = (
+				A45DD56B29F13E8E0073B3E6 /* Starscream */,
+			);
 			productName = "privavida-ios";
 			productReference = A4D058A826D043CA001CB0B5 /* privavida-ios.app */;
 			productType = "com.apple.product-type.application";
@@ -187,6 +197,7 @@
 				TargetAttributes = {
 					A4D058A726D043CA001CB0B5 = {
 						CreatedOnToolsVersion = 12.3;
+						LastSwiftMigration = 1430;
 					};
 				};
 			};
@@ -199,6 +210,9 @@
 				Base,
 			);
 			mainGroup = A4D0589F26D043CA001CB0B5;
+			packageReferences = (
+				A45DD56A29F13E8E0073B3E6 /* XCRemoteSwiftPackageReference "Starscream" */,
+			);
 			productRefGroup = A4D058A926D043CA001CB0B5 /* Products */;
 			projectDirPath = "";
 			projectReferences = (
@@ -257,6 +271,7 @@
 				A4D058AD26D043CA001CB0B5 /* AppDelegate.m in Sources */,
 				A4C5A5F726D1B752007C5F37 /* nanovg_mtl.m in Sources */,
 				A4C5A5F826D1B752007C5F37 /* nanovg_mtl_shaders.metal in Sources */,
+				A45DD57129F143A00073B3E6 /* Networking.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -391,6 +406,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = RL589P5V5W;
@@ -405,6 +421,9 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.bartholomewjoyce.privavida;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "privavida-ios/privavida-ios-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -414,6 +433,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = RL589P5V5W;
@@ -428,6 +448,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.bartholomewjoyce.privavida;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "privavida-ios/privavida-ios-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -454,6 +476,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A45DD56A29F13E8E0073B3E6 /* XCRemoteSwiftPackageReference "Starscream" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/daltoniam/Starscream.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A45DD56B29F13E8E0073B3E6 /* Starscream */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A45DD56A29F13E8E0073B3E6 /* XCRemoteSwiftPackageReference "Starscream" */;
+			productName = Starscream;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A4D058A026D043CA001CB0B5 /* Project object */;
 }

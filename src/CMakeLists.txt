@@ -7,4 +7,5 @@ list(APPEND SOURCES
 add_subdirectory(views)
 add_subdirectory(models)
 add_subdirectory(utils)
+add_subdirectory(network)
 set(SOURCES ${SOURCES} PARENT_SCOPE)
