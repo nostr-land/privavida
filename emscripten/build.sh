@@ -8,15 +8,20 @@ emcc \
     src/views/Root.cpp \
     src/views/Conversations.cpp \
     src/views/ScrollView.cpp \
+    src/models/keys.cpp \
     src/models/event.cpp \
     src/models/event_parse.cpp \
     src/models/relay_message_parse.cpp \
     src/models/event_stringify.cpp \
     src/models/hex.cpp \
     src/models/nostr_entity.cpp \
+    src/models/nip04.cpp \
+    src/models/c/aes.c \
     src/models/c/secp256k1.c \
+    src/models/c/base64.c \
     src/models/c/bech32.c \
     src/network/network.cpp \
+    src/nostr/accounts.cpp \
     -I include/ \
     -I lib/ \
     -I lib/rapidjson/include/ \

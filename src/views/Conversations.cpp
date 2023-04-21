@@ -122,7 +122,16 @@ void Conversations::update() {
             char line1[100];
             NostrEntity::encode_note(&event->id, line1, NULL);
 
-            auto line2 = event->content.data.get(event);
+            const char* line2;
+            if (event->kind != 4) {
+                line2 = event->content.data.get(event);
+            } else if (event->content_encryption == EVENT_CONTENT_DECRYPTED) {
+                line2 = event->content.data.get(event);
+            } else if (event->content_encryption == EVENT_CONTENT_DECRYPT_FAILED) {
+                line2 = "Decrypt failed";
+            } else {
+                line2 = "Content encrypted";
+            }
             
             nvgFillColor(ui::vg, (NVGcolor){ 0.8, 0.8, 0.8, 1.0 });
             nvgFontSize(ui::vg, 15.0);

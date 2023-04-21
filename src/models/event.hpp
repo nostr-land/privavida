@@ -2,12 +2,13 @@
 //  event.hpp
 //  privavida-core
 //
-//  Created by Bartholomew Joyce on 18/07/2018.
+//  Created by Bartholomew Joyce on 2023-04-10.
 //
 
 #pragma once
 #include <inttypes.h>
 #include "relative.hpp"
+#include "keys.hpp"
 
 enum EventValidState {
     EVENT_NOT_CHECKED = 0,
@@ -21,16 +22,6 @@ enum EventContentEncryptionState {
     EVENT_CONTENT_ENCRYPTED,
     EVENT_CONTENT_DECRYPTED,
     EVENT_CONTENT_DECRYPT_FAILED
-};
-
-struct EventId {
-    uint8_t data[32];
-};
-struct Pubkey {
-    uint8_t data[32];
-};
-struct Signature {
-    uint8_t data[64];
 };
 
 //
@@ -80,14 +71,14 @@ struct Event {
 //   Will set the created_at property, the pubkey property,
 //   compute the hash, and sign the event.
 //
-bool event_finish(Event* event, const uint8_t* seckey);
+bool event_finish(Event* event, const Seckey* seckey);
 
 //
 /// event_compute_hash()
 //
 //   Given an event, will compute its hash.
 //
-void event_compute_hash(const Event* event, uint8_t* hash_out);
+void event_compute_hash(const Event* event, EventId* hash_out);
 
 //
 /// validate_event()
@@ -105,3 +96,10 @@ bool event_validate(Event* event);
 //   Given an event, will verify that the signature is correct.
 //
 bool event_verify_signature(const Event* event);
+
+//
+/// event_get_first_p_tag()
+//
+//   Utility function for grabbing the first p tag
+//
+bool event_get_first_p_tag(const Event* event, Pubkey* pubkey);

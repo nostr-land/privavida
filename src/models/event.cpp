@@ -2,7 +2,7 @@
 //  event.cpp
 //  privavida-core
 //
-//  Created by Bartholomew Joyce on 18/07/2018.
+//  Created by Bartholomew Joyce on 2023-04-10.
 //
 
 #include "event.hpp"
@@ -31,7 +31,7 @@ struct Sha256Writer {
     void Flush() {}
 };
 
-void event_compute_hash(const Event* event, uint8_t* hash_out) {
+void event_compute_hash(const Event* event, EventId* hash_out) {
 
     auto _base = (void*)event;
 
@@ -89,7 +89,7 @@ void event_compute_hash(const Event* event, uint8_t* hash_out) {
     }
     writer.EndArray();
 
-    sha256_final(&ctx, hash_out);
+    sha256_final(&ctx, hash_out->data);
 }
 
 bool event_validate(Event* event) {
@@ -97,15 +97,9 @@ bool event_validate(Event* event) {
     static auto secp256k1_context = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
 
     // Check the hash
-    uint8_t hash[32];
-    event_compute_hash(event, hash);
-
-    auto hash_event_id = (const uint64_t*)event->id.data;
-    auto hash_computed = (const uint64_t*)hash;
-    if (hash_event_id[0] != hash_computed[0] ||
-        hash_event_id[1] != hash_computed[1] ||
-        hash_event_id[2] != hash_computed[2] ||
-        hash_event_id[3] != hash_computed[3]) {
+    EventId hash_computed;
+    event_compute_hash(event, &hash_computed);
+    if (!compare_keys(&event->id, &hash_computed)) {
         event->validity = EVENT_INVALID_ID;
         return false;
     }
@@ -122,41 +116,20 @@ bool event_validate(Event* event) {
     return true;
 }
 
-bool event_finish(Event* event, const uint8_t* seckey) {
+bool event_finish(Event* event, const Seckey* seckey) {
 
     static auto secp256k1_context = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
     // TODO: call sec256k1_content_randomize() with a random seed!!
 
-
     // event->pubkey
-    {
-        secp256k1_pubkey pubkey;
-        if (!secp256k1_ec_pubkey_create(secp256k1_context, &pubkey, seckey)) {
-            return false;
-        }
-
-        secp256k1_xonly_pubkey xonly_pubkey;
-        if (!secp256k1_xonly_pubkey_from_pubkey(secp256k1_context, &xonly_pubkey, NULL, &pubkey)) {
-            return false;
-        }
-
-        secp256k1_xonly_pubkey_serialize(secp256k1_context, event->pubkey.data, &xonly_pubkey);
-    }
-
-    // event->created_at
-    {
-        event->created_at = time(NULL);
-    }
-
-    // event->id
-    {
-        event_compute_hash(event, event->id.data);
-    }
+    if (!get_public_key(seckey, &event->pubkey)) return false;
+    event->created_at = time(NULL);
+    event_compute_hash(event, &event->id);
 
     // event->sig
     {
         secp256k1_keypair keypair;
-        if (!secp256k1_keypair_create(secp256k1_context, &keypair, seckey)) {
+        if (!secp256k1_keypair_create(secp256k1_context, &keypair, seckey->data)) {
             return false;
         }
 
@@ -166,4 +139,21 @@ bool event_finish(Event* event, const uint8_t* seckey) {
     }
 
     return event_validate(event);
+}
+
+bool event_get_first_p_tag(const Event* event, Pubkey* pubkey) {
+
+    for (int i = 0; i < event->tags.size; ++i) {
+        auto tag = event->tags.get(event, i).get(event);
+
+        if (tag.size >= 2 &&
+            tag[0].size == 1 &&
+            tag[0].data.get(event)[0] == 'p' &&
+            tag[1].size == 2 * sizeof(Pubkey) &&
+            hex_decode(pubkey->data, tag[1].data.get(event), sizeof(Pubkey))) {
+            return true;
+        }
+    }
+
+    return false;
 }

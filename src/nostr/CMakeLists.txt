@@ -1,0 +1,5 @@
+list(APPEND SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/accounts.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/accounts.cpp
+)
+set(SOURCES ${SOURCES} PARENT_SCOPE)

@@ -2,11 +2,23 @@
 //  relative.hpp
 //  privavida-core
 //
-//  Created by Bartholomew Joyce on 18/07/2018.
+//  Created by Bartholomew Joyce on 2023-04-10.
 //
 
 #pragma once
 #include <stdlib.h>
+
+// relative.hpp defines the following types:
+//  
+//   RelPointer<T>    a relative pointer to type T
+//   Array<T>         a very simple array (one field size, one pointer to T)
+//   RelArray<T>      a relative array (one field size, one field RelPointer<T>)
+//   RelString        a relative string RelArray<char>
+//
+// These relative structs are used inside data structures
+// who are built to be trivially copyable and serializable.
+// As such they usually keep all associated data in a dynamic
+// buffer just off the end of the struct.
 
 template <typename T>
 struct RelPointer {
