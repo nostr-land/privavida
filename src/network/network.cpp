@@ -15,7 +15,7 @@
 #include <string.h>
 
 static AppNetworking networking;
-std::vector<Event*> network::events;
+std::vector<network::Conversation> network::conversations;
 
 static void account_response_cb(const AccountResponse* event);
 
@@ -42,7 +42,11 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         pubkey_hex[64] = '\0';
 
         char req[128];
-        sprintf(req, "[\"REQ\",\"sub\",{\"authors\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
+        sprintf(req, "[\"REQ\",\"dms_sent\",{\"authors\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
+        printf("Request: %s\n", req);
+        networking.websocket_send(networking.opaque_ptr, event->ws, req);
+
+        sprintf(req, "[\"REQ\",\"dms_received\",{\"#p\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
         printf("Request: %s\n", req);
         networking.websocket_send(networking.opaque_ptr, event->ws, req);
 
@@ -92,20 +96,46 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         return;
     }
 
-    if (nostr_event->kind == 4) {
-        nostr_event->content_encryption = EVENT_CONTENT_ENCRYPTED;
-
-        Pubkey pubkey;
-        if (!event_get_first_p_tag(nostr_event, &pubkey)) {
-            pubkey = account->pubkey; // Try with our own pubkey if we don't find a p-tag
-        }
-
-        auto ciphertext = nostr_event->content.data.get(nostr_event);
-        auto len = nostr_event->content.size;
-        account_nip04_decrypt(account, &pubkey, ciphertext, len, nostr_event);
+    if (nostr_event->kind != 4) {
+        return;
     }
 
-    network::events.push_back(nostr_event);
+    // Process a NIP-04 direct message
+
+    Pubkey counterparty;
+    if (strcmp(message.event.subscription_id, "dms_sent") == 0) {
+        if (!event_get_first_p_tag(nostr_event, &counterparty)) return;
+    } else if (strcmp(message.event.subscription_id, "dms_received") == 0) {
+        counterparty = nostr_event->pubkey;
+    } else {
+        return;
+    }
+
+    // Find the conversation (or create it)
+    int conversation_id = -1;
+    for (int i = 0; i < network::conversations.size(); ++i) {
+        if (compare_keys(&network::conversations[i].counterparty, &counterparty)) {
+            conversation_id = i;
+            break;
+        }
+    }
+    if (conversation_id == -1) {
+        network::Conversation conv;
+        conv.counterparty = counterparty;
+        conversation_id = network::conversations.size();
+        network::conversations.push_back(conv);
+    }
+
+    // Add the message to the conversation
+    auto& conv = network::conversations[conversation_id];
+    conv.messages.push_back(nostr_event);
+
+    // Decrypt the message
+    nostr_event->content_encryption = EVENT_CONTENT_ENCRYPTED;
+    auto ciphertext = nostr_event->content.data.get(nostr_event);
+    auto len = nostr_event->content.size;
+    account_nip04_decrypt(account, &counterparty, ciphertext, len, nostr_event);
+
     ui::redraw();
 }
 

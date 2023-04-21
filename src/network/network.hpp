@@ -16,6 +16,11 @@ namespace network {
 
 void init(AppNetworking networking);
 
-extern std::vector<Event*> events;
+struct Conversation {
+    Pubkey counterparty;
+    std::vector<Event*> messages;
+};
+
+extern std::vector<Conversation> conversations;
 
 }

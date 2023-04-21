@@ -47,6 +47,8 @@ extern Array<Account*> accounts;
 extern AccountResponseCallback account_response_callback;
 
 bool accounts_load();
+void accounts_process_responses();
+
 void account_sign_event   (const Account* account, const Event* event, void* user_data);
 void account_nip04_encrypt(const Account* account, const Pubkey* pubkey, const char* plaintext,  uint32_t len, void* user_data);
 void account_nip04_decrypt(const Account* account, const Pubkey* pubkey, const char* ciphertext, uint32_t len, void* user_data);

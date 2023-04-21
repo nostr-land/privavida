@@ -1,11 +1,10 @@
 //
-//  Conversations.cpp
+//  Conversation.cpp
 //  privavida-core
 //
 //  Created by Bartholomew Joyce on 11/05/2023.
 //
 
-#include "Conversations.hpp"
 #include "Conversation.hpp"
 #include "ScrollView.hpp"
 #include "SubView.hpp"
@@ -13,6 +12,7 @@
 #include "../network/network.hpp"
 #include "../models/hex.hpp"
 #include "../models/nostr_entity.hpp"
+#include "../nostr/accounts.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -30,16 +30,17 @@ struct Contact {
 };
 
 static bool keyboard_open = false;
+static int selected_idx = 0;
 
 static ScrollView::State sv_state;
 
 static int profile_img_id = -1;
 
-void Conversations::init() {
+void Conversation::init() {
     profile_img_id = nvgCreateImage(ui::vg, ui::get_asset_name("profile", "jpeg"), 0);
 }
 
-void Conversations::update() {
+void Conversation::update(int conversation_id) {
 
     float kb_x, kb_y, kb_width, kb_height;
     ui::keyboard_rect(&kb_x, &kb_y, &kb_width, &kb_height);
@@ -56,35 +57,63 @@ void Conversations::update() {
         SubView sub(0, 0, ui::view.width, HEADER_HEIGHT);
         nvgBeginPath(ui::vg);
         nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
-        nvgFillColor(ui::vg, (NVGcolor){ 0.1, 0.1, 0.2, 1.0 });
+        nvgFillColor(ui::vg, (NVGcolor){ 0.1, 0.2, 0.1, 1.0 });
         nvgFill(ui::vg);
+
+        if (ui::simple_tap(0, 0, ui::view.width, ui::view.height)) {
+            Root::open_conversation = -1;
+            ui::redraw();
+        }
     }
+
+    auto& conv = network::conversations[conversation_id];
 
     // ScrollView
     constexpr float BLOCK_HEIGHT = 80.0;
     {
         SubView sub(0, HEADER_HEIGHT, ui::view.width, kb_y - HEADER_HEIGHT);
         ScrollView sv(&sv_state);
-        sv.inner_size(ui::view.width, network::conversations.size() * BLOCK_HEIGHT).update();
+        sv.inner_size(ui::view.width, conv.messages.size() * BLOCK_HEIGHT).update();
 
         int start_block = (int)(sv.state.scroll_y / BLOCK_HEIGHT);
         if (start_block < 0) start_block = 0;
         int end_block = start_block + (int)(sv.outer_height / BLOCK_HEIGHT) + 1;
 
-        for (int i = start_block; i <= end_block && i < network::conversations.size(); ++i) {
+        for (int i = start_block; i <= end_block && i < conv.messages.size(); ++i) {
 
-            auto& conv = network::conversations[i];
+            auto event = conv.messages[i];
             int y = i * BLOCK_HEIGHT;
 
+            if (i == selected_idx && keyboard_open) {
+                nvgBeginPath(ui::vg);
+                nvgRect(ui::vg, 0.0, y, ui::view.width, BLOCK_HEIGHT);
+                nvgFillColor(ui::vg, (NVGcolor){ 0.2, 0.2, 0.2, 1.0 });
+                nvgFill(ui::vg);
+            }
+
             if (ui::simple_tap(0, y, ui::view.width, BLOCK_HEIGHT)) {
-                Root::open_conversation = i;
-                return ui::redraw();
+                if (keyboard_open) {
+                    if (selected_idx == i) {
+                        keyboard_open = false;
+                        ui::keyboard_close();
+                    }
+                } else {
+                    keyboard_open = true;
+                    ui::keyboard_open();
+                }
+                selected_idx = i;
+                ui::redraw();
             }
 
             constexpr float PROFILE_PADDING = 10.0;
             {
                 SubView sub(PROFILE_PADDING, y + PROFILE_PADDING, BLOCK_HEIGHT - 2.0 * PROFILE_PADDING, BLOCK_HEIGHT - 2.0 * PROFILE_PADDING);
-                nvgFillColor(ui::vg, (NVGcolor){ 0.5, 0.5, 0.5, 1.0 });
+                if (compare_keys(&event->pubkey, &accounts[0]->pubkey)) {
+                    auto paint = nvgImagePattern(ui::vg, 0, 0, ui::view.width, ui::view.height, 0.0, profile_img_id, 1.0);
+                    nvgFillPaint(ui::vg, paint);
+                } else {
+                    nvgFillColor(ui::vg, (NVGcolor){ 0.5, 0.5, 0.5, 1.0 });
+                }
                 nvgBeginPath(ui::vg);
                 nvgCircle(ui::vg, 0.5 * ui::view.width, 0.5 * ui::view.width, 0.5 * ui::view.width);
                 nvgFill(ui::vg);
@@ -102,8 +131,6 @@ void Conversations::update() {
             NostrEntity::encode_npub(&conv.counterparty, name, NULL);
 
             nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (1.0 / 6.0), name, NULL);
-
-            auto event = conv.messages.front();
 
             char line1[100];
             NostrEntity::encode_note(&event->id, line1, NULL);

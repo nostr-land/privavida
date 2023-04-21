@@ -7,6 +7,7 @@ emcc \
     src/utils/animation.cpp \
     src/views/Root.cpp \
     src/views/Conversations.cpp \
+    src/views/Conversation.cpp \
     src/views/ScrollView.cpp \
     src/models/keys.cpp \
     src/models/event.cpp \

@@ -79,3 +79,11 @@ void app_scroll_event(int x, int y, int dx, int dy) {
     ui::set_scroll(x, y, dx, dy);
     ui::redraw();
 }
+
+void app_key_backspace() {
+    // No-op
+}
+
+void app_key_character(const char* ch) {
+    // No-op
+}

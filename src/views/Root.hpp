@@ -8,6 +8,8 @@
 #pragma once
 
 struct Root {
+    static int open_conversation;
+
     static void init();
     static void update();
 };
