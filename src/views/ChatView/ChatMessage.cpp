@@ -32,6 +32,7 @@ static bool a_moment_passed(const Event* earlier, const Event* later) {
 
 enum BubbleTipType {
     BUBBLE_TIP_SENDER,
+    BUBBLE_TIP_SENDER_FAIL,
     BUBBLE_TIP_RECIPIENT
 };
 
@@ -85,10 +86,13 @@ void ChatMessage::update() {
     float content_y = bubble_y + PADDING;
     float content_height = bubble_height - 2 * PADDING;
 
+    BubbleTipType tip_type;
     if (event->content_encryption == EVENT_CONTENT_DECRYPTED && author_is_me(event)) {
         nvgFillColor(ui::vg, BUBBLE_COLOR_SENDER);
+        tip_type = BUBBLE_TIP_SENDER;
     } else {
         nvgFillColor(ui::vg, BUBBLE_COLOR_RECIPIENT);
+        tip_type = BUBBLE_TIP_RECIPIENT;
     }
 
     nvgBeginPath(ui::vg);
@@ -101,11 +105,11 @@ void ChatMessage::update() {
         nvgSave(ui::vg);
         float width, height;
         if (author_is_me(event)) {
-            int img_id = get_bubble_tip(BUBBLE_TIP_SENDER, &width, &height);
+            int img_id = get_bubble_tip(tip_type, &width, &height);
             nvgTranslate(ui::vg, bubble_x + bubble_width - 0.5 * width, bubble_y + bubble_height - height);
             nvgFillPaint(ui::vg, nvgImagePattern(ui::vg, 0, 0, width, height, 0, img_id, 1));
         } else {
-            int img_id = get_bubble_tip(BUBBLE_TIP_RECIPIENT, &width, &height);
+            int img_id = get_bubble_tip(tip_type, &width, &height);
             nvgTranslate(ui::vg, bubble_x + 0.5 * width, bubble_y + bubble_height - height);
             nvgScale(ui::vg, -1.0, 1.0);
             nvgFillPaint(ui::vg, nvgImagePattern(ui::vg, 0, 0, width, height, 0, img_id, 1));
