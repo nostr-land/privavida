@@ -116,6 +116,7 @@ void send_batch() {
     writer.EndObject();
     writer.EndArray();
 
+    printf("REQ: %s\n", sb.GetString());
     network::send(sb.GetString());
 
     batched_requests.clear();

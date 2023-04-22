@@ -65,10 +65,10 @@ typedef struct {
 typedef int AppWebsocketHandle;
 
 typedef struct {
-    void* opaque_ptr;
-    AppWebsocketHandle (*websocket_open)(void* opaque_ptr, const char* url);
-    void (*websocket_send)(void* opaque_ptr, AppWebsocketHandle ws, const char* data);
-    void (*websocket_close)(void* opaque_ptr, AppWebsocketHandle ws, unsigned short code, const char* reason);
+    AppWebsocketHandle (*websocket_open)(const char* url, void* user_data);
+    void (*websocket_send)(AppWebsocketHandle ws, const char* data);
+    void (*websocket_close)(AppWebsocketHandle ws, unsigned short code, const char* reason);
+    void (*http_request_send)(const char* url, void* user_data);
 } AppNetworking;
 
 enum AppWebsocketEventType {
@@ -84,8 +84,23 @@ typedef struct {
     unsigned short code;
     const char* data;
     int data_length;
+    void* user_data;
 } AppWebsocketEvent;
 
+enum AppHttpEventType {
+    HTTP_RESPONSE_ERROR,
+    HTTP_RESPONSE_OPEN,
+    HTTP_RESPONSE_DATA,
+    HTTP_RESPONSE_END
+};
+
+typedef struct {
+    enum AppHttpEventType type;
+    int status_code;
+    const unsigned char* data;
+    int data_length;
+    void* user_data;
+} AppHttpEvent;
 
 
 void app_init(NVGcontext* vg, AppKeyboard keyboard, AppStorage storage, AppNetworking networking);
@@ -96,6 +111,7 @@ void app_scroll_event(int x, int y, int dx, int dy);
 void app_key_backspace(void);
 void app_key_character(const char* ch);
 void app_websocket_event(const AppWebsocketEvent* event);
+void app_http_event(const AppHttpEvent* event);
 
 #ifdef __cplusplus
 }

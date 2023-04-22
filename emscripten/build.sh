@@ -34,6 +34,7 @@ emcc \
     src/data_layer/conversations.cpp \
     src/data_layer/profiles.cpp \
     src/data_layer/contact_lists.cpp \
+    src/data_layer/images.cpp \
     -I include/ \
     -I lib/ \
     -I lib/rapidjson/include/ \
@@ -46,3 +47,4 @@ emcc \
     -sEXPORTED_RUNTIME_METHODS=cwrap,ccall \
     -lidbfs.js \
     -lwebsocket.js \
+    -sFETCH

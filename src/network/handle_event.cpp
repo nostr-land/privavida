@@ -6,6 +6,7 @@
 //
 
 #include "handle_event.hpp"
+#include "network.hpp"
 #include "../models/profile.hpp"
 #include "../data_layer/accounts.hpp"
 #include "../data_layer/conversations.hpp"
@@ -57,6 +58,7 @@ static void handle_kind_0(const char* subscription_id, Event* event) {
     }
 
     data_layer::profiles.push_back(profile);
+
     ui::redraw();
 }
 
@@ -80,7 +82,8 @@ static void handle_kind_3(const char* subscription_id, Event* event) {
 
     // Is it our contact list?
     if (compare_keys(&event->pubkey, &data_layer::accounts[data_layer::account_selected].pubkey)) {
-        for (auto& p_tag : event->p_tags.get(event)) {
+        auto p_tags = event->p_tags.get(event);
+        for (auto& p_tag : p_tags) {
             data_layer::request_profile(&p_tag.pubkey);
         }
         data_layer::batch_profile_requests_send();

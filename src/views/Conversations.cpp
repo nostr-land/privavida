@@ -13,6 +13,7 @@
 #include "../data_layer/conversations.hpp"
 #include "../data_layer/profiles.hpp"
 #include "../data_layer/contact_lists.hpp"
+#include "../data_layer/images.hpp"
 #include "../models/hex.hpp"
 #include "../models/nostr_entity.hpp"
 #include "../utils/animation.hpp"
@@ -39,21 +40,7 @@ void Conversations::update() {
     nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
     nvgFill(ui::vg);
 
-    // Header
     constexpr float HEADER_HEIGHT = 70.0;
-    {
-        SubView sub(0, 0, ui::view.width, HEADER_HEIGHT);
-        nvgBeginPath(ui::vg);
-        nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
-        nvgFillColor(ui::vg, ui::color(0x4D434B));
-        nvgFill(ui::vg);
-
-        nvgBeginPath(ui::vg);
-        nvgStrokeColor(ui::vg, ui::color(0x000000, 0.2));
-        nvgMoveTo(ui::vg, 0, HEADER_HEIGHT - 0.5);
-        nvgLineTo(ui::vg, ui::view.width, HEADER_HEIGHT - 0.5);
-        nvgStroke(ui::vg);
-    }
 
     // ScrollView
     constexpr float BLOCK_HEIGHT = 80.0;
@@ -90,7 +77,16 @@ void Conversations::update() {
             {
                 SubView sub(PROFILE_PADDING, y + PROFILE_PADDING, BLOCK_HEIGHT - 2.0 * PROFILE_PADDING, BLOCK_HEIGHT - 2.0 * PROFILE_PADDING);
 
-                if (data_layer::does_first_follow_second(&account.pubkey, &conv.counterparty)) {
+                const char* image_url = NULL;
+                if (profile && profile->picture.size) {
+                    image_url = profile->picture.data.get(profile);
+                }
+
+                int image_id;
+                if (image_url && (image_id = data_layer::get_image(image_url))) {
+                    auto paint = nvgImagePattern(ui::vg, 0, 0, ui::view.width, ui::view.height, 0, image_id, 1);
+                    nvgFillPaint(ui::vg, paint);
+                } else if (data_layer::does_first_follow_second(&account.pubkey, &conv.counterparty)) {
                     nvgFillColor(ui::vg, (NVGcolor){ 0.7, 0.7, 0.7, 1.0 });
                 } else {
                     nvgFillColor(ui::vg, (NVGcolor){ 0.5, 0.5, 0.5, 1.0 });
@@ -120,25 +116,26 @@ void Conversations::update() {
 
             auto event = conv.messages.front();
 
-            char line1[100];
-            NostrEntity::encode_note(&event->id, line1, NULL);
-
-            const char* line2;
+            const char* text;
             if (event->kind != 4) {
-                line2 = event->content.data.get(event);
+                text = event->content.data.get(event);
             } else if (event->content_encryption == EVENT_CONTENT_DECRYPTED) {
-                line2 = event->content.data.get(event);
+                text = event->content.data.get(event);
             } else if (event->content_encryption == EVENT_CONTENT_DECRYPT_FAILED) {
-                line2 = "Decrypt failed";
+                text = "Failed to decrypt";
             } else {
-                line2 = "Content encrypted";
+                text = "Failed to decrypt";
             }
-            
-            nvgFillColor(ui::vg, (NVGcolor){ 0.8, 0.8, 0.8, 1.0 });
+
+            ui::save();
+            nvgScissor(ui::vg, 0, y, ui::view.width, BLOCK_HEIGHT - 6);
+            nvgFillColor(ui::vg, ui::color(0xcccccc));
             nvgFontSize(ui::vg, 15.0);
             nvgFontFace(ui::vg, "regular");
-            nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (3.0 / 6.0), line1, NULL);
-            nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (5.0 / 6.0), line2, NULL);
+            nvgTextLineHeight(ui::vg, 1.3);
+            nvgTextAlign(ui::vg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
+            nvgTextBox(ui::vg, BLOCK_HEIGHT, y + 34, ui::view.width - BLOCK_HEIGHT - CONTENT_PADDING, text, NULL);
+            ui::restore();
 
             nvgFillColor(ui::vg, (NVGcolor){ 0.2, 0.2, 0.2, 1.0 });
             nvgBeginPath(ui::vg);
@@ -147,4 +144,18 @@ void Conversations::update() {
         }
     }
 
+    // Header
+    {
+        SubView sub(0, 0, ui::view.width, HEADER_HEIGHT);
+        nvgBeginPath(ui::vg);
+        nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
+        nvgFillColor(ui::vg, ui::color(0x4D434B));
+        nvgFill(ui::vg);
+
+        nvgBeginPath(ui::vg);
+        nvgStrokeColor(ui::vg, ui::color(0x000000, 0.2));
+        nvgMoveTo(ui::vg, 0, HEADER_HEIGHT - 0.5);
+        nvgLineTo(ui::vg, ui::view.width, HEADER_HEIGHT - 0.5);
+        nvgStroke(ui::vg);
+    }
 }

@@ -1,5 +1,6 @@
 #include <emscripten/html5.h>
 #include <emscripten/websocket.h>
+#include <emscripten/fetch.h>
 #include <GLES2/gl2.h>
 
 #include <nanovg.h>
@@ -134,6 +135,7 @@ EM_BOOL websocket_open_event(int event_type, const EmscriptenWebSocketOpenEvent*
     AppWebsocketEvent app_event;
     app_event.type = WEBSOCKET_OPEN;
     app_event.ws = event->socket;
+    app_event.user_data = user_data;
     app_websocket_event(&app_event);
     return 1;
 }
@@ -145,6 +147,7 @@ EM_BOOL websocket_message_event(int event_type, const EmscriptenWebSocketMessage
     app_event.ws = event->socket;
     app_event.data = (const char*)event->data;
     app_event.data_length = strlen((const char*)event->data);
+    app_event.user_data = user_data;
     app_websocket_event(&app_event);
     return 1;
 }
@@ -153,6 +156,7 @@ EM_BOOL websocket_error_event(int event_type, const EmscriptenWebSocketErrorEven
     AppWebsocketEvent app_event;
     app_event.type = WEBSOCKET_ERROR;
     app_event.ws = event->socket;
+    app_event.user_data = user_data;
     app_websocket_event(&app_event);
     return 1;
 }
@@ -164,11 +168,12 @@ EM_BOOL websocket_close_event(int event_type, const EmscriptenWebSocketCloseEven
     app_event.code = event->code;
     app_event.data = event->reason;
     app_event.data_length = strlen(event->reason);
+    app_event.user_data = user_data;
     app_websocket_event(&app_event);
     return 1;
 }
 
-AppWebsocketHandle websocket_open(void* opaque_ptr, const char* url) {
+AppWebsocketHandle websocket_open(const char* url, void* user_data) {
     EmscriptenWebSocketCreateAttributes attributes;
     emscripten_websocket_init_create_attributes(&attributes);
 
@@ -181,21 +186,57 @@ AppWebsocketHandle websocket_open(void* opaque_ptr, const char* url) {
         return socket;
     }
 
-    emscripten_websocket_set_onopen_callback   (socket, NULL, websocket_open_event);
-    emscripten_websocket_set_onerror_callback  (socket, NULL, websocket_error_event);
-    emscripten_websocket_set_onclose_callback  (socket, NULL, websocket_close_event);
-    emscripten_websocket_set_onmessage_callback(socket, NULL, websocket_message_event);
+    emscripten_websocket_set_onopen_callback   (socket, user_data, websocket_open_event);
+    emscripten_websocket_set_onerror_callback  (socket, user_data, websocket_error_event);
+    emscripten_websocket_set_onclose_callback  (socket, user_data, websocket_close_event);
+    emscripten_websocket_set_onmessage_callback(socket, user_data, websocket_message_event);
 
     return socket;
 }
 
-void websocket_send(void* opaque_ptr, AppWebsocketHandle ws, const char* data) {
+void websocket_send(AppWebsocketHandle ws, const char* data) {
     emscripten_websocket_send_utf8_text(ws, data);
 }
 
-void websocket_close(void* opaque_ptr, AppWebsocketHandle ws, unsigned short code, const char* reason) {
+void websocket_close(AppWebsocketHandle ws, unsigned short code, const char* reason) {
     emscripten_websocket_close(ws, code, reason);
     emscripten_websocket_delete(ws);
+}
+
+void fetch_success(emscripten_fetch_t* fetch) {
+    AppHttpEvent event;
+    event.type = HTTP_RESPONSE_DATA;
+    event.user_data = fetch->userData;
+    event.status_code = fetch->status;
+    event.data = (const uint8_t*)fetch->data;
+    event.data_length = fetch->numBytes;
+    app_http_event(&event);
+
+    event.type = HTTP_RESPONSE_END;
+    app_http_event(&event);
+
+    emscripten_fetch_close(fetch);
+}
+
+void fetch_failed(emscripten_fetch_t* fetch) {
+    AppHttpEvent event;
+    event.type = HTTP_RESPONSE_ERROR;
+    event.user_data = fetch->userData;
+    event.status_code = fetch->status;
+    app_http_event(&event);
+
+    emscripten_fetch_close(fetch);
+}
+
+void http_request_send(const char* url, void* user_data) {
+    emscripten_fetch_attr_t attr;
+    emscripten_fetch_attr_init(&attr);
+    strcpy(attr.requestMethod, "GET");
+    attr.userData = user_data;
+    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    attr.onsuccess = &fetch_success;
+    attr.onerror = &fetch_failed;
+    emscripten_fetch(&attr, url);
 }
 
 int main() {
@@ -257,6 +298,7 @@ void fs_mounted() {
     networking.websocket_open  = &websocket_open;
     networking.websocket_send  = &websocket_send;
     networking.websocket_close = &websocket_close;
+    networking.http_request_send = &http_request_send;
 
     app_init(vg, keyboard, storage, networking);
     emscripten_set_main_loop(&main_loop, 0, 1);

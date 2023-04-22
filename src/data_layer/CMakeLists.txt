@@ -7,5 +7,7 @@ list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/profiles.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/contact_lists.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/contact_lists.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/images.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/images.cpp
 )
 set(SOURCES ${SOURCES} PARENT_SCOPE)

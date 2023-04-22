@@ -25,7 +25,7 @@ void network::init(AppNetworking networking_) {
     }
     account_set_response_callback(&network::account_response_handler);
 
-    auto socket = networking.websocket_open(networking.opaque_ptr, "wss://relay.damus.io");
+    auto socket = networking.websocket_open("wss://relay.damus.io", NULL);
 }
 
 void app_websocket_event(const AppWebsocketEvent* event) {
@@ -40,17 +40,17 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         pubkey_hex[64] = '\0';
 
         char req[128];
-        sprintf(req, "[\"REQ\",\"dms_sent\",{\"authors\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
+        snprintf(req, 128, "[\"REQ\",\"dms_sent\",{\"authors\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
         printf("Request: %s\n", req);
-        networking.websocket_send(networking.opaque_ptr, event->ws, req);
+        networking.websocket_send(event->ws, req);
 
-        sprintf(req, "[\"REQ\",\"dms_received\",{\"#p\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
+        snprintf(req, 128, "[\"REQ\",\"dms_received\",{\"#p\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
         printf("Request: %s\n", req);
-        networking.websocket_send(networking.opaque_ptr, event->ws, req);
+        networking.websocket_send(event->ws, req);
 
-        sprintf(req, "[\"REQ\",\"profile\",{\"authors\":[\"%s\"],\"kinds\":[0,3]}]", pubkey_hex);
+        snprintf(req, 128, "[\"REQ\",\"profile\",{\"authors\":[\"%s\"],\"kinds\":[0,3]}]", pubkey_hex);
         printf("Request: %s\n", req);
-        networking.websocket_send(networking.opaque_ptr, event->ws, req);
+        networking.websocket_send(event->ws, req);
 
         data_layer::batch_profile_requests();
 
@@ -98,5 +98,61 @@ void app_websocket_event(const AppWebsocketEvent* event) {
 }
 
 void network::send(const char* message) {
-    networking.websocket_send(networking.opaque_ptr, 0, message);
+    networking.websocket_send(0, message);
+}
+
+struct FetchUserData {
+    network::FetchCallback callback;
+    uint32_t buffer_size;
+    uint32_t buffer_end;
+    uint8_t* buffer;
+};
+
+void network::fetch(const char* url, network::FetchCallback callback) {
+    auto ud = new FetchUserData;
+    ud->callback = std::move(callback);
+    ud->buffer_size = 0;
+    ud->buffer_end = 0;
+    ud->buffer = NULL;
+    networking.http_request_send(url, ud);
+}
+
+void app_http_event(const AppHttpEvent* event) {
+    auto ud = (FetchUserData*)event->user_data;
+    if (ud->callback == nullptr) {
+        return;
+    }
+
+    if (event->type == HTTP_RESPONSE_OPEN) return;
+
+    if (event->type == HTTP_RESPONSE_ERROR) {
+        printf("HTTP response err\n");
+        ud->callback(true, event->status_code, NULL, 0);
+        delete ud;
+        return;
+    }
+
+    if (event->type == HTTP_RESPONSE_DATA) {
+        if (ud->buffer_end + event->data_length <= ud->buffer_size) {
+            // No-op
+        } else if (ud->buffer_end == 0) {
+            // Alloc
+            ud->buffer_size = event->data_length;
+            ud->buffer = (uint8_t*)malloc(ud->buffer_size);
+        } else {
+            // Realloc
+            ud->buffer_size = 2 * (ud->buffer_size + event->data_length);
+            ud->buffer = (uint8_t*)realloc(ud->buffer, 2 * (ud->buffer_end + event->data_length));
+        }
+        memcpy(&ud->buffer[ud->buffer_end], event->data, event->data_length);
+        ud->buffer_end += event->data_length;
+        return;
+    }
+
+    if (event->type == HTTP_RESPONSE_END) {
+        ud->callback(false, event->status_code, ud->buffer, ud->buffer_end);
+        free(ud->buffer);
+        delete ud;
+        return;
+    }
 }
