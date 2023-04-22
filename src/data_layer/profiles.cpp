@@ -8,7 +8,7 @@
 #include "profiles.hpp"
 #include "../network/network.hpp"
 #include "../models/hex.hpp"
-#include "../utils/timer.hpp"
+#include "../models/nostr_entity.hpp"
 #include <string.h>
 #include <stdio.h>
 #include <rapidjson/writer.h>
@@ -17,6 +17,7 @@ namespace data_layer {
 
 std::vector<Profile*> profiles;
 static std::vector<Pubkey> profiles_requested;
+static bool is_batching = false;
 
 const Profile* get_profile(const Pubkey* pubkey) {
     for (auto profile : profiles) {
@@ -37,10 +38,9 @@ const Profile* get_or_request_profile(const Pubkey* pubkey) {
     return NULL;
 }
 
-static std::vector<Pubkey> pending_requests;
-static int timeout_id = -1;
+static std::vector<Pubkey> batched_requests;
 
-static void make_batch_request();
+static void send_batch();
 
 void request_profile(const Pubkey* pubkey) {
     for (auto& other_pubkey : profiles_requested) {
@@ -50,18 +50,37 @@ void request_profile(const Pubkey* pubkey) {
     }
 
     profiles_requested.push_back(*pubkey);
-    pending_requests.push_back(*pubkey);
-    if (timeout_id != -1) {
+
+    bool found = false;
+    for (auto& other_pubkey : batched_requests) {
+        if (compare_keys(&other_pubkey, pubkey)) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        batched_requests.push_back(*pubkey);
+    }
+
+    if (!is_batching) {
+        send_batch();
+    }
+}
+
+void batch_profile_requests() {
+    is_batching = true;
+}
+
+void batch_profile_requests_send() {
+    is_batching = false;
+    send_batch();
+}
+
+void send_batch() {
+    if (batched_requests.empty()) {
         return;
     }
 
-    timeout_id = timer::set_timeout([] {
-        timeout_id = -1;
-        make_batch_request();
-    }, 1000);
-}
-
-void make_batch_request() {
     static int count = 0;
 
     rapidjson::StringBuffer sb;
@@ -72,7 +91,7 @@ void make_batch_request() {
     writer.String("REQ");
 
     char sub_id[32];
-    sprintf(sub_id, "prof_%d", count++);
+    snprintf(sub_id, sizeof(sub_id), "prof_%d", count++);
     writer.String(sub_id);
 
     writer.StartObject();
@@ -80,7 +99,7 @@ void make_batch_request() {
     writer.String("authors");
     writer.StartArray();
 
-    for (auto& pubkey : pending_requests) {
+    for (auto& pubkey : batched_requests) {
         char pubkey_hex[65];
         hex_encode(pubkey_hex, pubkey.data, sizeof(Pubkey));
         pubkey_hex[64] = '\0';
@@ -99,7 +118,7 @@ void make_batch_request() {
 
     network::send(sb.GetString());
 
-    pending_requests.clear();
+    batched_requests.clear();
 }
 
 }

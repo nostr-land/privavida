@@ -140,20 +140,3 @@ bool event_finish(Event* event, const Seckey* seckey) {
 
     return event_validate(event);
 }
-
-bool event_get_first_p_tag(const Event* event, Pubkey* pubkey) {
-
-    for (int i = 0; i < event->tags.size; ++i) {
-        auto tag = event->tags.get(event, i).get(event);
-
-        if (tag.size >= 2 &&
-            tag[0].size == 1 &&
-            tag[0].data.get(event)[0] == 'p' &&
-            tag[1].size == 2 * sizeof(Pubkey) &&
-            hex_decode(pubkey->data, tag[1].data.get(event), sizeof(Pubkey))) {
-            return true;
-        }
-    }
-
-    return false;
-}

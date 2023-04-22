@@ -24,6 +24,24 @@ enum EventContentEncryptionState {
     EVENT_CONTENT_DECRYPT_FAILED
 };
 
+struct ETag {
+    enum Marker {
+        NO_MARKER = 0,
+        REPLY,
+        ROOT,
+        MENTION
+    };
+
+    uint8_t index;
+    Marker  marker;
+    EventId event_id;
+};
+
+struct PTag {
+    uint8_t index;
+    Pubkey  pubkey;
+};
+
 //
 /// Event
 //
@@ -54,6 +72,8 @@ struct Event {
     // Derived data
     EventValidState validity;
     EventContentEncryptionState content_encryption;
+    RelArray<ETag> e_tags;
+    RelArray<PTag> p_tags;
 
     uint8_t  __buffer[];
 
@@ -96,10 +116,3 @@ bool event_validate(Event* event);
 //   Given an event, will verify that the signature is correct.
 //
 bool event_verify_signature(const Event* event);
-
-//
-/// event_get_first_p_tag()
-//
-//   Utility function for grabbing the first p tag
-//
-bool event_get_first_p_tag(const Event* event, Pubkey* pubkey);

@@ -9,8 +9,10 @@
 #include "ScrollView.hpp"
 #include "SubView.hpp"
 #include "Root.hpp"
+#include "../data_layer/accounts.hpp"
 #include "../data_layer/conversations.hpp"
 #include "../data_layer/profiles.hpp"
+#include "../data_layer/contact_lists.hpp"
 #include "../models/hex.hpp"
 #include "../models/nostr_entity.hpp"
 #include "../utils/animation.hpp"
@@ -25,6 +27,8 @@ void Conversations::init() {
 }
 
 void Conversations::update() {
+
+    auto& account = data_layer::accounts[data_layer::account_selected];
 
     float kb_x, kb_y, kb_width, kb_height;
     ui::keyboard_rect(&kb_x, &kb_y, &kb_width, &kb_height);
@@ -85,7 +89,13 @@ void Conversations::update() {
             constexpr float PROFILE_PADDING = 10.0;
             {
                 SubView sub(PROFILE_PADDING, y + PROFILE_PADDING, BLOCK_HEIGHT - 2.0 * PROFILE_PADDING, BLOCK_HEIGHT - 2.0 * PROFILE_PADDING);
-                nvgFillColor(ui::vg, (NVGcolor){ 0.5, 0.5, 0.5, 1.0 });
+
+                if (data_layer::does_first_follow_second(&account.pubkey, &conv.counterparty)) {
+                    nvgFillColor(ui::vg, (NVGcolor){ 0.7, 0.7, 0.7, 1.0 });
+                } else {
+                    nvgFillColor(ui::vg, (NVGcolor){ 0.5, 0.5, 0.5, 1.0 });
+                }
+
                 nvgBeginPath(ui::vg);
                 nvgCircle(ui::vg, 0.5 * ui::view.width, 0.5 * ui::view.width, 0.5 * ui::view.width);
                 nvgFill(ui::vg);

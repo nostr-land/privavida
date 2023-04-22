@@ -48,6 +48,8 @@ enum RelayMessageType {
 struct EventParseResult {
     uint32_t event_size;
     uint32_t num_tags;
+    uint32_t num_e_tags;
+    uint32_t num_p_tags;
     uint32_t num_tag_values;
 };
 

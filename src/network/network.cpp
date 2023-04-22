@@ -12,6 +12,7 @@
 #include "../models/event_stringify.hpp"
 #include "../models/relay_message_parse.hpp"
 #include "../models/hex.hpp"
+#include "../data_layer/profiles.hpp"
 #include <string.h>
 
 static AppNetworking networking;
@@ -47,9 +48,11 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         printf("Request: %s\n", req);
         networking.websocket_send(networking.opaque_ptr, event->ws, req);
 
-        sprintf(req, "[\"REQ\",\"prof\",{\"authors\":[\"%s\"],\"kinds\":[0]}]", pubkey_hex);
+        sprintf(req, "[\"REQ\",\"profile\",{\"authors\":[\"%s\"],\"kinds\":[0,3]}]", pubkey_hex);
         printf("Request: %s\n", req);
         networking.websocket_send(networking.opaque_ptr, event->ws, req);
+
+        data_layer::batch_profile_requests();
 
     } else if (event->type == WEBSOCKET_CLOSE) {
         printf("websocket close!\n");

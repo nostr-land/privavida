@@ -7,8 +7,10 @@
 
 #include "handle_event.hpp"
 #include "../models/profile.hpp"
+#include "../data_layer/accounts.hpp"
 #include "../data_layer/conversations.hpp"
 #include "../data_layer/profiles.hpp"
+#include "../data_layer/contact_lists.hpp"
 #include <string.h>
 #include <stdio.h>
 #include <algorithm>
@@ -18,6 +20,7 @@ bool sort_by_created_at(const Event* a, const Event* b) {
 }
 
 static void handle_kind_0(const char* subscription_id, Event* event);
+static void handle_kind_3(const char* subscription_id, Event* event);
 static void handle_kind_4(const char* subscription_id, Event* event);
 
 void network::handle_event(const char* subscription_id, Event* event_) {
@@ -32,8 +35,12 @@ void network::handle_event(const char* subscription_id, Event* event_) {
 
     if (event->kind == 0) {
         handle_kind_0(subscription_id, event);
+    } else if (event->kind == 3) {
+        handle_kind_3(subscription_id, event);
     } else if (event->kind == 4) {
         handle_kind_4(subscription_id, event);
+    } else {
+        printf("received event kind %d, which we don't handle current...\n", event->kind);
     }
 
 }
@@ -53,6 +60,35 @@ static void handle_kind_0(const char* subscription_id, Event* event) {
     ui::redraw();
 }
 
+static void handle_kind_3(const char* subscription_id, Event* event) {
+
+    // Add the contact list
+    bool replaced_older = false;
+    for (auto i = 0; i < data_layer::contact_lists.size(); ++i) {
+        if (compare_keys(&data_layer::contact_lists[i]->pubkey, &event->pubkey)) {
+            if (data_layer::contact_lists[i]->created_at > event->created_at) {
+                return;
+            }
+            data_layer::contact_lists[i] = event;
+            replaced_older = true;
+            break;
+        }
+    }
+    if (!replaced_older) {
+        data_layer::contact_lists.push_back(event);
+    }
+
+    // Is it our contact list?
+    if (compare_keys(&event->pubkey, &data_layer::accounts[data_layer::account_selected].pubkey)) {
+        for (auto& p_tag : event->p_tags.get(event)) {
+            data_layer::request_profile(&p_tag.pubkey);
+        }
+        data_layer::batch_profile_requests_send();
+    }
+
+    ui::redraw();
+}
+
 static void handle_kind_4(const char* subscription_id, Event* event) {
 
     auto& account = data_layer::accounts[data_layer::account_selected];
@@ -61,7 +97,8 @@ static void handle_kind_4(const char* subscription_id, Event* event) {
 
     Pubkey counterparty;
     if (strcmp(subscription_id, "dms_sent") == 0) {
-        if (!event_get_first_p_tag(event, &counterparty)) return;
+        if (!event->p_tags.size) return;
+        counterparty = event->p_tags.get(event, 0).pubkey;
     } else if (strcmp(subscription_id, "dms_received") == 0) {
         counterparty = event->pubkey;
     } else {
@@ -79,7 +116,7 @@ static void handle_kind_4(const char* subscription_id, Event* event) {
     if (conversation_id == -1) {
         data_layer::Conversation conv;
         conv.counterparty = counterparty;
-        conversation_id = data_layer::conversations.size();
+        conversation_id = (int)data_layer::conversations.size();
         data_layer::conversations.push_back(conv);
     }
 

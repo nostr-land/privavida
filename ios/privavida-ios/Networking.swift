@@ -48,7 +48,6 @@ import Starscream
             return
         }
         let message = String(cString: data)
-        print("WebSocket send: \(message)")
         wsHandle!.socket.write(string: message)
     }
 

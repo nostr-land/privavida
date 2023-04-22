@@ -33,6 +33,7 @@ emcc \
     src/data_layer/accounts.cpp \
     src/data_layer/conversations.cpp \
     src/data_layer/profiles.cpp \
+    src/data_layer/contact_lists.cpp \
     -I include/ \
     -I lib/ \
     -I lib/rapidjson/include/ \

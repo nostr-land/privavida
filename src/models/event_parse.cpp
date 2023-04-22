@@ -118,6 +118,8 @@ struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Even
     uint8_t flags = 0;
     uint8_t* buffer_ptr;
     int num_tags = 0;
+    int num_e_tags = 0;
+    int num_p_tags = 0;
     int num_tag_values = 0;
     int text_content_len = 0;
     bool is_first_element = false;
@@ -243,6 +245,10 @@ struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Even
             state = STATE_IN_ROOT;
         } else if (state == STATE_IN_TAG) {
             uint8_t type = is_first_element ? TYPE_TAG : TYPE_TAG_VAL;
+            if (is_first_element && length == 1) {
+                if (str[0] == 'e') num_e_tags++;
+                if (str[0] == 'p') num_p_tags++;
+            }
             write_tlv(buffer_ptr, type, length, (const uint8_t*)str);
             text_content_len += length + 1;
             is_first_element = false;
@@ -372,9 +378,13 @@ ParseError event_parse(const char* input, size_t input_len, uint8_t* tlv_out, Ev
         sizeof(Event) +
         align_8(handler.text_content_len) +
         handler.num_tags * sizeof(RelArray<RelArray<RelString>>) +
-        handler.num_tag_values * sizeof(RelArray<RelString>)
+        handler.num_tag_values * sizeof(RelArray<RelString>) +
+        handler.num_e_tags * sizeof(ETag) +
+        handler.num_p_tags * sizeof(PTag)
     );
     result.num_tags = handler.num_tags;
+    result.num_e_tags = handler.num_e_tags;
+    result.num_p_tags = handler.num_p_tags;
     result.num_tag_values = handler.num_tag_values;
     return PARSE_NO_ERR;
 }
@@ -387,13 +397,17 @@ void event_create(Event* event, const uint8_t* tlv, const EventParseResult& resu
     int fixed_size = sizeof(Event);
     int total_size = result.event_size;
     
-    int tags_size = sizeof(RelArray<RelString>) * result.num_tags;
-    int vals_size = sizeof(RelString) * result.num_tag_values;
+    int tags_size   = sizeof(RelArray<RelString>) * result.num_tags;
+    int e_tags_size = sizeof(ETag) * result.num_e_tags;
+    int p_tags_size = sizeof(PTag) * result.num_p_tags;
+    int vals_size   = sizeof(RelString) * result.num_tag_values;
 
-    int data_offset = fixed_size;
-    int tags_offset = fixed_size;
-    int vals_offset = fixed_size + tags_size;
-    int text_offset = fixed_size + tags_size + vals_size;
+    int data_offset   = fixed_size;
+    int tags_offset   = fixed_size;
+    int e_tags_offset = fixed_size + tags_size;
+    int p_tags_offset = fixed_size + tags_size + e_tags_size;
+    int vals_offset   = fixed_size + tags_size + e_tags_size + p_tags_size;
+    int text_offset   = fixed_size + tags_size + e_tags_size + p_tags_size + vals_size;
 
     event->__header__ = (Event::VERSION << 24) | (uint32_t)total_size;
 
@@ -405,9 +419,13 @@ void event_create(Event* event, const uint8_t* tlv, const EventParseResult& resu
     tag_values.size = 0;
     tag_values.data.offset = vals_offset;
 
+    event->e_tags.data.offset = e_tags_offset;
+    event->p_tags.data.offset = p_tags_offset;
+
     int tag_index = 0;
     int tag_value_index = 0;
 
+    // Pull out all TLV values and transfer them to the Event
     const uint8_t* ch = tlv;
     while (*ch != TYPE_END) {
         uint8_t field_type = *ch++;
@@ -497,5 +515,54 @@ void event_create(Event* event, const uint8_t* tlv, const EventParseResult& resu
         }
 
         ch += len;
+    }
+
+    // Pull out e and p tags
+    for (int i = 0; i < tags.size; ++i) {
+        auto tag = tags[i].get(_base);
+        if (tag.size < 2 || tag[0].size != 1) continue;
+
+        auto t = tag[0].data.get(_base)[0];
+        if (t == 'e') {
+
+            // Expecting:
+            // ["e", <event-id>] or
+            // ["e", <event-id>, <relay-url>] or
+            // ["e", <event-id>, <relay-url>, <marker>]
+
+            ETag e_tag;
+            e_tag.index = i;
+            e_tag.marker = ETag::NO_MARKER;
+
+            if (tag[1].size != 2 * sizeof(EventId)) continue;
+            if (!hex_decode(e_tag.event_id.data, tag[1].data.get(_base), sizeof(EventId))) continue;
+
+            if (tag.size == 4) {
+                auto marker = tag[3].data.get(_base);
+                if (strcmp(marker, "reply")) {
+                    e_tag.marker = ETag::REPLY;
+                } else if (strcmp(marker, "root")) {
+                    e_tag.marker = ETag::ROOT;
+                } else if (strcmp(marker, "mention")) {
+                    e_tag.marker = ETag::MENTION;
+                }
+            }
+
+            event->e_tags.get(_base, event->e_tags.size++) = e_tag;
+
+        } else if (t == 'p') {
+
+            // Expecting:
+            // ["p", <pubkey>]
+
+            PTag p_tag;
+            p_tag.index = i;
+
+            if (tag[1].size != 2 * sizeof(Pubkey)) continue;
+            if (!hex_decode(p_tag.pubkey.data, tag[1].data.get(_base), sizeof(Pubkey))) continue;
+
+            event->p_tags.get(_base, event->p_tags.size++) = p_tag;
+
+        }
     }
 }
