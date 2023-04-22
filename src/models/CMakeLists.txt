@@ -10,6 +10,8 @@ list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/relay_message_parse.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/event_stringify.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/event_stringify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/account.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/account.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/hex.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/hex.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/nostr_entity.hpp

@@ -6,39 +6,36 @@
 //
 
 #include "network.hpp"
-#include "../app.h"
+#include <app.h>
+#include "handle_event.hpp"
 #include "../models/event_parse.hpp"
 #include "../models/event_stringify.hpp"
 #include "../models/relay_message_parse.hpp"
 #include "../models/hex.hpp"
-#include "../nostr/accounts.hpp"
 #include <string.h>
 
 static AppNetworking networking;
-std::vector<network::Conversation> network::conversations;
-
-static void account_response_cb(const AccountResponse* event);
 
 void network::init(AppNetworking networking_) {
     networking = networking_;
 
-    if (!accounts.size) {
+    if (data_layer::accounts.empty()) {
         return;
     }
-    account_response_callback = &account_response_cb;
+    account_set_response_callback(&network::account_response_handler);
 
     auto socket = networking.websocket_open(networking.opaque_ptr, "wss://relay.damus.io");
 }
 
 void app_websocket_event(const AppWebsocketEvent* event) {
 
-    auto account = accounts[account_selected];
+    auto account = data_layer::accounts[data_layer::account_selected];
 
     if (event->type == WEBSOCKET_OPEN) {
         printf("websocket open!\n");
 
         char pubkey_hex[65];
-        hex_encode(pubkey_hex, account->pubkey.data, sizeof(Pubkey));
+        hex_encode(pubkey_hex, account.pubkey.data, sizeof(Pubkey));
         pubkey_hex[64] = '\0';
 
         char req[128];
@@ -74,8 +71,7 @@ void app_websocket_event(const AppWebsocketEvent* event) {
     }
 
     if (message.type != RelayMessage::EVENT) {
-        printf("other message: %d\n", (int)message.type);
-        printf("data: %s\n", event->data);
+        printf("other message: %s\n", event->data);
         return;
     }
 
@@ -87,91 +83,9 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         return;
     }
 
-    Event* nostr_event = (Event*)malloc(res.event_size);
+    uint8_t nostr_event_buf[res.event_size];
+    Event* nostr_event = (Event*)nostr_event_buf;
     event_create(nostr_event, buffer, res);
 
-    if (!event_validate(nostr_event)) {
-        printf("event invalid: %s\n", nostr_event->validity == EVENT_INVALID_ID ? "INVALID_ID" : "INVALID_SIG");
-        printf("data: %s\n", message.event.input);
-        return;
-    }
-
-    if (nostr_event->kind != 4) {
-        return;
-    }
-
-    // Process a NIP-04 direct message
-
-    Pubkey counterparty;
-    if (strcmp(message.event.subscription_id, "dms_sent") == 0) {
-        if (!event_get_first_p_tag(nostr_event, &counterparty)) return;
-    } else if (strcmp(message.event.subscription_id, "dms_received") == 0) {
-        counterparty = nostr_event->pubkey;
-    } else {
-        return;
-    }
-
-    // Find the conversation (or create it)
-    int conversation_id = -1;
-    for (int i = 0; i < network::conversations.size(); ++i) {
-        if (compare_keys(&network::conversations[i].counterparty, &counterparty)) {
-            conversation_id = i;
-            break;
-        }
-    }
-    if (conversation_id == -1) {
-        network::Conversation conv;
-        conv.counterparty = counterparty;
-        conversation_id = network::conversations.size();
-        network::conversations.push_back(conv);
-    }
-
-    // Add the message to the conversation
-    auto& conv = network::conversations[conversation_id];
-    conv.messages.push_back(nostr_event);
-
-    // Decrypt the message
-    nostr_event->content_encryption = EVENT_CONTENT_ENCRYPTED;
-    auto ciphertext = nostr_event->content.data.get(nostr_event);
-    auto len = nostr_event->content.size;
-    account_nip04_decrypt(account, &counterparty, ciphertext, len, nostr_event);
-
-    ui::redraw();
-}
-
-void account_response_cb(const AccountResponse* response) {
-    switch (response->action) {
-        case AccountResponse::SIGN_EVENT: {
-            printf("signed event!\n");
-            break;
-        }
-        case AccountResponse::NIP04_ENCRYPT: {
-            break;
-        }
-        case AccountResponse::NIP04_DECRYPT: {
-            Event* event = (Event*)response->user_data;
-
-            // Get the result
-            const char* result;
-            if (response->error) {
-                event->content_encryption = EVENT_CONTENT_DECRYPT_FAILED;
-                return;
-            }
-
-            // Copy over the decrypted data
-            auto decrypted = response->result_nip04;
-            auto decrypted_len = response->result_nip04_len;
-            if (decrypted_len > event->content.size) {
-                printf("NIP04: Decoded plaintext longer than encoded ciphertext!!!\n");
-                event->content_encryption = EVENT_CONTENT_DECRYPT_FAILED;
-                return;
-            }
-
-            event->content_encryption = EVENT_CONTENT_DECRYPTED;
-            memcpy(event->content.data.get(event), decrypted, decrypted_len);
-            event->content.data.get(event)[decrypted_len] = '\0';
-            event->content.size = decrypted_len;
-            break;
-        }
-    }
+    network::handle_event(message.event.subscription_id, nostr_event);
 }

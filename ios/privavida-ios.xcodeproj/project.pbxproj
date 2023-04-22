@@ -16,6 +16,7 @@
 		A407D3B329E568C80025AF52 /* SFBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AA29E568C80025AF52 /* SFBold.ttf */; };
 		A407D3B429E568C80025AF52 /* SFBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */; };
 		A407D3B529E568C80025AF52 /* SFRegular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AC29E568C80025AF52 /* SFRegular.ttf */; };
+		A44E0A9E29F37A210098D525 /* bubble-tip.png in Resources */ = {isa = PBXBuildFile; fileRef = A44E0A9D29F37A210098D525 /* bubble-tip.png */; };
 		A45DD56C29F13E8E0073B3E6 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = A45DD56B29F13E8E0073B3E6 /* Starscream */; };
 		A45DD57129F143A00073B3E6 /* Networking.swift in Sources */ = {isa = PBXBuildFile; fileRef = A45DD57029F143A00073B3E6 /* Networking.swift */; };
 		A480DA5329EF2E03003CA565 /* libprivavida-core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A47B409C29E1B381005E1111 /* libprivavida-core.a */; };
@@ -50,6 +51,7 @@
 		A407D3AA29E568C80025AF52 /* SFBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFBold.ttf; path = ../../../assets/SFBold.ttf; sourceTree = "<group>"; };
 		A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFBoldItalic.ttf; path = ../../../assets/SFBoldItalic.ttf; sourceTree = "<group>"; };
 		A407D3AC29E568C80025AF52 /* SFRegular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFRegular.ttf; path = ../../../assets/SFRegular.ttf; sourceTree = "<group>"; };
+		A44E0A9D29F37A210098D525 /* bubble-tip.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "bubble-tip.png"; path = "../../../assets/bubble-tip.png"; sourceTree = "<group>"; };
 		A45DD57029F143A00073B3E6 /* Networking.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Networking.swift; sourceTree = "<group>"; };
 		A45DD57229F144A20073B3E6 /* privavida-ios-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "privavida-ios-Bridging-Header.h"; sourceTree = "<group>"; };
 		A47B409529E1B381005E1111 /* privavida-core.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "privavida-core.xcodeproj"; path = "../build/privavida-core.xcodeproj"; sourceTree = "<group>"; };
@@ -112,6 +114,7 @@
 		A4C5A61526D1C009007C5F37 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				A44E0A9D29F37A210098D525 /* bubble-tip.png */,
 				A407D3A929E568C80025AF52 /* profile.jpeg */,
 				A407D3A729E568C80025AF52 /* PTMono.ttf */,
 				A407D3AA29E568C80025AF52 /* SFBold.ttf */,
@@ -254,6 +257,7 @@
 				A407D3B029E568C80025AF52 /* PTMono.ttf in Resources */,
 				A407D3AE29E568C80025AF52 /* SFMedium.ttf in Resources */,
 				A4D058B926D043CA001CB0B5 /* Main.storyboard in Resources */,
+				A44E0A9E29F37A210098D525 /* bubble-tip.png in Resources */,
 				A4F7BC8126D5923F0070D1D5 /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

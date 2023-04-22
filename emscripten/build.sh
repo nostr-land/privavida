@@ -7,7 +7,11 @@ emcc \
     src/utils/animation.cpp \
     src/views/Root.cpp \
     src/views/Conversations.cpp \
-    src/views/Conversation.cpp \
+    src/views/ChatView/ChatView.cpp \
+    src/views/ChatView/VirtualizedList.cpp \
+    src/views/ChatView/ChatMessage.cpp \
+    src/views/ChatView/TokenizedContent.cpp \
+    src/views/MessageInspect/MessageInspect.cpp \
     src/views/ScrollView.cpp \
     src/models/keys.cpp \
     src/models/event.cpp \
@@ -17,12 +21,15 @@ emcc \
     src/models/hex.cpp \
     src/models/nostr_entity.cpp \
     src/models/nip04.cpp \
+    src/models/account.cpp \
     src/models/c/aes.c \
     src/models/c/secp256k1.c \
     src/models/c/base64.c \
     src/models/c/bech32.c \
     src/network/network.cpp \
-    src/nostr/accounts.cpp \
+    src/network/handle_event.cpp \
+    src/data_layer/accounts.cpp \
+    src/data_layer/conversations.cpp \
     -I include/ \
     -I lib/ \
     -I lib/rapidjson/include/ \
@@ -30,7 +37,7 @@ emcc \
     -o emscripten/index.js \
     --embed-file assets/SFBold.ttf \
     --embed-file assets/SFRegular.ttf \
-    --embed-file assets/profile.jpeg \
+    --embed-file assets/bubble-tip.png \
     -sEXPORTED_FUNCTIONS=_window_size,_main,_fs_mounted \
     -sEXPORTED_RUNTIME_METHODS=cwrap,ccall \
     -lidbfs.js \

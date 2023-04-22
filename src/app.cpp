@@ -15,7 +15,7 @@
 #include "utils/animation.hpp"
 #include "views/Root.hpp"
 #include "network/network.hpp"
-#include "nostr/accounts.hpp"
+#include "data_layer/accounts.hpp"
 
 static AppTouchEvent touch_event_queue[1024];
 static int touch_event_queue_size = 0;
@@ -25,7 +25,7 @@ void app_init(NVGcontext* vg_, AppKeyboard keyboard_, AppStorage storage_, AppNe
     ui::keyboard = keyboard_;
     ui::redraw_requested = true;
     ui::storage = storage_;
-    if (!accounts_load()) return;
+    if (!data_layer::accounts_load()) return;
     network::init(network_);
 
     // nvgCreateFont(vg_, "mono",     ui::get_asset_name("PTMono",          "ttf"));

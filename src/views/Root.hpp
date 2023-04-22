@@ -6,10 +6,15 @@
 //
 
 #pragma once
+#include "../models/event.hpp"
 
 struct Root {
-    static int open_conversation;
-
     static void init();
     static void update();
+
+    static void push_view_chat(int conversation_id);
+    static void push_view_message_inspect(const Event* event);
+    static void pop_view();
+
+    static int open_conversation();
 };

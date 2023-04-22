@@ -6,11 +6,10 @@
 //
 
 #include "Conversations.hpp"
-#include "Conversation.hpp"
 #include "ScrollView.hpp"
 #include "SubView.hpp"
 #include "Root.hpp"
-#include "../network/network.hpp"
+#include "../data_layer/conversations.hpp"
 #include "../models/hex.hpp"
 #include "../models/nostr_entity.hpp"
 
@@ -22,21 +21,9 @@ constexpr int num_lines = 50;
 constexpr int max_line_len = 100;
 static char* lines[num_lines];
 
-struct Contact {
-    Contact(const char* name, const char* line1, const char* line2) : name(name), line1(line1), line2(line2) {}
-    const char* name;
-    const char* line1;
-    const char* line2;
-};
-
-static bool keyboard_open = false;
-
 static ScrollView::State sv_state;
 
-static int profile_img_id = -1;
-
 void Conversations::init() {
-    profile_img_id = nvgCreateImage(ui::vg, ui::get_asset_name("profile", "jpeg"), 0);
 }
 
 void Conversations::update() {
@@ -65,19 +52,27 @@ void Conversations::update() {
     {
         SubView sub(0, HEADER_HEIGHT, ui::view.width, kb_y - HEADER_HEIGHT);
         ScrollView sv(&sv_state);
-        sv.inner_size(ui::view.width, network::conversations.size() * BLOCK_HEIGHT).update();
+        sv.inner_size(ui::view.width, data_layer::conversations.size() * BLOCK_HEIGHT).update();
 
         int start_block = (int)(sv.state.scroll_y / BLOCK_HEIGHT);
         if (start_block < 0) start_block = 0;
         int end_block = start_block + (int)(sv.outer_height / BLOCK_HEIGHT) + 1;
 
-        for (int i = start_block; i <= end_block && i < network::conversations.size(); ++i) {
+        for (int i = start_block; i <= end_block && i < data_layer::conversations.size(); ++i) {
 
-            auto& conv = network::conversations[i];
+            auto& conv = data_layer::conversations[i];
             int y = i * BLOCK_HEIGHT;
 
+            // Highlight if conversation is open
+            if (Root::open_conversation() == i) {
+                nvgBeginPath(ui::vg);
+                nvgFillColor(ui::vg, (NVGcolor){ 0.2, 0.2, 0.2, 1.0 });
+                nvgRect(ui::vg, 0, y, ui::view.width, BLOCK_HEIGHT);
+                nvgFill(ui::vg);
+            }
+
             if (ui::simple_tap(0, y, ui::view.width, BLOCK_HEIGHT)) {
-                Root::open_conversation = i;
+                Root::push_view_chat(i);
                 return ui::redraw();
             }
 

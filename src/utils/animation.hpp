@@ -10,10 +10,10 @@
 namespace animation {
     void update_animation();
 
-    void start(void* identifier);
-    void stop(void* identifier);
-    bool is_animating(void* identifier);
-    double get_time_elapsed(void* identifier);
+    void start(const void* identifier);
+    void stop(const void* identifier);
+    bool is_animating(const void* identifier);
+    double get_time_elapsed(const void* identifier);
     double ease_in(double completion);
     double ease_out(double completion);
     double ease_in_out(double completion);

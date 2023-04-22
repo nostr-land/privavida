@@ -19,7 +19,7 @@ constexpr float INERTIA_DECELERATION = -1000.0;
 constexpr float FPS = 60.0;
 
 void ScrollView::update() {
-    
+
     outer_width = ui::view.width;
     outer_height = ui::view.height;
     float max_scroll_y = inner_height > outer_height ? inner_height - outer_height : 0;

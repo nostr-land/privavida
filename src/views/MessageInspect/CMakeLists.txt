@@ -1,0 +1,5 @@
+list(APPEND SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/MessageInspect.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MessageInspect.cpp
+)
+set(SOURCES ${SOURCES} PARENT_SCOPE)

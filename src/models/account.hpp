@@ -1,12 +1,12 @@
 //
-//  accounts.hpp
+//  account.hpp
 //  privavida-core
 //
 //  Created by Bartholomew Joyce on 2023-04-21.
 //
 
 #pragma once
-#include "../models/event.hpp"
+#include "event.hpp"
 
 struct Account {
 
@@ -18,6 +18,7 @@ struct Account {
 
     Type type;
     Pubkey pubkey;
+    Seckey seckey_padded; // for Account::SECKEY_IN_MEMORY
 };
 
 struct AccountResponse {
@@ -42,13 +43,9 @@ struct AccountResponse {
 
 typedef void (*AccountResponseCallback)(const AccountResponse* response);
 
-extern int account_selected;
-extern Array<Account*> accounts;
-extern AccountResponseCallback account_response_callback;
+bool account_load_from_file(Account* account, const uint8_t* data, uint32_t len);
 
-bool accounts_load();
-void accounts_process_responses();
-
+void account_set_response_callback(AccountResponseCallback cb);
 void account_sign_event   (const Account* account, const Event* event, void* user_data);
 void account_nip04_encrypt(const Account* account, const Pubkey* pubkey, const char* plaintext,  uint32_t len, void* user_data);
 void account_nip04_decrypt(const Account* account, const Pubkey* pubkey, const char* ciphertext, uint32_t len, void* user_data);
