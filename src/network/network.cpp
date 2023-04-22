@@ -47,6 +47,10 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         printf("Request: %s\n", req);
         networking.websocket_send(networking.opaque_ptr, event->ws, req);
 
+        sprintf(req, "[\"REQ\",\"prof\",{\"authors\":[\"%s\"],\"kinds\":[0]}]", pubkey_hex);
+        printf("Request: %s\n", req);
+        networking.websocket_send(networking.opaque_ptr, event->ws, req);
+
     } else if (event->type == WEBSOCKET_CLOSE) {
         printf("websocket close!\n");
     } else if (event->type == WEBSOCKET_ERROR) {
@@ -88,4 +92,8 @@ void app_websocket_event(const AppWebsocketEvent* event) {
     event_create(nostr_event, buffer, res);
 
     network::handle_event(message.event.subscription_id, nostr_event);
+}
+
+void network::send(const char* message) {
+    networking.websocket_send(networking.opaque_ptr, 0, message);
 }

@@ -102,8 +102,6 @@ class WebSocketHandle: WebSocketDelegate {
             app_websocket_event(&event)
 
         case .text(let txt):
-            print("WebSocket message \(txt)")
-            
             let cString = txt.utf8CString
             cString.withUnsafeBytes { ptr in
                 var event = AppWebsocketEvent()

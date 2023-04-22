@@ -3,5 +3,7 @@ list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/accounts.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/conversations.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/conversations.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/profiles.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/profiles.cpp
 )
 set(SOURCES ${SOURCES} PARENT_SCOPE)

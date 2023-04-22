@@ -6,7 +6,9 @@
 //
 
 #include "handle_event.hpp"
+#include "../models/profile.hpp"
 #include "../data_layer/conversations.hpp"
+#include "../data_layer/profiles.hpp"
 #include <string.h>
 #include <stdio.h>
 #include <algorithm>
@@ -15,21 +17,45 @@ bool sort_by_created_at(const Event* a, const Event* b) {
     return a->created_at < b->created_at;
 }
 
+static void handle_kind_0(const char* subscription_id, Event* event);
+static void handle_kind_4(const char* subscription_id, Event* event);
+
 void network::handle_event(const char* subscription_id, Event* event_) {
 
     Event* event = (Event*)malloc(Event::size_of(event_));
     memcpy(event, event_, Event::size_of(event_));
-
-    auto& account = data_layer::accounts[data_layer::account_selected];
 
     if (!event_validate(event)) {
         printf("event invalid: %s\n", event->validity == EVENT_INVALID_ID ? "INVALID_ID" : "INVALID_SIG");
         return;
     }
 
-    if (event->kind != 4) {
+    if (event->kind == 0) {
+        handle_kind_0(subscription_id, event);
+    } else if (event->kind == 4) {
+        handle_kind_4(subscription_id, event);
+    }
+
+}
+
+static void handle_kind_0(const char* subscription_id, Event* event) {
+
+    Profile* profile = (Profile*)malloc(Profile::size_from_event(event));
+
+    if (!parse_profile_data(profile, event)) {
+        printf("Invalid profile data :(\n");
+        printf("%s\n", event->content.data.get(event));
+        free(profile);
         return;
     }
+
+    data_layer::profiles.push_back(profile);
+    ui::redraw();
+}
+
+static void handle_kind_4(const char* subscription_id, Event* event) {
+
+    auto& account = data_layer::accounts[data_layer::account_selected];
 
     // Process a NIP-04 direct message
 

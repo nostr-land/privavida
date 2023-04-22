@@ -86,6 +86,8 @@ typedef struct {
     int data_length;
 } AppWebsocketEvent;
 
+
+
 void app_init(NVGcontext* vg, AppKeyboard keyboard, AppStorage storage, AppNetworking networking);
 int  app_wants_to_render(void);
 void app_render(float window_width, float window_height, float pixel_density);

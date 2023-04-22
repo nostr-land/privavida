@@ -10,6 +10,7 @@
 #include "SubView.hpp"
 #include "Root.hpp"
 #include "../data_layer/conversations.hpp"
+#include "../data_layer/profiles.hpp"
 #include "../models/hex.hpp"
 #include "../models/nostr_entity.hpp"
 #include "../utils/animation.hpp"
@@ -17,10 +18,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-constexpr int num_lines = 50;
-constexpr int max_line_len = 100;
-static char* lines[num_lines];
 
 static ScrollView::State sv_state;
 
@@ -68,6 +65,8 @@ void Conversations::update() {
         for (int i = start_block; i <= end_block && i < data_layer::conversations.size(); ++i) {
 
             auto& conv = data_layer::conversations[i];
+            auto profile = data_layer::get_or_request_profile(&conv.counterparty);
+
             int y = i * BLOCK_HEIGHT;
 
             // Highlight if conversation is open
@@ -101,7 +100,11 @@ void Conversations::update() {
             nvgFontFace(ui::vg, "bold");
             
             char name[100];
-            NostrEntity::encode_npub(&conv.counterparty, name, NULL);
+            if (!profile || !profile->display_name.size) {
+                NostrEntity::encode_npub(&conv.counterparty, name, NULL);
+            } else {
+                strcpy(name, profile->display_name.data.get(profile));
+            }
 
             nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (1.0 / 6.0), name, NULL);
 

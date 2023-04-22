@@ -12,5 +12,6 @@
 namespace network {
 
 void init(AppNetworking networking);
+void send(const char* message);
 
 }

@@ -7,14 +7,16 @@
 
 #pragma once
 
-#include <nanovg.h>
 #include "app.h"
+#include <functional>
 
 namespace ui {
 
 // Redraw
 extern bool redraw_requested;
 void redraw();
+void set_immediate(std::function<void()> callback);
+void process_immediate_callbacks();
 
 // Viewport
 struct Viewport {

@@ -11,6 +11,7 @@
 #include "../Root.hpp"
 #include "../../data_layer/conversations.hpp"
 #include "../../data_layer/accounts.hpp"
+#include "../../data_layer/profiles.hpp"
 #include "../../models/nostr_entity.hpp"
 
 #include <stdlib.h>

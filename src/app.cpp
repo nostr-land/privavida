@@ -13,6 +13,7 @@
 #include <string.h>
 #include "ui.hpp"
 #include "utils/animation.hpp"
+#include "utils/timer.hpp"
 #include "views/Root.hpp"
 #include "network/network.hpp"
 #include "data_layer/accounts.hpp"
@@ -27,6 +28,7 @@ void app_init(NVGcontext* vg_, AppKeyboard keyboard_, AppStorage storage_, AppNe
     ui::storage = storage_;
     if (!data_layer::accounts_load()) return;
     network::init(network_);
+    timer::init();
 
     // nvgCreateFont(vg_, "mono",     ui::get_asset_name("PTMono",          "ttf"));
     nvgCreateFont(vg_, "regular",  ui::get_asset_name("SFRegular",       "ttf"));
@@ -42,6 +44,7 @@ void app_init(NVGcontext* vg_, AppKeyboard keyboard_, AppStorage storage_, AppNe
 }
 
 int app_wants_to_render() {
+    timer::update();
     return (ui::redraw_requested || animation::is_animating());
 }
 
@@ -59,6 +62,7 @@ void app_render(float window_width, float window_height, float pixel_density) {
         ui::view.height = window_height;
 
         ui::redraw_requested = false;
+        ui::process_immediate_callbacks();
         Root::update();
         ui::set_scroll(0, 0, 0, 0);
 

@@ -32,6 +32,12 @@ struct RelPointer {
     const T* get(const void* base) const {
         return (const T*)((const uint8_t*)base + offset);
     }
+    T* get_safe(void* base) const {
+        return !offset ? NULL : (T*)((uint8_t*)base + offset);
+    }
+    const T* get_safe(const void* base) const {
+        return !offset ? NULL : (const T*)((const uint8_t*)base + offset);
+    }
     RelPointer& operator+=(const int rhs) {
         offset += sizeof(T) * rhs;
         return *this;

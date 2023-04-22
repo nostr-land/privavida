@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <functional>
 
 namespace ui {
 
@@ -17,6 +18,20 @@ namespace ui {
 bool redraw_requested;
 void redraw() {
     redraw_requested = true;
+}
+
+static std::vector<std::function<void()>> immediate_callbacks;
+void set_immediate(std::function<void()> callback) {
+    immediate_callbacks.push_back(std::move(callback));
+    redraw();
+}
+void process_immediate_callbacks() {
+    static std::vector<std::function<void()>> immediate_callbacks_copy;
+    std::swap(immediate_callbacks_copy, immediate_callbacks);
+    for (auto& fn : immediate_callbacks_copy) {
+        fn();
+    }
+    immediate_callbacks_copy.clear();
 }
 
 // Viewport
