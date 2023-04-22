@@ -16,11 +16,13 @@ extern "C" {
 
 constexpr auto HORIZONTAL_MARGIN = 14;
 constexpr auto VERTICAL_MARGIN = 1;
-constexpr auto PADDING = 12;
+constexpr auto HORIZONTAL_PADDING = 12;
+constexpr auto VERTICAL_PADDING = 10;
 constexpr auto SPACING = 10;
 constexpr auto BUBBLE_CORNER_RADIUS = 17;
-constexpr auto BUBBLE_COLOR_SENDER    = (NVGcolor){ 72/255.0, 140/255.0, 247/255.0, 1.0 };
-constexpr auto BUBBLE_COLOR_RECIPIENT = (NVGcolor){ 38/255.0,  37/255.0,  42/255.0, 1.0 };
+static const auto COLOR_BUBBLE_SENDER    = ui::color(0x883955);
+static const auto COLOR_BUBBLE_RECIPIENT = ui::color(0x4D434B);
+static const auto COLOR_DECRYPT_FAILED   = ui::color(0xff3e41);
 
 static bool author_is_me(const Event* event) {
     return compare_keys(&event->pubkey, &data_layer::accounts[0].pubkey);
@@ -47,10 +49,10 @@ ChatMessage ChatMessage::create(const Event* event) {
     auto tc = &message.tokenized_content;
 
     if (event->content_encryption == EVENT_CONTENT_DECRYPTED) {
-        TokenizedContent::set_font_settings(tc, (NVGcolor){ 1.0, 1.0, 1.0, 1.0 }, 18.0, "regular");
+        TokenizedContent::set_font_settings(tc, (NVGcolor){ 1.0, 1.0, 1.0, 1.0 }, 17.0, "regular");
         TokenizedContent::tokenize_and_append_text(tc, event->content.data.get(event));
     } else {
-        TokenizedContent::set_font_settings(tc, (NVGcolor){ 0.8, 0.3, 0.4, 1.0 }, 18.0, "regular");
+        TokenizedContent::set_font_settings(tc, COLOR_DECRYPT_FAILED, 17.0, "regular");
         TokenizedContent::tokenize_and_append_text(tc, "Failed to decrypt");
     }
 
@@ -67,31 +69,31 @@ float ChatMessage::measure_height(float width, const Event* event_before, const 
     );
 
     float max_bubble_width = width - 2 * HORIZONTAL_MARGIN - 0.2 * ui::view.width;
-    float max_content_width = max_bubble_width - 2 * PADDING;
+    float max_content_width = max_bubble_width - 2 * HORIZONTAL_PADDING;
 
     float content_height;
     TokenizedContent::measure_content(&tokenized_content, max_content_width, &content_width, &content_height);
 
-    float bubble_height = content_height + 2 * PADDING + (space_above ? SPACING : 0) + (space_below ? SPACING : 0);
+    float bubble_height = content_height + 2 * VERTICAL_PADDING + (space_above ? SPACING : 0) + (space_below ? SPACING : 0);
     return bubble_height + VERTICAL_MARGIN;
 }
 
 void ChatMessage::update() {
 
     float bubble_height = ui::view.height - VERTICAL_MARGIN - (space_above ? SPACING : 0) - (space_below ? SPACING : 0);
-    float bubble_width = content_width + 2 * PADDING;
+    float bubble_width = content_width + 2 * HORIZONTAL_PADDING;
     float bubble_x = author_is_me(event) ? ui::view.width - HORIZONTAL_MARGIN - bubble_width : HORIZONTAL_MARGIN;
     float bubble_y = (space_above ? SPACING : 0);
-    float content_x = bubble_x + PADDING;
-    float content_y = bubble_y + PADDING;
-    float content_height = bubble_height - 2 * PADDING;
+    float content_x = bubble_x + HORIZONTAL_PADDING;
+    float content_y = bubble_y + VERTICAL_PADDING;
+    float content_height = bubble_height - 2 * VERTICAL_PADDING;
 
     BubbleTipType tip_type;
     if (event->content_encryption == EVENT_CONTENT_DECRYPTED && author_is_me(event)) {
-        nvgFillColor(ui::vg, BUBBLE_COLOR_SENDER);
+        nvgFillColor(ui::vg, COLOR_BUBBLE_SENDER);
         tip_type = BUBBLE_TIP_SENDER;
     } else {
-        nvgFillColor(ui::vg, BUBBLE_COLOR_RECIPIENT);
+        nvgFillColor(ui::vg, COLOR_BUBBLE_RECIPIENT);
         tip_type = BUBBLE_TIP_RECIPIENT;
     }
 
@@ -166,7 +168,7 @@ int get_bubble_tip(BubbleTipType tip_type, float* width, float* height) {
     if (img_id != -1) return img_id;
 
     // Image has not been created, create it now
-    auto color = tip_type == BUBBLE_TIP_SENDER ? BUBBLE_COLOR_SENDER : BUBBLE_COLOR_RECIPIENT;
+    auto color = tip_type == BUBBLE_TIP_SENDER ? COLOR_BUBBLE_SENDER : COLOR_BUBBLE_RECIPIENT;
     uint8_t color_r = (uint8_t)(color.r * 255);
     uint8_t color_g = (uint8_t)(color.g * 255);
     uint8_t color_b = (uint8_t)(color.b * 255);

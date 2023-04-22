@@ -17,4 +17,5 @@ struct Root {
     static void pop_view();
 
     static int open_conversation();
+    static double pop_transition_progress();
 };

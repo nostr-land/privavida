@@ -25,6 +25,12 @@ void save();
 void restore();
 void reset();
 void sub_view(float x, float y, float width, float height);
+static inline NVGcolor color(int rgb, float a) {
+    return (NVGcolor){ ((rgb >> 16) % 256) / 255.0f, ((rgb >> 8) % 256) / 255.0f, ((rgb) % 256) / 255.0f, a };
+}
+static inline NVGcolor color(int rgb) {
+    return color(rgb, 1.0);
+}
 
 extern Viewport view;
 extern NVGcontext* vg;

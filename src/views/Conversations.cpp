@@ -12,6 +12,7 @@
 #include "../data_layer/conversations.hpp"
 #include "../models/hex.hpp"
 #include "../models/nostr_entity.hpp"
+#include "../utils/animation.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,8 +44,14 @@ void Conversations::update() {
         SubView sub(0, 0, ui::view.width, HEADER_HEIGHT);
         nvgBeginPath(ui::vg);
         nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
-        nvgFillColor(ui::vg, (NVGcolor){ 0.1, 0.1, 0.2, 1.0 });
+        nvgFillColor(ui::vg, ui::color(0x4D434B));
         nvgFill(ui::vg);
+
+        nvgBeginPath(ui::vg);
+        nvgStrokeColor(ui::vg, ui::color(0x000000, 0.2));
+        nvgMoveTo(ui::vg, 0, HEADER_HEIGHT - 0.5);
+        nvgLineTo(ui::vg, ui::view.width, HEADER_HEIGHT - 0.5);
+        nvgStroke(ui::vg);
     }
 
     // ScrollView
@@ -66,7 +73,7 @@ void Conversations::update() {
             // Highlight if conversation is open
             if (Root::open_conversation() == i) {
                 nvgBeginPath(ui::vg);
-                nvgFillColor(ui::vg, (NVGcolor){ 0.2, 0.2, 0.2, 1.0 });
+                nvgFillColor(ui::vg, ui::color(0x4D434B, 1.0 - Root::pop_transition_progress()));
                 nvgRect(ui::vg, 0, y, ui::view.width, BLOCK_HEIGHT);
                 nvgFill(ui::vg);
             }

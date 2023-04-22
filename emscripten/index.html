@@ -13,13 +13,11 @@
         }
         canvas {
             position: absolute;
-            width: 100vw;
-            height: 100vh;
         }
     </style>
 </head>
 <body>
-    <canvas id="canvas" height="400px" width="400px"></canvas>
+    <canvas id="canvas"></canvas>
     <script src="index.js"></script>
     <script>
         Module.onRuntimeInitialized = () => {
@@ -28,10 +26,7 @@
             let heightPrev = 0;
             function updateSize() {
                 const [width, height] = [window.innerWidth, window.innerHeight];
-                if (widthPrev === width && heightPrev === height) {
-                    return;
-                }
-
+                if (widthPrev === width && heightPrev === height) return;
                 canvas.style.setProperty('width', width + 'px');
                 canvas.style.setProperty('height', height + 'px');
                 canvas.setAttribute('width', width * 2);
@@ -40,7 +35,6 @@
                 widthPrev = width;
                 heightPrev = height;
             };
-
             window.onresize = updateSize;
             updateSize();
         };

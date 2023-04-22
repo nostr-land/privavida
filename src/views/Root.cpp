@@ -87,21 +87,21 @@ void Root::update() {
     float translate_upper_x, translate_lower_x;
 
     if (animation::is_animating(ANIMATION_PUSH)) {
-        auto elapsed = animation::get_time_elapsed(ANIMATION_PUSH) / ANIMATION_PUSH_DURATION;
-        if (elapsed > 1.0) {
+        auto completion = animation::get_time_elapsed(ANIMATION_PUSH) / ANIMATION_PUSH_DURATION;
+        if (completion > 1.0) {
             animation::stop(ANIMATION_PUSH);
         } else {
             in_transition = true;
-            translate_upper_x = (1.0 - animation::ease_out(elapsed)) * ui::view.width;
+            translate_upper_x = (1.0 - animation::ease_out(completion)) * ui::view.width;
         }
     } else if (animation::is_animating(ANIMATION_POP)) {
-        auto elapsed = animation::get_time_elapsed(ANIMATION_POP) / ANIMATION_POP_DURATION;
-        if (elapsed > 1.0) {
+        auto completion = animation::get_time_elapsed(ANIMATION_POP) / ANIMATION_POP_DURATION;
+        if (completion > 1.0) {
             animation::stop(ANIMATION_POP);
             view_stack.pop_back();
         } else {
             in_transition = true;
-            translate_upper_x = animation::ease_out(elapsed) * ui::view.width;
+            translate_upper_x = animation::ease_out(completion) * ui::view.width;
         }
     }
     translate_lower_x = 0.5 * (translate_upper_x - ui::view.width);
@@ -151,4 +151,12 @@ int Root::open_conversation() {
         }
     }
     return -1;
+}
+
+double Root::pop_transition_progress() {
+    if (animation::is_animating(ANIMATION_POP)) {
+        return animation::get_time_elapsed(ANIMATION_POP) / ANIMATION_POP_DURATION;
+    } else {
+        return 0.0;
+    }
 }

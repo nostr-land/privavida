@@ -24,8 +24,14 @@ void MessageInspect::update(const Event* event) {
         SubView sub(0, 0, ui::view.width, HEADER_HEIGHT);
         nvgBeginPath(ui::vg);
         nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
-        nvgFillColor(ui::vg, (NVGcolor){ 0.2, 0.1, 0.1, 1.0 });
+        nvgFillColor(ui::vg, ui::color(0x4D434B));
         nvgFill(ui::vg);
+
+        nvgBeginPath(ui::vg);
+        nvgStrokeColor(ui::vg, ui::color(0x000000, 0.2));
+        nvgMoveTo(ui::vg, 0, HEADER_HEIGHT - 0.5);
+        nvgLineTo(ui::vg, ui::view.width, HEADER_HEIGHT - 0.5);
+        nvgStroke(ui::vg);
 
         if (ui::simple_tap(0, 0, ui::view.width, ui::view.height)) {
             Root::pop_view();
