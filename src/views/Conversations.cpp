@@ -30,9 +30,6 @@ void Conversations::init() {
 void Conversations::update() {
 
     auto& account = data_layer::accounts[data_layer::account_selected];
-
-    float kb_x, kb_y, kb_width, kb_height;
-    ui::keyboard_rect(&kb_x, &kb_y, &kb_width, &kb_height);
     
     // Background
     nvgFillColor(ui::vg, (NVGcolor){ 0.0, 0.0, 0.0, 1.0 });
@@ -45,7 +42,7 @@ void Conversations::update() {
     // ScrollView
     constexpr float BLOCK_HEIGHT = 80.0;
     {
-        SubView sub(0, HEADER_HEIGHT, ui::view.width, kb_y - HEADER_HEIGHT);
+        SubView sub(0, HEADER_HEIGHT, ui::view.width, ui::keyboard_y() - HEADER_HEIGHT);
         ScrollView sv(&sv_state);
         sv.inner_size(ui::view.width, data_layer::conversations.size() * BLOCK_HEIGHT).update();
 

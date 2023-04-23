@@ -146,7 +146,7 @@ EM_BOOL websocket_message_event(int event_type, const EmscriptenWebSocketMessage
     app_event.type = WEBSOCKET_MESSAGE;
     app_event.ws = event->socket;
     app_event.data = (const char*)event->data;
-    app_event.data_length = strlen((const char*)event->data);
+    app_event.data_length = event->data ? strlen((const char*)event->data) : 0;
     app_event.user_data = user_data;
     app_websocket_event(&app_event);
     return 1;
@@ -279,28 +279,23 @@ void fs_mounted() {
     emscripten_set_mousemove_callback  ("#canvas", NULL, 0, mouse_event);
     emscripten_set_wheel_callback      ("#canvas", NULL, 0, scroll_event);
 
-    AppKeyboard keyboard;
-    keyboard.open = [](void* opaque_ptr) {};
-    keyboard.close = [](void* opaque_ptr) {};
-    keyboard.rect = [](void* opaque_ptr, float* x, float* y, float* width, float* height) {
-        *x = 0;
-        *y = 0;
-        *width = 0;
-        *height = 0;
-    };
+    AppText app_text;
+    app_text.opaque_ptr = NULL;
+    app_text.update_text_input = [](void* opaque_ptr, const AppTextInputConfig* config) {};
+    app_text.remove_text_input = [](void* opaque_ptr) {};
 
-    AppStorage storage;
-    storage.get_asset_name = &get_asset_name;
-    storage.user_data_dir = "/idbfs";
-    storage.user_data_flush = &user_data_flush;
+    AppStorage app_storage;
+    app_storage.get_asset_name = &get_asset_name;
+    app_storage.user_data_dir = "/idbfs";
+    app_storage.user_data_flush = &user_data_flush;
 
-    AppNetworking networking;
-    networking.websocket_open  = &websocket_open;
-    networking.websocket_send  = &websocket_send;
-    networking.websocket_close = &websocket_close;
-    networking.http_request_send = &http_request_send;
+    AppNetworking app_networking;
+    app_networking.websocket_open  = &websocket_open;
+    app_networking.websocket_send  = &websocket_send;
+    app_networking.websocket_close = &websocket_close;
+    app_networking.http_request_send = &http_request_send;
 
-    app_init(vg, keyboard, storage, networking);
+    app_init(vg, app_text, app_storage, app_networking);
     emscripten_set_main_loop(&main_loop, 0, 1);
     // nvgDeleteGLES2(vg);
 }

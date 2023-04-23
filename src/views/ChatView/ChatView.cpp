@@ -6,6 +6,7 @@
 //
 
 #include "ChatView.hpp"
+#include "Composer.hpp"
 #include "../ScrollView.hpp"
 #include "../SubView.hpp"
 #include "../Root.hpp"
@@ -20,9 +21,6 @@
 
 void ChatView::update() {
 
-    float kb_x, kb_y, kb_width, kb_height;
-    ui::keyboard_rect(&kb_x, &kb_y, &kb_width, &kb_height);
-    
     // Background
     nvgFillColor(ui::vg, (NVGcolor){ 0.0, 0.0, 0.0, 1.0 });
     nvgBeginPath(ui::vg);
@@ -62,21 +60,27 @@ void ChatView::update() {
     }
 
     // ScrollView
-    constexpr float BLOCK_HEIGHT = 80.0;
+    {
+        SubView sub(0, HEADER_HEIGHT, ui::view.width, ui::keyboard_y() - HEADER_HEIGHT - composer.height());
+        VirtualizedList::update(
+            &virt_state,
+            (int)conv.messages.size(),
+            [&](int i) {
+                auto event_before = i - 1 >= 0 ? conv.messages[i - 1] : NULL;
+                auto event_after  = i + 1 < conv.messages.size() ? conv.messages[i + 1] : NULL;
+                return messages[i].measure_height(ui::view.width, event_before, event_after);
+            },
+            [&](int i) {
+                messages[i].update();
+            },
+            []() {}
+        );
+    }
 
-    SubView sub(0, HEADER_HEIGHT, ui::view.width, kb_y - HEADER_HEIGHT);
-    VirtualizedList::update(
-        &virt_state,
-        conv.messages.size(),
-        [&](int i) {
-            auto event_before = i - 1 >= 0 ? conv.messages[i - 1] : NULL;
-            auto event_after  = i + 1 < conv.messages.size() ? conv.messages[i + 1] : NULL;
-            return messages[i].measure_height(ui::view.width, event_before, event_after);
-        },
-        [&](int i) {
-            messages[i].update();
-        },
-        []() {}
-    );
+    // Composer
+    {
+        SubView sub(0, ui::keyboard_y() - composer.height(), ui::view.width, composer.height());
+        composer.update();
+    }
 
 }

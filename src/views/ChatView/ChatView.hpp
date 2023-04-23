@@ -8,6 +8,7 @@
 #pragma once
 #include "VirtualizedList.hpp"
 #include "ChatMessage.hpp"
+#include "Composer.hpp"
 
 struct ChatView {
     int conversation_id;
@@ -15,6 +16,7 @@ struct ChatView {
     int selected_idx = 0;
     VirtualizedList::State virt_state;
     std::vector<ChatMessage> messages;
+    Composer composer;
 
     void update();
 };

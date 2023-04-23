@@ -27,6 +27,10 @@ void save();
 void restore();
 void reset();
 void sub_view(float x, float y, float width, float height);
+void to_screen_point(float x, float y, float* sx, float* sy);
+void to_screen_rect(float x, float y, float width, float height, float* sx, float* sy, float* swidth, float* sheight);
+void to_view_point(float x, float y, float* sx, float* sy);
+void to_view_rect(float x, float y, float width, float height, float* sx, float* sy, float* swidth, float* sheight);
 static inline NVGcolor color(int rgb, float a) {
     return (NVGcolor){ ((rgb >> 16) % 256) / 255.0f, ((rgb >> 8) % 256) / 255.0f, ((rgb) % 256) / 255.0f, a };
 }
@@ -61,10 +65,17 @@ void set_scroll(int x, int y, int dx, int dy);
 bool get_scroll(float x, float y, float width, float height, float* dx, float* dy);
 
 // Keyboard
-extern AppKeyboard keyboard;
-void keyboard_open();
-void keyboard_close();
-void keyboard_rect(float* x, float* y, float* width, float* height);
+extern AppText text_input;
+void text_input_begin_frame();
+void text_input_end_frame();
+void set_text_input(const AppTextInputConfig* config);
+void keyboard_changed(int is_showing, float x, float y, float width, float height);
+float keyboard_y();
+
+void queue_key_event(AppKeyEvent event);
+bool has_key_event();
+void next_key_event();
+extern AppKeyEvent key_state;
 
 // Storage
 extern AppStorage storage;

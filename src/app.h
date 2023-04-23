@@ -44,13 +44,51 @@ typedef struct {
 } AppTouchEvent;
 
 
-// Keyboard control
+// Text input control
+// enum AppTextAnchor {
+//     APP_TEXT_ANCHOR_TOP,
+//     APP_TEXT_ANCHOR_BOTTOM
+// };
+enum AppTextFlags {
+    APP_TEXT_FLAGS_NONE = 0,
+    APP_TEXT_FLAGS_WORD_WRAP = 1,
+    APP_TEXT_FLAGS_MULTILINE = 2,
+    APP_TEXT_FLAGS_TYPE_EMAIL = 4,
+    APP_TEXT_FLAGS_TYPE_PASSWORD = 8
+};
+
+typedef struct {
+    // Positioning of the text input
+    // enum AppTextAnchor anchor;
+    float x, y, width, height;
+
+    // Font and text settings
+    float font_size, line_height;
+    NVGcolor text_color;
+    int flags;
+
+    // Content
+    const char* text_content;
+} AppTextInputConfig;
+
 typedef struct {
     void* opaque_ptr;
-    void (*open)(void* opaque_ptr);
-    void (*close)(void* opaque_ptr);
-    void (*rect)(void* opaque_ptr, float* x, float* y, float* width, float* height);
-} AppKeyboard;
+    void (*update_text_input)(void* opaque_ptr, const AppTextInputConfig* config);
+    void (*remove_text_input)(void* opaque_ptr);
+} AppText;
+
+enum AppKeyAction {
+    KEY_PRESS,
+    KEY_RELEASE,
+    KEY_REPEAT
+};
+
+typedef struct {
+    enum AppKeyAction action;
+    char ch[8];
+    int key;
+    int mods;
+} AppKeyEvent;
 
 
 // Storage
@@ -103,13 +141,13 @@ typedef struct {
 } AppHttpEvent;
 
 
-void app_init(NVGcontext* vg, AppKeyboard keyboard, AppStorage storage, AppNetworking networking);
+void app_init(NVGcontext* vg, AppText text, AppStorage storage, AppNetworking networking);
 int  app_wants_to_render(void);
 void app_render(float window_width, float window_height, float pixel_density);
 void app_touch_event(AppTouchEvent* event);
 void app_scroll_event(int x, int y, int dx, int dy);
-void app_key_backspace(void);
-void app_key_character(const char* ch);
+void app_keyboard_changed(int is_showing, float x, float y, float width, float height);
+void app_key_event(AppKeyEvent event);
 void app_websocket_event(const AppWebsocketEvent* event);
 void app_http_event(const AppHttpEvent* event);
 

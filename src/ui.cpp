@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <functional>
+#include <queue>
 
 namespace ui {
 
@@ -62,6 +63,38 @@ void sub_view(float x, float y, float width, float height) {
     nvgTranslate(vg, x, y);
     view.width = width;
     view.height = height;
+}
+
+void to_screen_point(float x, float y, float* sx, float* sy) {
+    float xform[6], inv_xform[6];
+    nvgCurrentTransform(vg, xform);
+    nvgTransformInverse(inv_xform, xform);
+    nvgTransformPoint(sx, sy, xform, x, y);
+}
+
+void to_screen_rect(float x, float y, float width, float height, float* sx, float* sy, float* swidth, float* sheight) {
+    float xform[6], inv_xform[6];
+    nvgCurrentTransform(vg, xform);
+    nvgTransformInverse(inv_xform, xform);
+    nvgTransformPoint(sx, sy, xform, x, y);
+    nvgTransformPoint(swidth, sheight, xform, x + width, y + height);
+    *swidth -= *sx;
+    *sheight -= *sy;
+}
+
+void to_view_point(float x, float y, float* vx, float* vy) {
+    float xform[6];
+    nvgCurrentTransform(vg, xform);
+    nvgTransformPoint(vx, vy, xform, x, y);
+}
+
+void to_view_rect(float x, float y, float width, float height, float* vx, float* vy, float* vwidth, float* vheight) {
+    float xform[6];
+    nvgCurrentTransform(vg, xform);
+    nvgTransformPoint(vx, vy, xform, x, y);
+    nvgTransformPoint(vwidth, vheight, xform, x + width, y + height);
+    *vwidth -= *vx;
+    *vheight -= *vy;
 }
 
 
@@ -286,20 +319,72 @@ bool get_scroll(float x, float y, float width, float height, float* dx, float* d
 
 
 // Keyboard
-AppKeyboard keyboard;
+AppText text_input;
+AppKeyEvent key_state;
+constexpr int KEY_EVENT_QUEUE_SIZE = 64;
+static AppKeyEvent key_event_queue[KEY_EVENT_QUEUE_SIZE];
+static long key_event_queue_write = 0;
+static long key_event_queue_read = 0;
+static float keyboard_y_;
+static bool keyboard_is_showing_;
 
-void keyboard_open() {
-    keyboard.open(keyboard.opaque_ptr);
+static AppTextInputConfig text_configs_[2];
+static bool prev_enable_text_input_ = false;
+static bool next_enable_text_input_ = false;
+ 
+void text_input_begin_frame() {
+    next_enable_text_input_ = false;
 }
 
-void keyboard_close() {
-    keyboard.close(keyboard.opaque_ptr);
+void text_input_end_frame() {
+    if (prev_enable_text_input_ && !next_enable_text_input_) {
+        text_input.remove_text_input(text_input.opaque_ptr);
+    } else if (next_enable_text_input_) {
+        text_input.update_text_input(text_input.opaque_ptr, &text_configs_[1]);
+    }
+    prev_enable_text_input_ = next_enable_text_input_;
+    text_configs_[0] = text_configs_[1];
 }
 
-void keyboard_rect(float* x, float* y, float* width, float* height) {
-    keyboard.rect(keyboard.opaque_ptr, x, y, width, height);
-    if (*height == 0) {
-        *y = view.height;
+void set_text_input(const AppTextInputConfig* config) {
+    next_enable_text_input_ = true;
+    text_configs_[1] = *config;
+}
+
+float keyboard_y() {
+    float screen_y;
+    if (keyboard_is_showing_) {
+        screen_y = keyboard_y_;
+    } else {
+        screen_y = (num_saved_views == 1) ? view.height : saved_views[1].height;
+    }
+
+    float view_x, view_y;
+    to_view_point(0, screen_y, &view_x, &view_y);
+    return view_y;
+}
+
+void keyboard_changed(int is_showing, float x, float y, float width, float height) {
+    keyboard_is_showing_ = is_showing;
+    keyboard_y_ = y;
+    redraw_requested = true;
+}
+
+void queue_key_event(AppKeyEvent event) {
+    if (key_event_queue_write - key_event_queue_read < KEY_EVENT_QUEUE_SIZE) {
+        key_event_queue[key_event_queue_write++ % KEY_EVENT_QUEUE_SIZE] = event;
+    }
+}
+
+bool has_key_event() {
+    return (key_event_queue_write > key_event_queue_read);
+}
+
+void next_key_event() {
+    if (key_event_queue_write > key_event_queue_read) {
+        key_state = key_event_queue[key_event_queue_read++ % KEY_EVENT_QUEUE_SIZE];
+    } else {
+        memset(&key_state, 0, sizeof(AppKeyEvent));
     }
 }
 

@@ -12,7 +12,9 @@ emcc \
     src/views/ChatView/VirtualizedList.cpp \
     src/views/ChatView/ChatMessage.cpp \
     src/views/ChatView/TokenizedContent.cpp \
+    src/views/ChatView/Composer.cpp \
     src/views/MessageInspect/MessageInspect.cpp \
+    src/views/TextInput/TextInput.cpp \
     src/views/ScrollView.cpp \
     src/models/keys.cpp \
     src/models/event.cpp \

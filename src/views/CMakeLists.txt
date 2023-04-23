@@ -9,4 +9,5 @@ list(APPEND SOURCES
 )
 add_subdirectory(ChatView)
 add_subdirectory(MessageInspect)
+add_subdirectory(TextInput)
 set(SOURCES ${SOURCES} PARENT_SCOPE)

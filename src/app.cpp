@@ -21,9 +21,9 @@
 static AppTouchEvent touch_event_queue[1024];
 static int touch_event_queue_size = 0;
 
-void app_init(NVGcontext* vg_, AppKeyboard keyboard_, AppStorage storage_, AppNetworking network_) {
+void app_init(NVGcontext* vg_, AppText text_, AppStorage storage_, AppNetworking network_) {
     ui::vg = vg_;
-    ui::keyboard = keyboard_;
+    ui::text_input = text_;
     ui::redraw_requested = true;
     ui::storage = storage_;
     if (!data_layer::accounts_load()) return;
@@ -45,12 +45,13 @@ void app_init(NVGcontext* vg_, AppKeyboard keyboard_, AppStorage storage_, AppNe
 
 int app_wants_to_render() {
     timer::update();
-    return (ui::redraw_requested || animation::is_animating());
+    return (ui::redraw_requested || ui::has_key_event() || animation::is_animating());
 }
 
 void app_render(float window_width, float window_height, float pixel_density) {
     while (true) {
         nvgBeginFrame(ui::vg, window_width, window_height, pixel_density);
+        ui::text_input_begin_frame();
 
         ui::gestures_process_touches(touch_event_queue, touch_event_queue_size);
         touch_event_queue_size = 0;
@@ -63,6 +64,7 @@ void app_render(float window_width, float window_height, float pixel_density) {
 
         ui::redraw_requested = false;
         ui::process_immediate_callbacks();
+        ui::next_key_event();
         Root::update();
         ui::set_scroll(0, 0, 0, 0);
 
@@ -72,6 +74,7 @@ void app_render(float window_width, float window_height, float pixel_density) {
     }
 
     nvgEndFrame(ui::vg);
+    ui::text_input_end_frame();
 }
 
 void app_touch_event(AppTouchEvent* event) {
@@ -84,10 +87,10 @@ void app_scroll_event(int x, int y, int dx, int dy) {
     ui::redraw();
 }
 
-void app_key_backspace() {
-    // No-op
+void app_key_event(AppKeyEvent event) {
+    ui::queue_key_event(event);
 }
 
-void app_key_character(const char* ch) {
-    // No-op
+void app_keyboard_changed(int is_showing, float x, float y, float width, float height) {
+    ui::keyboard_changed(is_showing, x, y, width, height);
 }
