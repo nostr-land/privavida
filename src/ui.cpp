@@ -284,6 +284,7 @@ bool simple_tap(float x, float y, float width, float height) {
         // and that never moved
         if (touches[i].flags == TOUCH_ENDED &&
             touch_inside(touches[i].x, touches[i].y, x, y, width, height)) {
+            touch_accept(touches[i].id);
             return true;
         }
     }
@@ -328,27 +329,31 @@ static long key_event_queue_read = 0;
 static float keyboard_y_;
 static bool keyboard_is_showing_;
 
-static AppTextInputConfig text_configs_[2];
-static bool prev_enable_text_input_ = false;
-static bool next_enable_text_input_ = false;
+static AppTextInputConfig prev_config_, next_config_;
+static const void* prev_text_input_ = NULL;
+static const void* next_text_input_ = NULL;
  
 void text_input_begin_frame() {
-    next_enable_text_input_ = false;
+    next_text_input_ = NULL;
 }
 
 void text_input_end_frame() {
-    if (prev_enable_text_input_ && !next_enable_text_input_) {
+    if (prev_text_input_ && !next_text_input_) {
         text_input.remove_text_input(text_input.opaque_ptr);
-    } else if (next_enable_text_input_) {
-        text_input.update_text_input(text_input.opaque_ptr, &text_configs_[1]);
+    } else if (next_text_input_) {
+        text_input.update_text_input(text_input.opaque_ptr, &next_config_);
     }
-    prev_enable_text_input_ = next_enable_text_input_;
-    text_configs_[0] = text_configs_[1];
+    prev_text_input_ = next_text_input_;
+    prev_config_ = next_config_;
 }
 
-void set_text_input(const AppTextInputConfig* config) {
-    next_enable_text_input_ = true;
-    text_configs_[1] = *config;
+bool controls_text_input(const void* id) {
+    return (prev_text_input_ == id || next_text_input_ == id);
+}
+
+void set_text_input(const void* id, const AppTextInputConfig* config) {
+    next_text_input_ = id;
+    next_config_ = *config;
 }
 
 float keyboard_y() {

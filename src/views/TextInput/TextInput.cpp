@@ -42,22 +42,23 @@ TextInput& TextInput::set_styles(const StyleOptions* styles) {
 }
 
 void TextInput::update() {
-    if (!state.is_editing && ui::simple_tap(0, 0, ui::view.width, ui::view.height)) {
-        state.is_editing = true;
-    }
+    bool is_editing = (
+        ui::controls_text_input(&state.ref) ||
+        ui::simple_tap(0, 0, ui::view.width, ui::view.height)
+    );
 
     nvgBeginPath(ui::vg);
-    nvgFillColor(ui::vg, state.is_editing ? styles->bg_color_focused : styles->bg_color);
+    nvgFillColor(ui::vg, is_editing ? styles->bg_color_focused : styles->bg_color);
     nvgRoundedRect(ui::vg, 0, 0, ui::view.width, ui::view.height, styles->border_radius);
     nvgFill(ui::vg);
 
     if (styles->border_width) {
         nvgStrokeWidth(ui::vg, styles->border_width);
-        nvgStrokeColor(ui::vg, state.is_editing ? styles->border_color_focused : styles->border_color);
+        nvgStrokeColor(ui::vg, is_editing ? styles->border_color_focused : styles->border_color);
         nvgStroke(ui::vg);
     }
 
-    if (state.is_editing) {
+    if (is_editing) {
         AppTextInputConfig config;
         ui::to_screen_rect(
             styles->padding,
@@ -71,6 +72,6 @@ void TextInput::update() {
         config.text_color = styles->text_color;
         config.flags = 0;
         config.text_content = "Hello, world!";
-        ui::set_text_input(&config);
+        ui::set_text_input(&state.ref, &config);
     }
 }

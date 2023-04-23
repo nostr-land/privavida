@@ -29,7 +29,7 @@ void Composer::update() {
 
     const float button_size = ui::view.height;
     const float border_radius = 0.5 * ui::view.height;
-
+    
     {
         SubView sv(0, 0, ui::view.width - 2 * MARGIN - button_size, ui::view.height);
 
@@ -48,7 +48,7 @@ void Composer::update() {
     }
 
     nvgBeginPath(ui::vg);
-    nvgFillColor(ui::vg, text_state.is_editing ? ui::color(0x883955) : ui::color(0x4D434B));
+    nvgFillColor(ui::vg, TextInput::is_editing(&text_state) ? ui::color(0x883955) : ui::color(0x4D434B));
     nvgCircle(ui::vg, ui::view.width - MARGIN - 0.5 * button_size, 0.5 * button_size, 0.5 * button_size);
     nvgFill(ui::vg);
 }

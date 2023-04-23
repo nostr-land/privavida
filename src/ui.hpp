@@ -68,7 +68,8 @@ bool get_scroll(float x, float y, float width, float height, float* dx, float* d
 extern AppText text_input;
 void text_input_begin_frame();
 void text_input_end_frame();
-void set_text_input(const AppTextInputConfig* config);
+bool controls_text_input(const void* id);
+void set_text_input(const void* id, const AppTextInputConfig* config);
 void keyboard_changed(int is_showing, float x, float y, float width, float height);
 float keyboard_y();
 

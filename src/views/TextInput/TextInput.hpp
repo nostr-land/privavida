@@ -11,8 +11,11 @@
 struct TextInput {
 
     struct State {
-        bool is_editing = false;
+        bool ref = false;
     };
+    static bool is_editing(const State* state) {
+        return ui::controls_text_input(&state->ref);
+    }
 
     // Styles
     struct StyleOptions {
