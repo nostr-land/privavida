@@ -8,7 +8,7 @@
 #include <nanovg/nanovg_gl.h>
 #include <nanovg/nanovg_gl_utils.h>
 
-#include <app.h>
+#include <platform.h>
 
 static EMSCRIPTEN_WEBGL_CONTEXT_HANDLE ctx;
 static NVGcontext* vg;

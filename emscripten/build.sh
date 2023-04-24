@@ -3,7 +3,6 @@ emcc \
     lib/nanovg/nanovg.c \
     lib/sha256/sha256.c \
     src/app.cpp \
-    src/ui.cpp \
     src/utils/animation.cpp \
     src/utils/timer.cpp \
     src/views/Root.cpp \
