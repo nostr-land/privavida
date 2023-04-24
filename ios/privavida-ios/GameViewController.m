@@ -6,29 +6,23 @@
 //
 
 #import "GameViewController.h"
-#import <app.h>
+#import <platform.h>
 
 @implementation GameViewController {
     MTKView *_view;
+    UITextField *_textField;
     Renderer *_renderer;
     BOOL _wantsKeyboardOpen;
     CGRect _keyboardRect;
+    AppTextInputConfig _lastConfig;
 }
 
-static void app_open_keyboard(void* ptr) {
-    [(__bridge GameViewController*)ptr openKeyboard];
+static void app_update_text_input(void* ptr, const AppTextInputConfig* config) {
+    [(__bridge GameViewController*)ptr updateTextInput: config];
 }
 
-static void app_close_keyboard(void* ptr) {
-    [(__bridge GameViewController*)ptr closeKeyboard];
-}
-
-static void app_keyboard_rect(void* ptr, float* x, float* y, float* width, float* height) {
-    CGRect rect = [(__bridge GameViewController*)ptr keyboardRect];
-    *x = rect.origin.x;
-    *y = rect.origin.y;
-    *width = rect.size.width;
-    *height = rect.size.height;
+static void app_remove_text_input(void* ptr) {
+    [(__bridge GameViewController*)ptr removeTextInput];
 }
 
 - (void)viewDidLoad {
@@ -48,18 +42,22 @@ static void app_keyboard_rect(void* ptr, float* x, float* y, float* width, float
         return;
     }
 
-    AppKeyboard app_keyboard;
-    app_keyboard.opaque_ptr = (__bridge void*)self;
-    app_keyboard.open = app_open_keyboard;
-    app_keyboard.close = app_close_keyboard;
-    app_keyboard.rect = app_keyboard_rect;
-    
-    _renderer = [[Renderer alloc] initWithMetalKitView:_view andAppKeyboard:app_keyboard];
+    AppText app_text;
+    app_text.opaque_ptr = (__bridge void*)self;
+    app_text.update_text_input = app_update_text_input;
+    app_text.remove_text_input = app_remove_text_input;
+
+    _textField = [[UITextField alloc] initWithFrame:CGRectMake(0, 0, 200, 30)];
+    _textField.placeholder = @"Enter text";
+    [_textField setHidden:YES];
+    [_view addSubview:_textField];
+
+    _renderer = [[Renderer alloc] initWithMetalKitView:_view andAppText:app_text];
 
     [_renderer mtkView:_view drawableSizeWillChange:_view.bounds.size];
 
     _view.delegate = _renderer;
-    
+
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillChange:) name:UIKeyboardWillChangeFrameNotification object:nil];
 }
 
@@ -133,7 +131,7 @@ static void app_keyboard_rect(void* ptr, float* x, float* y, float* width, float
 }
 
 - (BOOL)canBecomeFirstResponder {
-    return _wantsKeyboardOpen;
+    return NO; // _wantsKeyboardOpen;
 }
 
 - (BOOL)hasText {
@@ -141,32 +139,67 @@ static void app_keyboard_rect(void* ptr, float* x, float* y, float* width, float
 }
 
 - (void)deleteBackward {
-    app_key_backspace();
+    AppKeyEvent key_event = { 0 };
+    app_key_event(key_event);
 }
 
 - (void)insertText:(nonnull NSString *)text {
-    char ch[8];
-    [text getCString:ch maxLength:8 encoding:NSUTF8StringEncoding];
-    app_key_character(ch);
+    AppKeyEvent key_event;
+    key_event.action = KEY_PRESS;
+    [text getCString:key_event.ch maxLength:8 encoding:NSUTF8StringEncoding];
+    key_event.mods = 0;
+    key_event.key = 0;
+    app_key_event(key_event);
 }
 
-- (void)openKeyboard {
+- (void)updateTextInput:(const AppTextInputConfig *)config {
     _wantsKeyboardOpen = YES;
-    [self becomeFirstResponder];
+
+    // Open text field
+    if ([_textField isHidden]) {
+        _textField.font = [UIFont systemFontOfSize:config->font_size];
+        _textField.textColor = [UIColor colorWithRed:config->text_color.r
+                                               green:config->text_color.g
+                                                blue:config->text_color.b
+                                               alpha:config->text_color.a];
+        [_textField setText:[NSString stringWithUTF8String:config->text_content]];
+        [_textField setFrame:CGRectMake(config->x, config->y, config->width, config->height)];
+        [_textField setHidden:NO];
+        [_textField becomeFirstResponder];
+        _lastConfig = *config;
+        return;
+    }
+
+    // Update text field
+    if (_lastConfig.font_size != config->font_size) {
+        _textField.font = [UIFont systemFontOfSize:config->font_size];
+    }
+//    if (_lastConfig.text_color != config->text_color) {
+//        _textField.textColor = [UIColor colorWithRed:config->text_color.r
+//                                               green:config->text_color.g
+//                                                blue:config->text_color.b
+//                                               alpha:config->text_color.a];
+//    }
+    if (_lastConfig.x != config->x || _lastConfig.y != config->y ||
+        _lastConfig.width != config->width || _lastConfig.height != config->height) {
+        [_textField setFrame:CGRectMake(config->x, config->y, config->width, config->height)];
+    }
+    // [self becomeFirstResponder];
 }
 
-- (void)closeKeyboard {
+- (void)removeTextInput {
     _wantsKeyboardOpen = NO;
-    [self resignFirstResponder];
-}
-
-- (CGRect)keyboardRect {
-    return _keyboardRect;
+    
+    [_textField resignFirstResponder];
+    [_textField setHidden:YES];
+    // [self resignFirstResponder];
 }
 
 - (void)keyboardWillChange:(NSNotification *)notification {
-    _keyboardRect = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
-    _keyboardRect = [self.view convertRect:_keyboardRect fromView:nil];
+    CGRect rect = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    rect = [self.view convertRect:rect fromView:nil];
+    
+    app_keyboard_changed([_textField isFirstResponder], rect.origin.x, rect.origin.y, rect.size.width, rect.size.height);
 }
 
 @end

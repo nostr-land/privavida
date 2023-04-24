@@ -151,7 +151,7 @@ int get_bubble_tip(BubbleTipType tip_type, float* width, float* height) {
     static int x, y, comp;
     if (!did_load) {
         did_load = true;
-        img = stbi_load(ui::get_asset_name("bubble-tip", "png"), &x, &y, &comp, 4);
+        img = stbi_load(app::get_asset_name("bubble-tip", "png"), &x, &y, &comp, 4);
     }
     if (!img) {
         *width = *height = 1;

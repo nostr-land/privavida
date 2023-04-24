@@ -6,11 +6,11 @@
 //
 
 #include "Root.hpp"
+#include <app.hpp>
 #include "Conversations.hpp"
 #include "ChatView/ChatView.hpp"
 #include "MessageInspect/MessageInspect.hpp"
 #include "../data_layer/accounts.hpp"
-#include "../ui.hpp"
 #include "../utils/animation.hpp"
 
 static const void* ANIMATION_PUSH = (void*)0x012921;

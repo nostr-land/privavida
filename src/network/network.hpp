@@ -7,12 +7,12 @@
 
 #pragma once
 #include "../models/event.hpp"
-#include <app.h>
+#include <app.hpp>
 #include <functional>
 
 namespace network {
 
-void init(AppNetworking networking);
+//void init(AppNetworking networking);
 void send(const char* message);
 
 typedef std::function<void(bool error, int status_code, const uint8_t* data, uint32_t data_length)> FetchCallback;

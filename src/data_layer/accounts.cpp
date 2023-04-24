@@ -7,7 +7,7 @@
 
 #include "accounts.hpp"
 #include "../models/hex.hpp"
-#include "../ui.hpp"
+#include <app.hpp>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,13 +46,13 @@ bool accounts_load() {
     did_load = true;
 
     // For now, we're hard-coding a single account
-    auto file_name = ui::get_user_data_path("account.bin");
+    auto file_name = app::get_user_data_path("account.bin");
     FILE* f = fopen(file_name, "rb");
 
     // If no account is set up, we start with default hardcoded account
     if (!f) {
         write_default_account(file_name);
-        ui::user_data_flush();
+        app::user_data_flush();
         f = fopen(file_name, "rb");
     }
     if (!f) {

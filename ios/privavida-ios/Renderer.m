@@ -7,7 +7,7 @@
 
 #import "Renderer.h"
 #import "privavida_ios-Swift.h"
-#include <app.h>
+#import <platform.h>
 #include "nanovg_mtl.h"
 
 static const char* get_asset_name(const char* asset_name, const char* asset_type) {
@@ -33,7 +33,7 @@ static const char* get_asset_name(const char* asset_name, const char* asset_type
     NVGcontext* _vg;
 }
 
--(nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view andAppKeyboard:(AppKeyboard)app_keyboard {
+-(nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view andAppText:(AppText)app_text {
     self = [super init];
     if (!self) {
         return self;
@@ -46,6 +46,7 @@ static const char* get_asset_name(const char* asset_name, const char* asset_type
         exit(1);
     }
 
+    // Prepare storage
     char* user_data_dir = (char*)malloc(1024);
     NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     [[paths firstObject] getCString:user_data_dir maxLength:1024 encoding:NSUTF8StringEncoding];
@@ -55,7 +56,7 @@ static const char* get_asset_name(const char* asset_name, const char* asset_type
     storage.user_data_dir = user_data_dir;
     storage.user_data_flush = NULL; // Automatic on iOS!
 
-    app_init(_vg, app_keyboard, storage, [[Networking sharedInstance] appNetworking]);
+    app_init(_vg, app_text, storage, [[Networking sharedInstance] appNetworking]);
 
     return self;
 }

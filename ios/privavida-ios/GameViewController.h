@@ -13,8 +13,7 @@
 // Our iOS view controller
 @interface GameViewController : UIViewController <UIKeyInput>
 
-- (void)openKeyboard;
-- (void)closeKeyboard;
-- (CGRect)keyboardRect;
+- (void)updateTextInput:(const AppTextInputConfig*)config;
+- (void)removeTextInput;
 
 @end

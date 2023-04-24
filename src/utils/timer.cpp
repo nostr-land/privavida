@@ -6,7 +6,7 @@
 //
 
 #include "timer.hpp"
-#include "../ui.hpp"
+#include <app.hpp>
 #include <chrono>
 #include <vector>
 
@@ -55,10 +55,10 @@ void timer::update() {
     for (auto& timer : timers) {
         if (timer.due_time <= current_time) {
             if (timer.repeat) {
-                ui::set_immediate(timer.callback);
+                app::set_immediate(timer.callback);
                 timer.due_time = timer.due_time + timer.duration;
             } else {
-                ui::set_immediate(std::move(timer.callback));
+                app::set_immediate(std::move(timer.callback));
                 timer.erase = true;
             }
         }

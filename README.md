@@ -20,7 +20,7 @@ iOS app that renders to the screen using
 
 To port to other platforms, you need to find a way to run a NanoVG
 instance (which has bindings for Metal, OpenGL, and Direct3D). Once you've
-got that you can call the app code using [this](src/app.h) C interface.
+got that you can call the app code using [this](include/platform.h) C interface.
 
 ## Build iOS
 
@@ -45,24 +45,26 @@ This will produce an `index.js` and an `index.wasm` file. You can
 access the app by serving these files + `index.html` on a basic
 web server.
 
-## `app.h` Interface
+## `platform.h` Interface
 
 To port PrivaVida to other platforms, you need to find a way to get
 NanoVG working on your desired platform (bindings exist that work with
 Metal, OpenGL, Direct3D, and many others). Once you've got a way to
 get graphics to work, you can interface with `privavida-core` by
-calling the functions described in [`app.h`](src/app.h).
+calling the functions described in [`platform.h`](include/platform.h).
 
 Currently, the interface is as follows:
 
 ```c
-void app_init(NVGcontext* vg, AppKeyboard keyboard, AppStorage storage);
+void app_init(NVGcontext* vg, AppText text, AppStorage storage, AppNetworking networking);
 int  app_wants_to_render(void);
 void app_render(float window_width, float window_height, float pixel_density);
-void app_touch_event(AppTouchEvent* event);
+void app_touch_event(const AppTouchEvent* event);
 void app_scroll_event(int x, int y, int dx, int dy);
-void app_key_backspace(void);
-void app_key_character(const char* ch);
+void app_keyboard_changed(int is_showing, float x, float y, float width, float height);
+void app_key_event(AppKeyEvent event);
+void app_websocket_event(const AppWebsocketEvent* event);
+void app_http_event(const AppHttpEvent* event);
 ```
 
 Call `app_init()` once to start, passing in a NanoVG context, and keyboard

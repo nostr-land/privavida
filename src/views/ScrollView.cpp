@@ -25,7 +25,7 @@ void ScrollView::update() {
     float max_scroll_y = inner_height > outer_height ? inner_height - outer_height : 0;
 
     // Drag start?
-    ui::GestureTouch touch;
+    ui::Touch touch;
     if (state.state != DRAGGING && touch_start(0, 0, outer_width, outer_height, &touch)) {
         if (state.state == ANIMATE_INERTIA) {
             ui::touch_accept(touch.id); // if we were animating and a new touch starts, we accept it

@@ -7,7 +7,7 @@
 //
 
 #include "TextInput.hpp"
-#include "../../ui.hpp"
+#include <app.hpp>
 #include "../SubView.hpp"
 #include <cstdlib>
 
@@ -59,7 +59,7 @@ void TextInput::update() {
     }
 
     if (is_editing) {
-        AppTextInputConfig config;
+        ui::TextInputConfig config;
         ui::to_screen_rect(
             styles->padding,
             styles->padding,

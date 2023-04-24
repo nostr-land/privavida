@@ -9,7 +9,7 @@
 #include "../ChatView/ChatMessage.hpp"
 #include "../SubView.hpp"
 #include "../Root.hpp"
-#include "../../ui.hpp"
+#include <app.hpp>
 
 void MessageInspect::update(const Event* event) {
     // Background

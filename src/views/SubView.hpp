@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "../ui.hpp"
+#include <app.hpp>
 
 struct SubView {
     SubView(float x, float y, float width, float height) {

@@ -1,28 +1,43 @@
 //
-//  ui.hpp
+//  app.hpp
 //  privavida-core
 //
-//  Created by Bartholomew Joyce on 10/05/2023.
+//  Created by Bartholomew Joyce on 2023-04-24.
 //
 
 #pragma once
 
-#include "app.h"
+#include "nanovg.h"
 #include <functional>
+
+// This is the internal app.hpp interface used by privavida-core.
+
+namespace app {
+
+// Set immediate
+void set_immediate(std::function<void()> callback);
+
+// Storage
+const char* get_asset_name(const char* asset_name, const char* asset_type);
+const char* get_user_data_path(const char* filename);
+void user_data_flush();
+
+}
+
 
 namespace ui {
 
+extern NVGcontext* vg;
+
 // Redraw
-extern bool redraw_requested;
 void redraw();
-void set_immediate(std::function<void()> callback);
-void process_immediate_callbacks();
 
 // Viewport
 struct Viewport {
     float width;
     float height;
 };
+extern Viewport view;
 void save();
 void restore();
 void reset();
@@ -38,50 +53,45 @@ static inline NVGcolor color(int rgb) {
     return color(rgb, 1.0);
 }
 
-extern Viewport view;
-extern NVGcontext* vg;
-
 // Touch gestures
 constexpr unsigned char TOUCH_ACCEPTED = 0x01; // Once a gesture accepts a touch no other gestures can use it
 constexpr unsigned char TOUCH_ENDED    = 0x04; // A touch sticks around in our state for one extra frame with flag TOUCH_ENDED
 constexpr unsigned char TOUCH_MOVED    = 0x08; // Once a touch has moved it will be labeled as a TOUCH_MOVED
-
-struct GestureTouch {
+struct Touch {
     int id;
     int x, y;
     int initial_x, initial_y;
     unsigned char flags;
 };
-
-void gestures_process_touches(AppTouchEvent* events, int num_events);
-bool touch_start(float x, float y, float width, float height, GestureTouch* touch);
+bool touch_start(float x, float y, float width, float height, Touch* touch);
 void touch_accept(int touch_id);
-bool touch_ended(int touch_id, GestureTouch* touch);
+bool touch_ended(int touch_id, Touch* touch);
 bool simple_tap(float x, float y, float width, float height);
+
 
 // Scroll events
 // (This is just for desktop/web use)
-void set_scroll(int x, int y, int dx, int dy);
 bool get_scroll(float x, float y, float width, float height, float* dx, float* dy);
 
+
+
 // Keyboard
-extern AppText text_input;
-void text_input_begin_frame();
-void text_input_end_frame();
+struct TextInputConfig {
+    // Positioning of the text input
+    // enum AppTextAnchor anchor;
+    float x, y, width, height;
+
+    // Font and text settings
+    float font_size, line_height;
+    NVGcolor text_color;
+    int flags;
+
+    // Content
+    const char* text_content;
+};
 bool controls_text_input(const void* id);
-void set_text_input(const void* id, const AppTextInputConfig* config);
+void set_text_input(const void* id, const TextInputConfig* config);
 void keyboard_changed(int is_showing, float x, float y, float width, float height);
 float keyboard_y();
-
-void queue_key_event(AppKeyEvent event);
-bool has_key_event();
-void next_key_event();
-extern AppKeyEvent key_state;
-
-// Storage
-extern AppStorage storage;
-const char* get_asset_name(const char* asset_name, const char* asset_type);
-const char* get_user_data_path(const char* filename);
-void user_data_flush();
 
 }

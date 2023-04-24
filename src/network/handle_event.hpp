@@ -7,9 +7,7 @@
 
 #pragma once
 #include "../models/event.hpp"
-#include <app.h>
 #include "../data_layer/accounts.hpp"
-#include "../ui.hpp"
 
 namespace network {
 

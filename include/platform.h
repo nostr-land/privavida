@@ -1,14 +1,14 @@
 //
-//  app.h
+//  platform.h
 //  privavida-core
 //
-//  Created by Bartholomew Joyce on 08/05/2023.
+//  Created by Bartholomew Joyce on 24/04/2023.
 //
 
-#ifndef app_h
-#define app_h
+#ifndef platform_h
+#define platform_h
 
-// This is the platform-independent C interface for the app
+// This is the platform C interface for the app.
 // As long as you implement the bindings for the app on your
 // specific platform you can run the privavida-core.
 
@@ -43,12 +43,7 @@ typedef struct {
     AppTouch touches_changed[MAX_TOUCHES];
 } AppTouchEvent;
 
-
 // Text input control
-// enum AppTextAnchor {
-//     APP_TEXT_ANCHOR_TOP,
-//     APP_TEXT_ANCHOR_BOTTOM
-// };
 enum AppTextFlags {
     APP_TEXT_FLAGS_NONE = 0,
     APP_TEXT_FLAGS_WORD_WRAP = 1,
@@ -144,7 +139,7 @@ typedef struct {
 void app_init(NVGcontext* vg, AppText text, AppStorage storage, AppNetworking networking);
 int  app_wants_to_render(void);
 void app_render(float window_width, float window_height, float pixel_density);
-void app_touch_event(AppTouchEvent* event);
+void app_touch_event(const AppTouchEvent* event);
 void app_scroll_event(int x, int y, int dx, int dy);
 void app_keyboard_changed(int is_showing, float x, float y, float width, float height);
 void app_key_event(AppKeyEvent event);
@@ -155,4 +150,4 @@ void app_http_event(const AppHttpEvent* event);
 }
 #endif
 
-#endif /* app_h */
+#endif /* platform_h */

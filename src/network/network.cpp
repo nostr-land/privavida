@@ -6,7 +6,8 @@
 //
 
 #include "network.hpp"
-#include <app.h>
+#include <app.hpp>
+#include <platform.h>
 #include "handle_event.hpp"
 #include "../models/event_parse.hpp"
 #include "../models/event_stringify.hpp"
@@ -17,7 +18,7 @@
 
 static AppNetworking networking;
 
-void network::init(AppNetworking networking_) {
+void network_init(AppNetworking networking_) {
     networking = networking_;
 
     if (data_layer::accounts.empty()) {

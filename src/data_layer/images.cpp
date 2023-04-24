@@ -7,7 +7,7 @@
 
 #include "images.hpp"
 #include "../network/network.hpp"
-#include "../ui.hpp"
+#include <app.hpp>
 
 namespace data_layer {
 

@@ -6,7 +6,7 @@
 //
 
 #pragma once
-#include "../../ui.hpp"
+#include <app.hpp>
 
 struct TextInput {
 

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "../ui.hpp"
+#include <app.hpp>
 #include <functional>
 
 struct ScrollView {
