@@ -16,7 +16,7 @@
 #include "../data_layer/profiles.hpp"
 #include <string.h>
 
-static void* ws = NULL;
+static std::vector<AppWebsocketHandle> sockets;
 
 void network::init() {
     if (data_layer::accounts.empty()) {
@@ -24,7 +24,9 @@ void network::init() {
     }
     account_set_response_callback(&network::account_response_handler);
 
-    platform_websocket_open("wss://relay.damus.io", NULL);
+    sockets.push_back(platform_websocket_open("wss://relay.snort.social", NULL));
+    sockets.push_back(platform_websocket_open("wss://relay.damus.io", NULL));
+    sockets.push_back(platform_websocket_open("wss://eden.nostr.land", NULL));
 }
 
 void app_websocket_event(const AppWebsocketEvent* event) {
@@ -33,7 +35,6 @@ void app_websocket_event(const AppWebsocketEvent* event) {
 
     if (event->type == WEBSOCKET_OPEN) {
         printf("websocket open!\n");
-        ws = event->socket;
 
         char pubkey_hex[65];
         hex_encode(pubkey_hex, account.pubkey.data, sizeof(Pubkey));
@@ -42,24 +43,34 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         char req[128];
         snprintf(req, 128, "[\"REQ\",\"dms_sent\",{\"authors\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
         printf("Request: %s\n", req);
-        platform_websocket_send(ws, req);
+        platform_websocket_send(event->socket, req);
 
         snprintf(req, 128, "[\"REQ\",\"dms_received\",{\"#p\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
         printf("Request: %s\n", req);
-        platform_websocket_send(ws, req);
+        platform_websocket_send(event->socket, req);
 
         snprintf(req, 128, "[\"REQ\",\"profile\",{\"authors\":[\"%s\"],\"kinds\":[0,3]}]", pubkey_hex);
         printf("Request: %s\n", req);
-        platform_websocket_send(ws, req);
+        platform_websocket_send(event->socket, req);
 
         data_layer::batch_profile_requests();
 
     } else if (event->type == WEBSOCKET_CLOSE) {
         printf("websocket close!\n");
-        ws = NULL;
+        for (auto i = 0; i < sockets.size(); ++i) {
+            if (sockets[i] == event->socket) {
+                sockets.erase(sockets.begin() + i);
+                break;
+            }
+        }
     } else if (event->type == WEBSOCKET_ERROR) {
         printf("websocket error!\n");
-        ws = NULL;
+        for (auto i = 0; i < sockets.size(); ++i) {
+            if (sockets[i] == event->socket) {
+                sockets.erase(sockets.begin() + i);
+                break;
+            }
+        }
     } else if (event->type != WEBSOCKET_MESSAGE) {
         return;
     }
@@ -100,7 +111,7 @@ void app_websocket_event(const AppWebsocketEvent* event) {
 }
 
 void network::send(const char* message) {
-    if (ws) {
+    for (auto& ws : sockets) {
         platform_websocket_send(ws, message);
     }
 }
@@ -112,10 +123,7 @@ void network::fetch(const char* url, network::FetchCallback callback) {
 
 void app_http_event(const AppHttpEvent* event) {
     auto cb = (network::FetchCallback*)event->user_data;
-    if (event->type == HTTP_RESPONSE_ERROR) {
-        (*cb)(true, event->status_code, NULL, 0);
-    } else {
-        (*cb)(false, event->status_code, event->data, event->data_length);
-    }
+    auto err = (event->type == HTTP_RESPONSE_ERROR);
+    (*cb)(err, event->status_code, event->data, event->data_length);
     delete cb;
 }

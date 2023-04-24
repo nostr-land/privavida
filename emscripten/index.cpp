@@ -145,7 +145,7 @@ void platform_user_data_flush() {
 EM_BOOL websocket_open_event(int event_type, const EmscriptenWebSocketOpenEvent* event, void* user_data) {
     AppWebsocketEvent app_event;
     app_event.type = WEBSOCKET_OPEN;
-    app_event.socket = (void*)event->socket;
+    app_event.socket = event->socket;
     app_event.user_data = user_data;
     app_websocket_event(&app_event);
     return 1;
@@ -155,7 +155,7 @@ EM_BOOL websocket_message_event(int event_type, const EmscriptenWebSocketMessage
     if (!event->isText) return 0;
     AppWebsocketEvent app_event;
     app_event.type = WEBSOCKET_MESSAGE;
-    app_event.socket = (void*)event->socket;
+    app_event.socket = event->socket;
     app_event.data = (const char*)event->data;
     app_event.data_length = event->data ? strlen((const char*)event->data) : 0;
     app_event.user_data = user_data;
@@ -166,7 +166,7 @@ EM_BOOL websocket_message_event(int event_type, const EmscriptenWebSocketMessage
 EM_BOOL websocket_error_event(int event_type, const EmscriptenWebSocketErrorEvent* event, void* user_data) {
     AppWebsocketEvent app_event;
     app_event.type = WEBSOCKET_ERROR;
-    app_event.socket = (void*)event->socket;
+    app_event.socket = event->socket;
     app_event.user_data = user_data;
     app_websocket_event(&app_event);
     return 1;
@@ -175,7 +175,7 @@ EM_BOOL websocket_error_event(int event_type, const EmscriptenWebSocketErrorEven
 EM_BOOL websocket_close_event(int event_type, const EmscriptenWebSocketCloseEvent* event, void* user_data) {
     AppWebsocketEvent app_event;
     app_event.type = WEBSOCKET_CLOSE;
-    app_event.socket = (void*)event->socket;
+    app_event.socket = event->socket;
     app_event.code = event->code;
     app_event.data = event->reason;
     app_event.data_length = strlen(event->reason);
@@ -194,7 +194,7 @@ AppWebsocketHandle platform_websocket_open(const char* url, void* user_data) {
 
     auto socket = emscripten_websocket_new(&attributes);
     if (socket <= 0) {
-        return NULL;
+        return -1;
     }
 
     emscripten_websocket_set_onopen_callback   (socket, user_data, websocket_open_event);
@@ -202,18 +202,17 @@ AppWebsocketHandle platform_websocket_open(const char* url, void* user_data) {
     emscripten_websocket_set_onclose_callback  (socket, user_data, websocket_close_event);
     emscripten_websocket_set_onmessage_callback(socket, user_data, websocket_message_event);
 
-    return (void*)socket;
+    printf("Websocket open: %s\n", url);
+    return socket;
 }
 
 void platform_websocket_send(AppWebsocketHandle socket, const char* data) {
-    EMSCRIPTEN_WEBSOCKET_T ws = (EMSCRIPTEN_WEBSOCKET_T)socket;
-    emscripten_websocket_send_utf8_text(ws, data);
+    emscripten_websocket_send_utf8_text(socket, data);
 }
 
 void platform_websocket_close(AppWebsocketHandle socket, unsigned short code, const char* reason) {
-    EMSCRIPTEN_WEBSOCKET_T ws = (EMSCRIPTEN_WEBSOCKET_T)socket;
-    emscripten_websocket_close(ws, code, reason);
-    emscripten_websocket_delete(ws);
+    emscripten_websocket_close(socket, code, reason);
+    emscripten_websocket_delete(socket);
 }
 
 static void fetch_success(emscripten_fetch_t* fetch) {
@@ -239,9 +238,8 @@ static void fetch_failed(emscripten_fetch_t* fetch) {
 }
 
 void platform_http_request_send(const char* url, void* user_data) {
-
-    static int fetch_count = 15;
-    if (--fetch_count <= 0) {
+    {
+        // Disable fetches for now
         AppHttpEvent event;
         event.type = HTTP_RESPONSE_ERROR;
         event.user_data = user_data;
@@ -303,6 +301,5 @@ void fs_mounted() {
     emscripten_set_wheel_callback      ("#canvas", NULL, 0, scroll_event);
 
     app_init(vg);
-    emscripten_set_main_loop(&main_loop, 0, 1);
-    // nvgDeleteGLES2(vg);
+    emscripten_set_main_loop(&main_loop, 0, 0);
 }

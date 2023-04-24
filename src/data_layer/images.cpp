@@ -7,6 +7,7 @@
 
 #include "images.hpp"
 #include "../network/network.hpp"
+#include <stdio.h>
 #include <app.hpp>
 
 namespace data_layer {
@@ -40,6 +41,7 @@ int get_image(const char* url, int* width, int* height) {
     network::fetch(url,
         [image_idx](bool err, int status_code, const uint8_t* data, uint32_t len) {
             auto& image = images[image_idx];
+            printf("Fetch: %s - error %d - status %d - len %d\n", image.url, err, status_code, len);
 
             if (err || status_code != 200 || len == 0 || len > 250000) {
                 image.state = Image::ERROR;

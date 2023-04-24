@@ -113,7 +113,7 @@ void platform_user_data_flush(void);
 
 
 // Websockets
-typedef void* AppWebsocketHandle;
+typedef int AppWebsocketHandle;
 
 enum AppWebsocketEventType {
     WEBSOCKET_OPEN,
