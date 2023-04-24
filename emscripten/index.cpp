@@ -46,20 +46,6 @@ void main_loop() {
     app_render(window_width, window_height, pixel_ratio);
 }
 
-static void user_data_flush() {
-    EM_ASM(
-        if (!window.flushing) {
-            window.flushing = true;
-            FS.syncfs(false, err => {
-                if (err) {
-                    console.error(err)
-                }
-                window.flushing = false;
-            });
-        }
-    );
-}
-
 EM_BOOL touch_event(int event_type, const EmscriptenTouchEvent* event, void* user_data) {
 
     AppTouchEvent app_event;
@@ -125,16 +111,41 @@ EM_BOOL scroll_event(int event_type, const EmscriptenWheelEvent* event, void* us
     return 1;
 }
 
-static const char* get_asset_name(const char* asset_name, const char* asset_type) {
+void platform_update_text_input(const AppTextInputConfig* config) {
+    // Todo
+}
+
+void platform_remove_text_input() {
+    // Todo
+}
+
+const char* platform_user_data_dir = "/idbfs";
+
+const char* platform_get_asset_name(const char* asset_name, const char* asset_type) {
     static char buf[256];
     sprintf(buf, "assets/%s.%s", asset_name, asset_type);
     return buf;
 }
 
+void platform_user_data_flush() {
+    EM_ASM(
+        if (!window.flushing) {
+            window.flushing = true;
+            FS.syncfs(false, err => {
+                if (err) {
+                    console.error(err)
+                }
+                window.flushing = false;
+            });
+        }
+    );
+}
+
+
 EM_BOOL websocket_open_event(int event_type, const EmscriptenWebSocketOpenEvent* event, void* user_data) {
     AppWebsocketEvent app_event;
     app_event.type = WEBSOCKET_OPEN;
-    app_event.ws = event->socket;
+    app_event.socket = (void*)event->socket;
     app_event.user_data = user_data;
     app_websocket_event(&app_event);
     return 1;
@@ -144,7 +155,7 @@ EM_BOOL websocket_message_event(int event_type, const EmscriptenWebSocketMessage
     if (!event->isText) return 0;
     AppWebsocketEvent app_event;
     app_event.type = WEBSOCKET_MESSAGE;
-    app_event.ws = event->socket;
+    app_event.socket = (void*)event->socket;
     app_event.data = (const char*)event->data;
     app_event.data_length = event->data ? strlen((const char*)event->data) : 0;
     app_event.user_data = user_data;
@@ -155,7 +166,7 @@ EM_BOOL websocket_message_event(int event_type, const EmscriptenWebSocketMessage
 EM_BOOL websocket_error_event(int event_type, const EmscriptenWebSocketErrorEvent* event, void* user_data) {
     AppWebsocketEvent app_event;
     app_event.type = WEBSOCKET_ERROR;
-    app_event.ws = event->socket;
+    app_event.socket = (void*)event->socket;
     app_event.user_data = user_data;
     app_websocket_event(&app_event);
     return 1;
@@ -164,7 +175,7 @@ EM_BOOL websocket_error_event(int event_type, const EmscriptenWebSocketErrorEven
 EM_BOOL websocket_close_event(int event_type, const EmscriptenWebSocketCloseEvent* event, void* user_data) {
     AppWebsocketEvent app_event;
     app_event.type = WEBSOCKET_CLOSE;
-    app_event.ws = event->socket;
+    app_event.socket = (void*)event->socket;
     app_event.code = event->code;
     app_event.data = event->reason;
     app_event.data_length = strlen(event->reason);
@@ -173,7 +184,7 @@ EM_BOOL websocket_close_event(int event_type, const EmscriptenWebSocketCloseEven
     return 1;
 }
 
-AppWebsocketHandle websocket_open(const char* url, void* user_data) {
+AppWebsocketHandle platform_websocket_open(const char* url, void* user_data) {
     EmscriptenWebSocketCreateAttributes attributes;
     emscripten_websocket_init_create_attributes(&attributes);
 
@@ -183,7 +194,7 @@ AppWebsocketHandle websocket_open(const char* url, void* user_data) {
 
     auto socket = emscripten_websocket_new(&attributes);
     if (socket <= 0) {
-        return socket;
+        return NULL;
     }
 
     emscripten_websocket_set_onopen_callback   (socket, user_data, websocket_open_event);
@@ -191,44 +202,56 @@ AppWebsocketHandle websocket_open(const char* url, void* user_data) {
     emscripten_websocket_set_onclose_callback  (socket, user_data, websocket_close_event);
     emscripten_websocket_set_onmessage_callback(socket, user_data, websocket_message_event);
 
-    return socket;
+    return (void*)socket;
 }
 
-void websocket_send(AppWebsocketHandle ws, const char* data) {
+void platform_websocket_send(AppWebsocketHandle socket, const char* data) {
+    EMSCRIPTEN_WEBSOCKET_T ws = (EMSCRIPTEN_WEBSOCKET_T)socket;
     emscripten_websocket_send_utf8_text(ws, data);
 }
 
-void websocket_close(AppWebsocketHandle ws, unsigned short code, const char* reason) {
+void platform_websocket_close(AppWebsocketHandle socket, unsigned short code, const char* reason) {
+    EMSCRIPTEN_WEBSOCKET_T ws = (EMSCRIPTEN_WEBSOCKET_T)socket;
     emscripten_websocket_close(ws, code, reason);
     emscripten_websocket_delete(ws);
 }
 
-void fetch_success(emscripten_fetch_t* fetch) {
+static void fetch_success(emscripten_fetch_t* fetch) {
     AppHttpEvent event;
-    event.type = HTTP_RESPONSE_DATA;
+    event.type = HTTP_RESPONSE_SUCCESS;
     event.user_data = fetch->userData;
     event.status_code = fetch->status;
     event.data = (const uint8_t*)fetch->data;
     event.data_length = fetch->numBytes;
     app_http_event(&event);
-
-    event.type = HTTP_RESPONSE_END;
-    app_http_event(&event);
-
     emscripten_fetch_close(fetch);
 }
 
-void fetch_failed(emscripten_fetch_t* fetch) {
+static void fetch_failed(emscripten_fetch_t* fetch) {
     AppHttpEvent event;
     event.type = HTTP_RESPONSE_ERROR;
     event.user_data = fetch->userData;
     event.status_code = fetch->status;
+    event.data = NULL;
+    event.data_length = 0;
     app_http_event(&event);
-
     emscripten_fetch_close(fetch);
 }
 
-void http_request_send(const char* url, void* user_data) {
+void platform_http_request_send(const char* url, void* user_data) {
+
+    static int fetch_count = 15;
+    if (--fetch_count <= 0) {
+        AppHttpEvent event;
+        event.type = HTTP_RESPONSE_ERROR;
+        event.user_data = user_data;
+        event.status_code = -1;
+        event.data = NULL;
+        event.data_length = 0;
+        app_http_event(&event);
+        return;
+    }
+
     emscripten_fetch_attr_t attr;
     emscripten_fetch_attr_init(&attr);
     strcpy(attr.requestMethod, "GET");
@@ -279,23 +302,7 @@ void fs_mounted() {
     emscripten_set_mousemove_callback  ("#canvas", NULL, 0, mouse_event);
     emscripten_set_wheel_callback      ("#canvas", NULL, 0, scroll_event);
 
-    AppText app_text;
-    app_text.opaque_ptr = NULL;
-    app_text.update_text_input = [](void* opaque_ptr, const AppTextInputConfig* config) {};
-    app_text.remove_text_input = [](void* opaque_ptr) {};
-
-    AppStorage app_storage;
-    app_storage.get_asset_name = &get_asset_name;
-    app_storage.user_data_dir = "/idbfs";
-    app_storage.user_data_flush = &user_data_flush;
-
-    AppNetworking app_networking;
-    app_networking.websocket_open  = &websocket_open;
-    app_networking.websocket_send  = &websocket_send;
-    app_networking.websocket_close = &websocket_close;
-    app_networking.http_request_send = &http_request_send;
-
-    app_init(vg, app_text, app_storage, app_networking);
+    app_init(vg);
     emscripten_set_main_loop(&main_loop, 0, 1);
     // nvgDeleteGLES2(vg);
 }

@@ -18,7 +18,16 @@ extern "C" {
 
 #include <nanovg.h>
 
-// Touch events
+
+
+// Initialization and render function
+void app_init(NVGcontext* vg);
+int  app_wants_to_render(void);
+void app_render(float window_width, float window_height, float pixel_density);
+
+
+
+// Touch event handling
 #define MAX_TOUCHES 16
 
 typedef struct {
@@ -43,7 +52,16 @@ typedef struct {
     AppTouch touches_changed[MAX_TOUCHES];
 } AppTouchEvent;
 
-// Text input control
+void app_touch_event(const AppTouchEvent* event);
+
+
+
+// Scroll event handling
+void app_scroll_event(int x, int y, int dx, int dy);
+
+
+
+// Text input control and event handling
 enum AppTextFlags {
     APP_TEXT_FLAGS_NONE = 0,
     APP_TEXT_FLAGS_WORD_WRAP = 1,
@@ -66,12 +84,6 @@ typedef struct {
     const char* text_content;
 } AppTextInputConfig;
 
-typedef struct {
-    void* opaque_ptr;
-    void (*update_text_input)(void* opaque_ptr, const AppTextInputConfig* config);
-    void (*remove_text_input)(void* opaque_ptr);
-} AppText;
-
 enum AppKeyAction {
     KEY_PRESS,
     KEY_RELEASE,
@@ -85,24 +97,23 @@ typedef struct {
     int mods;
 } AppKeyEvent;
 
+void platform_update_text_input(const AppTextInputConfig* config);
+void platform_remove_text_input();
 
-// Storage
-typedef struct {
-    const char* (*get_asset_name)(const char* asset_name, const char* asset_type);
-    const char* user_data_dir;
-    void (*user_data_flush)(void);
-} AppStorage;
+void app_keyboard_changed(int is_showing, float x, float y, float width, float height);
+void app_key_event(AppKeyEvent event);
 
 
-// Networking
-typedef int AppWebsocketHandle;
 
-typedef struct {
-    AppWebsocketHandle (*websocket_open)(const char* url, void* user_data);
-    void (*websocket_send)(AppWebsocketHandle ws, const char* data);
-    void (*websocket_close)(AppWebsocketHandle ws, unsigned short code, const char* reason);
-    void (*http_request_send)(const char* url, void* user_data);
-} AppNetworking;
+// User data storage & asset storage
+const char* platform_get_asset_name(const char* asset_name, const char* asset_type);
+extern const char* platform_user_data_dir;
+void platform_user_data_flush(void);
+
+
+
+// Websockets
+typedef void* AppWebsocketHandle;
 
 enum AppWebsocketEventType {
     WEBSOCKET_OPEN,
@@ -113,18 +124,24 @@ enum AppWebsocketEventType {
 
 typedef struct {
     enum AppWebsocketEventType type;
-    AppWebsocketHandle ws;
+    AppWebsocketHandle socket;
+    void* user_data;
     unsigned short code;
     const char* data;
     int data_length;
-    void* user_data;
 } AppWebsocketEvent;
 
+AppWebsocketHandle platform_websocket_open(const char* url, void* user_data);
+void platform_websocket_send(AppWebsocketHandle socket, const char* data);
+void platform_websocket_close(AppWebsocketHandle socket, unsigned short code, const char* reason);
+void app_websocket_event(const AppWebsocketEvent* event);
+
+
+
+// HTTP requests
 enum AppHttpEventType {
     HTTP_RESPONSE_ERROR,
-    HTTP_RESPONSE_OPEN,
-    HTTP_RESPONSE_DATA,
-    HTTP_RESPONSE_END
+    HTTP_RESPONSE_SUCCESS
 };
 
 typedef struct {
@@ -135,16 +152,10 @@ typedef struct {
     void* user_data;
 } AppHttpEvent;
 
-
-void app_init(NVGcontext* vg, AppText text, AppStorage storage, AppNetworking networking);
-int  app_wants_to_render(void);
-void app_render(float window_width, float window_height, float pixel_density);
-void app_touch_event(const AppTouchEvent* event);
-void app_scroll_event(int x, int y, int dx, int dy);
-void app_keyboard_changed(int is_showing, float x, float y, float width, float height);
-void app_key_event(AppKeyEvent event);
-void app_websocket_event(const AppWebsocketEvent* event);
+void platform_http_request_send(const char* url, void* user_data);
 void app_http_event(const AppHttpEvent* event);
+
+
 
 #ifdef __cplusplus
 }

@@ -10,6 +10,8 @@
 #import <MetalKit/MetalKit.h>
 #import "Renderer.h"
 
+extern void* game_view_controller;
+
 // Our iOS view controller
 @interface GameViewController : UIViewController <UIKeyInput>
 

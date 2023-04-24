@@ -19,8 +19,6 @@
 #include "data_layer/accounts.hpp"
 
 static bool redraw_requested;
-static AppText app_text;
-static AppStorage app_storage;
 
 static void process_immediate_callbacks();
 static void process_touch_queue();
@@ -30,16 +28,12 @@ static void text_input_begin_frame();
 static void text_input_end_frame();
 static void clear_scroll();
 
-void network_init(AppNetworking network); // defined in src/network/network.cpp
-
-void app_init(NVGcontext* vg_, AppText app_text_, AppStorage storage_, AppNetworking network_) {
+void app_init(NVGcontext* vg_) {
     redraw_requested = true;
     ui::vg = vg_;
-    app_text = app_text_;
-    app_storage = storage_;
     if (!data_layer::accounts_load()) return;
-    network_init(network_);
     timer::init();
+    network::init();
 
     // nvgCreateFont(vg_, "mono",     app::get_asset_name("PTMono",          "ttf"));
     nvgCreateFont(vg_, "regular",  app::get_asset_name("SFRegular",       "ttf"));
@@ -457,9 +451,9 @@ void text_input_begin_frame() {
 
 void text_input_end_frame() {
     if (prev_text_input_ && !next_text_input_) {
-        app_text.remove_text_input(app_text.opaque_ptr);
+        platform_remove_text_input();
     } else if (next_text_input_) {
-        app_text.update_text_input(app_text.opaque_ptr, &next_config_);
+        platform_update_text_input(&next_config_);
     }
     prev_text_input_ = next_text_input_;
     prev_config_ = next_config_;
@@ -514,15 +508,13 @@ void process_next_key_event() {
 
 // Storage
 const char* app::get_asset_name(const char* asset_name, const char* asset_type) {
-    return app_storage.get_asset_name(asset_name, asset_type);
+    return platform_get_asset_name(asset_name, asset_type);
 }
 const char* app::get_user_data_path(const char* filename) {
     static char buf[256];
-    snprintf(buf, sizeof(buf), "%s/%s", app_storage.user_data_dir, filename);
+    snprintf(buf, sizeof(buf), "%s/%s", platform_user_data_dir, filename);
     return buf;
 }
 void app::user_data_flush() {
-    if (app_storage.user_data_flush) {
-        app_storage.user_data_flush();
-    }
+    platform_user_data_flush();
 }

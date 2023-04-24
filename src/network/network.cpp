@@ -16,17 +16,15 @@
 #include "../data_layer/profiles.hpp"
 #include <string.h>
 
-static AppNetworking networking;
+static void* ws = NULL;
 
-void network_init(AppNetworking networking_) {
-    networking = networking_;
-
+void network::init() {
     if (data_layer::accounts.empty()) {
         return;
     }
     account_set_response_callback(&network::account_response_handler);
 
-    auto socket = networking.websocket_open("wss://relay.damus.io", NULL);
+    platform_websocket_open("wss://relay.damus.io", NULL);
 }
 
 void app_websocket_event(const AppWebsocketEvent* event) {
@@ -35,6 +33,7 @@ void app_websocket_event(const AppWebsocketEvent* event) {
 
     if (event->type == WEBSOCKET_OPEN) {
         printf("websocket open!\n");
+        ws = event->socket;
 
         char pubkey_hex[65];
         hex_encode(pubkey_hex, account.pubkey.data, sizeof(Pubkey));
@@ -43,22 +42,24 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         char req[128];
         snprintf(req, 128, "[\"REQ\",\"dms_sent\",{\"authors\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
         printf("Request: %s\n", req);
-        networking.websocket_send(event->ws, req);
+        platform_websocket_send(ws, req);
 
         snprintf(req, 128, "[\"REQ\",\"dms_received\",{\"#p\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
         printf("Request: %s\n", req);
-        networking.websocket_send(event->ws, req);
+        platform_websocket_send(ws, req);
 
         snprintf(req, 128, "[\"REQ\",\"profile\",{\"authors\":[\"%s\"],\"kinds\":[0,3]}]", pubkey_hex);
         printf("Request: %s\n", req);
-        networking.websocket_send(event->ws, req);
+        platform_websocket_send(ws, req);
 
         data_layer::batch_profile_requests();
 
     } else if (event->type == WEBSOCKET_CLOSE) {
         printf("websocket close!\n");
+        ws = NULL;
     } else if (event->type == WEBSOCKET_ERROR) {
         printf("websocket error!\n");
+        ws = NULL;
     } else if (event->type != WEBSOCKET_MESSAGE) {
         return;
     }
@@ -99,61 +100,22 @@ void app_websocket_event(const AppWebsocketEvent* event) {
 }
 
 void network::send(const char* message) {
-    networking.websocket_send(0, message);
+    if (ws) {
+        platform_websocket_send(ws, message);
+    }
 }
 
-struct FetchUserData {
-    network::FetchCallback callback;
-    uint32_t buffer_size;
-    uint32_t buffer_end;
-    uint8_t* buffer;
-};
-
 void network::fetch(const char* url, network::FetchCallback callback) {
-    auto ud = new FetchUserData;
-    ud->callback = std::move(callback);
-    ud->buffer_size = 0;
-    ud->buffer_end = 0;
-    ud->buffer = NULL;
-    networking.http_request_send(url, ud);
+    auto cb = new network::FetchCallback(std::move(callback));
+    platform_http_request_send(url, cb);
 }
 
 void app_http_event(const AppHttpEvent* event) {
-    auto ud = (FetchUserData*)event->user_data;
-    if (ud->callback == nullptr) {
-        return;
-    }
-
-    if (event->type == HTTP_RESPONSE_OPEN) return;
-
+    auto cb = (network::FetchCallback*)event->user_data;
     if (event->type == HTTP_RESPONSE_ERROR) {
-        printf("HTTP response err\n");
-        ud->callback(true, event->status_code, NULL, 0);
-        delete ud;
-        return;
+        (*cb)(true, event->status_code, NULL, 0);
+    } else {
+        (*cb)(false, event->status_code, event->data, event->data_length);
     }
-
-    if (event->type == HTTP_RESPONSE_DATA) {
-        if (ud->buffer_end + event->data_length <= ud->buffer_size) {
-            // No-op
-        } else if (ud->buffer_end == 0) {
-            // Alloc
-            ud->buffer_size = event->data_length;
-            ud->buffer = (uint8_t*)malloc(ud->buffer_size);
-        } else {
-            // Realloc
-            ud->buffer_size = 2 * (ud->buffer_size + event->data_length);
-            ud->buffer = (uint8_t*)realloc(ud->buffer, 2 * (ud->buffer_end + event->data_length));
-        }
-        memcpy(&ud->buffer[ud->buffer_end], event->data, event->data_length);
-        ud->buffer_end += event->data_length;
-        return;
-    }
-
-    if (event->type == HTTP_RESPONSE_END) {
-        ud->callback(false, event->status_code, ud->buffer, ud->buffer_end);
-        free(ud->buffer);
-        delete ud;
-        return;
-    }
+    delete cb;
 }

@@ -41,7 +41,7 @@ int get_image(const char* url, int* width, int* height) {
         [image_idx](bool err, int status_code, const uint8_t* data, uint32_t len) {
             auto& image = images[image_idx];
 
-            if (err || status_code != 200 || len == 0) {
+            if (err || status_code != 200 || len == 0 || len > 250000) {
                 image.state = Image::ERROR;
                 return;
             }

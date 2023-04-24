@@ -12,7 +12,7 @@
 
 namespace network {
 
-//void init(AppNetworking networking);
+void init();
 void send(const char* message);
 
 typedef std::function<void(bool error, int status_code, const uint8_t* data, uint32_t data_length)> FetchCallback;

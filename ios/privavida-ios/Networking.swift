@@ -10,58 +10,47 @@ import Starscream
 
 @objc public class Networking: NSObject {
     @objc static let sharedInstance = Networking()
-
-    @objc var appNetworking: AppNetworking {
-        var net = AppNetworking()
-        net.websocket_open = { url, user_data in
-            return Int32(Networking.sharedInstance.websocketOpen(url: url, userData: user_data))
-        }
-        net.websocket_send = { ws, data in
-            Networking.sharedInstance.websocketSend(ws: ws, data: data)
-        }
-        net.websocket_close = { ws, code, reason in
-            Networking.sharedInstance.websocketClose(ws: ws, code: code, reason: reason)
-        }
-        net.http_request_send = { url, user_data in
-            Networking.sharedInstance.httpRequestSend(url: url, userData: user_data)
-        }
-        return net
-    }
-
-    var wsHandle: WebSocketHandle?
     
-    func websocketOpen(url: UnsafePointer<Int8>?, userData: UnsafeMutableRawPointer?) -> Int32 {
+    @objc func websocketOpen(url: UnsafePointer<Int8>?, userData: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer? {
         guard let url = url else {
-            return -1
+            return nil
         }
 
         let url2 = URL(string: String(cString: url))
         guard let url2 = url2 else {
-            return -1
+            return nil
         }
 
         print("WebSocket open: \(String(cString: url))")
-        wsHandle = WebSocketHandle(url: url2, handle: 1)
-        return 1
+        let wsHandle = WebSocketHandle(url: url2, userData: userData)
+        return Unmanaged.passRetained(wsHandle).toOpaque()
     }
 
-    func websocketSend(ws: Int32, data: UnsafePointer<Int8>?) {
-        guard let data = data else {
+    @objc func websocketSend(ws: UnsafeMutableRawPointer?, data: UnsafePointer<Int8>?) {
+        guard let ws = ws, let data = data else {
             return
         }
+
+        let unmanaged = Unmanaged<WebSocketHandle>.fromOpaque(ws)
+        let wsHandle = unmanaged.takeUnretainedValue()
+
         let message = String(cString: data)
-        wsHandle!.socket.write(string: message)
+        wsHandle.socket.write(string: message)
     }
 
-    func websocketClose(ws: Int32, code: UInt16, reason: UnsafePointer<Int8>?) {
-        guard let reason = reason else {
+    @objc func websocketClose(ws: UnsafeMutableRawPointer?, code: UInt16, reason: UnsafePointer<Int8>?) {
+        guard let ws = ws, let reason = reason else {
             return
         }
+
+        let unmanaged = Unmanaged<WebSocketHandle>.fromOpaque(ws)
+        let wsHandle = unmanaged.takeUnretainedValue()
+
         let message = String(cString: reason)
         print("WebSocket close: code=\(code), reason=\(message)")
     }
-    
-    func httpRequestSend(url: UnsafePointer<Int8>?, userData: UnsafeMutableRawPointer?) {
+
+    @objc func httpRequestSend(url: UnsafePointer<Int8>?, userData: UnsafeMutableRawPointer?) {
         guard let url = url else {
             return
         }
@@ -79,7 +68,7 @@ import Starscream
             event.data = nil;
             event.user_data = userData;
 
-            if let error = error {
+            if error != nil {
                 event.type = HTTP_RESPONSE_ERROR;
                 event.status_code = -1;
                 app_http_event(&event)
@@ -98,15 +87,12 @@ import Starscream
             if let responseData = data {
                 responseData.withUnsafeBytes { ptr in
                     var dataEvent = event
-                    dataEvent.type = HTTP_RESPONSE_DATA
+                    dataEvent.type = HTTP_RESPONSE_SUCCESS
                     dataEvent.data_length = Int32(responseData.count)
                     dataEvent.data = unsafeBitCast(ptr.baseAddress, to: UnsafePointer<UInt8>.self)
                     app_http_event(&dataEvent)
                 }
             }
-
-            event.type = HTTP_RESPONSE_END
-            app_http_event(&event)
         }
 
         task.resume()
@@ -121,36 +107,39 @@ class WebSocketHandle: WebSocketDelegate {
         socket.delegate = self
         return socket
     }()
-    let handle: Int32
+    let userData: UnsafeMutableRawPointer?
     let url: URL
 
-    init(url: URL, handle: Int32) {
+    init(url: URL, userData: UnsafeMutableRawPointer?) {
         self.url = url
-        self.handle = handle
+        self.userData = userData
         self.socket.connect()
     }
-    
+
     public func didReceive(event: WebSocketEvent, client: WebSocket) {
         switch event {
         case .connected:
             print("WebSocket connected")
             var event = AppWebsocketEvent()
             event.type = WEBSOCKET_OPEN
-            event.ws = handle
+            event.socket = Unmanaged.passUnretained(self).toOpaque()
+            event.user_data = userData
             app_websocket_event(&event)
 
         case .disconnected:
             print("WebSocket disconnected")
             var event = AppWebsocketEvent()
             event.type = WEBSOCKET_CLOSE
-            event.ws = handle
+            event.socket = Unmanaged.passUnretained(self).toOpaque()
+            event.user_data = userData
             app_websocket_event(&event)
 
         case .cancelled, .error:
             print("WebSocket error")
             var event = AppWebsocketEvent()
             event.type = WEBSOCKET_ERROR
-            event.ws = handle
+            event.socket = Unmanaged.passUnretained(self).toOpaque()
+            event.user_data = userData
             app_websocket_event(&event)
 
         case .text(let txt):
@@ -158,7 +147,8 @@ class WebSocketHandle: WebSocketDelegate {
             cString.withUnsafeBytes { ptr in
                 var event = AppWebsocketEvent()
                 event.type = WEBSOCKET_MESSAGE
-                event.ws = handle
+                event.socket = Unmanaged.passUnretained(self).toOpaque()
+                event.user_data = userData
                 event.data = unsafeBitCast(ptr.baseAddress, to: UnsafePointer<Int8>.self)
                 event.data_length = Int32(strlen(event.data))
                 app_websocket_event(&event)

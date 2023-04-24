@@ -19,6 +19,7 @@
 		A44E0A9E29F37A210098D525 /* bubble-tip.png in Resources */ = {isa = PBXBuildFile; fileRef = A44E0A9D29F37A210098D525 /* bubble-tip.png */; };
 		A45DD56C29F13E8E0073B3E6 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = A45DD56B29F13E8E0073B3E6 /* Starscream */; };
 		A45DD57129F143A00073B3E6 /* Networking.swift in Sources */ = {isa = PBXBuildFile; fileRef = A45DD57029F143A00073B3E6 /* Networking.swift */; };
+		A45E6D9129F6C82B0036EE7C /* platform_ios.m in Sources */ = {isa = PBXBuildFile; fileRef = A45E6D9029F6C82B0036EE7C /* platform_ios.m */; };
 		A480DA5329EF2E03003CA565 /* libprivavida-core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A47B409C29E1B381005E1111 /* libprivavida-core.a */; };
 		A4C5A5F726D1B752007C5F37 /* nanovg_mtl.m in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F426D1B752007C5F37 /* nanovg_mtl.m */; };
 		A4C5A5F826D1B752007C5F37 /* nanovg_mtl_shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A4C5A5F626D1B752007C5F37 /* nanovg_mtl_shaders.metal */; };
@@ -54,6 +55,8 @@
 		A44E0A9D29F37A210098D525 /* bubble-tip.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "bubble-tip.png"; path = "../../../assets/bubble-tip.png"; sourceTree = "<group>"; };
 		A45DD57029F143A00073B3E6 /* Networking.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Networking.swift; sourceTree = "<group>"; };
 		A45DD57229F144A20073B3E6 /* privavida-ios-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "privavida-ios-Bridging-Header.h"; sourceTree = "<group>"; };
+		A45E6D9029F6C82B0036EE7C /* platform_ios.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = platform_ios.m; sourceTree = "<group>"; };
+		A45E6D9229F6C8EF0036EE7C /* platform_ios.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = platform_ios.h; sourceTree = "<group>"; };
 		A47B409529E1B381005E1111 /* privavida-core.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "privavida-core.xcodeproj"; path = "../build/privavida-core.xcodeproj"; sourceTree = "<group>"; };
 		A4C5A5F426D1B752007C5F37 /* nanovg_mtl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = nanovg_mtl.m; sourceTree = "<group>"; };
 		A4C5A5F526D1B752007C5F37 /* nanovg_mtl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nanovg_mtl.h; sourceTree = "<group>"; };
@@ -156,6 +159,8 @@
 				A4D058AF26D043CA001CB0B5 /* Renderer.m */,
 				A4D058B126D043CA001CB0B5 /* GameViewController.h */,
 				A4D058B226D043CA001CB0B5 /* GameViewController.m */,
+				A45E6D9029F6C82B0036EE7C /* platform_ios.m */,
+				A45E6D9229F6C8EF0036EE7C /* platform_ios.h */,
 				A45DD57029F143A00073B3E6 /* Networking.swift */,
 				A4D058B726D043CA001CB0B5 /* Main.storyboard */,
 				A4F7BC8026D5923F0070D1D5 /* LaunchScreen.storyboard */,
@@ -271,6 +276,7 @@
 			files = (
 				A4D058BE26D043CC001CB0B5 /* main.m in Sources */,
 				A4D058B026D043CA001CB0B5 /* Renderer.m in Sources */,
+				A45E6D9129F6C82B0036EE7C /* platform_ios.m in Sources */,
 				A4D058B326D043CA001CB0B5 /* GameViewController.m in Sources */,
 				A4D058AD26D043CA001CB0B5 /* AppDelegate.m in Sources */,
 				A4C5A5F726D1B752007C5F37 /* nanovg_mtl.m in Sources */,

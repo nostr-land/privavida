@@ -6,7 +6,9 @@
 //
 
 #import "GameViewController.h"
-#import <platform.h>
+#import "platform_ios.h"
+
+void* game_view_controller = NULL;
 
 @implementation GameViewController {
     MTKView *_view;
@@ -15,14 +17,6 @@
     BOOL _wantsKeyboardOpen;
     CGRect _keyboardRect;
     AppTextInputConfig _lastConfig;
-}
-
-static void app_update_text_input(void* ptr, const AppTextInputConfig* config) {
-    [(__bridge GameViewController*)ptr updateTextInput: config];
-}
-
-static void app_remove_text_input(void* ptr) {
-    [(__bridge GameViewController*)ptr removeTextInput];
 }
 
 - (void)viewDidLoad {
@@ -42,17 +36,15 @@ static void app_remove_text_input(void* ptr) {
         return;
     }
 
-    AppText app_text;
-    app_text.opaque_ptr = (__bridge void*)self;
-    app_text.update_text_input = app_update_text_input;
-    app_text.remove_text_input = app_remove_text_input;
+    game_view_controller = (__bridge void*)self;
+    init_platform_user_data_dir();
 
     _textField = [[UITextField alloc] initWithFrame:CGRectMake(0, 0, 200, 30)];
     _textField.placeholder = @"Enter text";
     [_textField setHidden:YES];
     [_view addSubview:_textField];
 
-    _renderer = [[Renderer alloc] initWithMetalKitView:_view andAppText:app_text];
+    _renderer = [[Renderer alloc] initWithMetalKitView:_view];
 
     [_renderer mtkView:_view drawableSizeWillChange:_view.bounds.size];
 
