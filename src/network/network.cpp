@@ -24,9 +24,9 @@ void network::init() {
     }
     account_set_response_callback(&network::account_response_handler);
 
-    sockets.push_back(platform_websocket_open("wss://relay.snort.social", NULL));
-    sockets.push_back(platform_websocket_open("wss://relay.damus.io", NULL));
-    sockets.push_back(platform_websocket_open("wss://eden.nostr.land", NULL));
+    platform_websocket_open("wss://relay.snort.social", NULL);
+    platform_websocket_open("wss://relay.damus.io", NULL);
+    platform_websocket_open("wss://eden.nostr.land", NULL);
 }
 
 void app_websocket_event(const AppWebsocketEvent* event) {
@@ -35,6 +35,7 @@ void app_websocket_event(const AppWebsocketEvent* event) {
 
     if (event->type == WEBSOCKET_OPEN) {
         printf("websocket open!\n");
+        sockets.push_back(event->socket);
 
         char pubkey_hex[65];
         hex_encode(pubkey_hex, account.pubkey.data, sizeof(Pubkey));
@@ -54,6 +55,7 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         platform_websocket_send(event->socket, req);
 
         data_layer::batch_profile_requests();
+        return;
 
     } else if (event->type == WEBSOCKET_CLOSE) {
         printf("websocket close!\n");
@@ -63,6 +65,7 @@ void app_websocket_event(const AppWebsocketEvent* event) {
                 break;
             }
         }
+        return;
     } else if (event->type == WEBSOCKET_ERROR) {
         printf("websocket error!\n");
         for (auto i = 0; i < sockets.size(); ++i) {
@@ -71,6 +74,7 @@ void app_websocket_event(const AppWebsocketEvent* event) {
                 break;
             }
         }
+        return;
     } else if (event->type != WEBSOCKET_MESSAGE) {
         return;
     }
