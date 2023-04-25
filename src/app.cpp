@@ -428,14 +428,49 @@ static long key_event_queue_read = 0;
 static float keyboard_y_;
 static bool keyboard_is_showing_;
 
-static AppTextInputConfig prev_config_, next_config_;
-static const void* prev_text_input_ = NULL;
-static const void* next_text_input_ = NULL;
+static char text_content_buffer[1024];
+static char* text_content_big_buffer = NULL;
+static size_t text_content_big_buffer_size = 0;
+
+static ui::TextInput text_input_ = { 0 };
+static bool text_input_was_set = false;
+static bool text_input_is_set = false;
+const ui::TextInput* ui::text_input = &text_input_;
 
 void app_key_event(AppKeyEvent event) {
     if (key_event_queue_write - key_event_queue_read < KEY_EVENT_QUEUE_SIZE) {
         key_event_queue[key_event_queue_write++ % KEY_EVENT_QUEUE_SIZE] = event;
     }
+    ui::redraw();
+}
+
+static const char* text_content_copy(const char* string) {
+    auto len = (int)strlen(string);
+
+    // If it fits in our small buffer
+    if (len + 1 <= sizeof(text_content_buffer)) {
+        strncpy(text_content_buffer, string, len + 1);
+        return text_content_buffer;
+    }
+
+    // It's too big for our small buffer, but fits in our big buffer
+    if (len + 1 <= text_content_big_buffer_size) {
+        strncpy(text_content_big_buffer, string, len + 1);
+        return text_content_big_buffer;
+    }
+
+    // We're gonna need a bigger buffer!
+    if (text_content_big_buffer) {
+        free(text_content_big_buffer);
+    }
+    text_content_big_buffer_size = len * 2;
+    text_content_big_buffer = (char*)malloc(text_content_big_buffer_size);
+    strncpy(text_content_big_buffer, string, len + 1);
+    return text_content_big_buffer;
+}
+
+void app_text_input_content_changed(const char* new_content) {
+    text_input_.content = text_content_copy(new_content);
     ui::redraw();
 }
 
@@ -446,37 +481,41 @@ void app_keyboard_changed(int is_showing, float x, float y, float width, float h
 }
 
 void text_input_begin_frame() {
-    next_text_input_ = NULL;
+    text_input_is_set = false;
 }
 
 void text_input_end_frame() {
-    if (prev_text_input_ && !next_text_input_) {
+    if (text_input_was_set && !text_input_is_set) {
         platform_remove_text_input();
-    } else if (next_text_input_) {
-        platform_update_text_input(&next_config_);
+    } else if (text_input_is_set) {
+        AppTextInputConfig config = {
+            .x = text_input_.x,
+            .y = text_input_.y,
+            .width = text_input_.width,
+            .height = text_input_.height,
+            .font_size = text_input_.font_size,
+            .line_height = text_input_.line_height,
+            .text_color = text_input_.text_color,
+            .flags = text_input_.flags,
+            .content = text_input_.content,
+        };
+        platform_update_text_input(&config);
     }
-    prev_text_input_ = next_text_input_;
-    prev_config_ = next_config_;
+    text_input_was_set = text_input_is_set;
 }
 
-bool ui::controls_text_input(const void* id) {
-    return (prev_text_input_ == id || next_text_input_ == id);
+void ui::text_input_set(const ui::TextInput* text_input) {
+    text_input_is_set = true;
+    bool content_changed = (text_input_.content != text_input->content);
+    text_input_ = *text_input;
+    if (content_changed) {
+        text_input_.content = text_content_copy(text_input_.content);
+    }
 }
 
-void ui::set_text_input(const void* id, const ui::TextInputConfig* config) {
-    AppTextInputConfig app_config = {
-        .x = config->x,
-        .y = config->y,
-        .width = config->width,
-        .height = config->height,
-        .font_size = config->font_size,
-        .line_height = config->line_height,
-        .text_color = config->text_color,
-        .flags = config->flags,
-        .text_content = config->text_content,
-    };
-    next_text_input_ = id;
-    next_config_ = app_config;
+void ui::text_input_clear() {
+    text_input_is_set = false;
+    text_input_ = { 0 };
 }
 
 float ui::keyboard_y() {

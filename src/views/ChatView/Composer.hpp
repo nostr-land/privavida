@@ -13,5 +13,5 @@ struct Composer {
     TextInput::State text_state;
 
     float height() const;
-    void update();
+    const char* update();
 };

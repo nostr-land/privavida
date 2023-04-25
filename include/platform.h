@@ -81,7 +81,7 @@ typedef struct {
     int flags;
 
     // Content
-    const char* text_content;
+    const char* content;
 } AppTextInputConfig;
 
 enum AppKeyAction {
@@ -99,6 +99,7 @@ typedef struct {
 
 void platform_update_text_input(const AppTextInputConfig* config);
 void platform_remove_text_input();
+void app_text_input_content_changed(const char* new_content);
 
 void app_keyboard_changed(int is_showing, float x, float y, float width, float height);
 void app_key_event(AppKeyEvent event);

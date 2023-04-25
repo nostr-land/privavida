@@ -14,8 +14,12 @@ struct TextInput {
         bool ref = false;
     };
     static bool is_editing(const State* state) {
-        return ui::controls_text_input(&state->ref);
+        return ui::text_input->controller_id == &state->ref;
     }
+    static const char* get_text(const State* state) {
+        return is_editing(state) ? ui::text_input->content : NULL;
+    }
+    static void dismiss(const State* state);
 
     // Styles
     struct StyleOptions {

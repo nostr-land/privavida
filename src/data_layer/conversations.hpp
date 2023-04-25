@@ -18,4 +18,6 @@ struct Conversation {
 
 extern std::vector<Conversation> conversations;
 
+void send_direct_message(int conversation_id, const char* message_text);
+
 }

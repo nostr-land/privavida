@@ -99,13 +99,11 @@ static void handle_kind_4(const char* subscription_id, Event* event) {
     // Process a NIP-04 direct message
 
     Pubkey counterparty;
-    if (strcmp(subscription_id, "dms_sent") == 0) {
-        if (!event->p_tags.size) return;
-        counterparty = event->p_tags.get(event, 0).pubkey;
-    } else if (strcmp(subscription_id, "dms_received") == 0) {
+    if (!event->p_tags.size) return;
+    if (compare_keys(&event->p_tags.get(event, 0).pubkey, &account.pubkey)) {
         counterparty = event->pubkey;
     } else {
-        return;
+        counterparty = event->p_tags.get(event, 0).pubkey;
     }
 
     // Find the conversation (or create it)
@@ -132,44 +130,28 @@ static void handle_kind_4(const char* subscription_id, Event* event) {
     event->content_encryption = EVENT_CONTENT_ENCRYPTED;
     auto ciphertext = event->content.data.get(event);
     auto len = event->content.size;
-    account_nip04_decrypt(&account, &counterparty, ciphertext, len, event);
-
-    ui::redraw();
-}
-
-void network::account_response_handler(const AccountResponse* response) {
-    switch (response->action) {
-        case AccountResponse::SIGN_EVENT: {
-            printf("signed event!\n");
-            break;
-        }
-        case AccountResponse::NIP04_ENCRYPT: {
-            break;
-        }
-        case AccountResponse::NIP04_DECRYPT: {
-            Event* event = (Event*)response->user_data;
-
+    account_nip04_decrypt(&account, &counterparty, ciphertext, len,
+        [event](bool error, const char* error_reason, const char* plaintext, uint32_t len) {
             // Get the result
             const char* result;
-            if (response->error) {
+            if (error) {
                 event->content_encryption = EVENT_CONTENT_DECRYPT_FAILED;
                 return;
             }
 
             // Copy over the decrypted data
-            auto decrypted = response->result_nip04;
-            auto decrypted_len = response->result_nip04_len;
-            if (decrypted_len > event->content.size) {
+            if (len > event->content.size) {
                 printf("NIP04: Decoded plaintext longer than encoded ciphertext!!!\n");
                 event->content_encryption = EVENT_CONTENT_DECRYPT_FAILED;
                 return;
             }
 
             event->content_encryption = EVENT_CONTENT_DECRYPTED;
-            memcpy(event->content.data.get(event), decrypted, decrypted_len);
-            event->content.data.get(event)[decrypted_len] = '\0';
-            event->content.size = decrypted_len;
-            break;
+            memcpy(event->content.data.get(event), plaintext, len);
+            event->content.data.get(event)[len] = '\0';
+            event->content.size = len;
         }
-    }
+    );
+
+    ui::redraw();
 }

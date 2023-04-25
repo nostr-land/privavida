@@ -13,7 +13,7 @@
 extern void* game_view_controller;
 
 // Our iOS view controller
-@interface GameViewController : UIViewController <UIKeyInput>
+@interface GameViewController : UIViewController <UIKeyInput, UITextFieldDelegate>
 
 - (void)updateTextInput:(const AppTextInputConfig*)config;
 - (void)removeTextInput;

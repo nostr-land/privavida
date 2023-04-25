@@ -80,7 +80,10 @@ void ChatView::update() {
     // Composer
     {
         SubView sub(0, ui::keyboard_y() - composer.height(), ui::view.width, composer.height());
-        composer.update();
+        auto message = composer.update();
+        if (message) {
+            data_layer::send_direct_message(conversation_id, message);
+        }
     }
 
 }

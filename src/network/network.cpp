@@ -22,7 +22,6 @@ void network::init() {
     if (data_layer::accounts.empty()) {
         return;
     }
-    account_set_response_callback(&network::account_response_handler);
 
     platform_websocket_open("wss://relay.snort.social", NULL);
     platform_websocket_open("wss://relay.damus.io", NULL);

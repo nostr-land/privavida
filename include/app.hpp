@@ -76,9 +76,12 @@ bool get_scroll(float x, float y, float width, float height, float* dx, float* d
 
 
 // Keyboard
-struct TextInputConfig {
+struct TextInput {
+    // The identifier for the view component that currently
+    // controls the text input. NULL if there is no text input.
+    const void* controller_id;
+
     // Positioning of the text input
-    // enum AppTextAnchor anchor;
     float x, y, width, height;
 
     // Font and text settings
@@ -87,11 +90,11 @@ struct TextInputConfig {
     int flags;
 
     // Content
-    const char* text_content;
+    const char* content;
 };
-bool controls_text_input(const void* id);
-void set_text_input(const void* id, const TextInputConfig* config);
-void keyboard_changed(int is_showing, float x, float y, float width, float height);
+extern const TextInput* text_input;
+void text_input_set(const TextInput* text_input);
+void text_input_clear();
 float keyboard_y();
 
 }

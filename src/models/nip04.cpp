@@ -10,6 +10,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <random>
 
 extern "C" {
 #include <sha256/sha256.h>
@@ -27,18 +28,9 @@ static int ecdh_copy_xonly(uint8_t* output, const uint8_t* x32, const uint8_t* y
     return 1;
 }
 
-bool nip04_decrypt(const Pubkey* pubkey, const Seckey* seckey, const char* ciphertext, uint32_t len, char* plaintext_out, uint32_t* len_out) {
+static bool compute_shared_secret(const Pubkey* pubkey, const Seckey* seckey, uint8_t* shared_secret) {
 
     static auto secp256k1_context = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
-
-    // Step 1. Decode the content
-    uint8_t payload[len], iv[AES_BLOCKLEN];
-    uint32_t payload_len;
-    if (!decode_content(ciphertext, len, payload, &payload_len, iv)) {
-        return false;
-    }
-
-    // Step 2. Compute our shared secret
 
     // Create pubkey with fixed y coordinate of 2
     uint8_t pubkey_with_y[33];
@@ -52,8 +44,27 @@ bool nip04_decrypt(const Pubkey* pubkey, const Seckey* seckey, const char* ciphe
     }
 
     // Compute shared secret
-    uint8_t shared_secret[32];
     if (!secp256k1_ecdh(secp256k1_context, shared_secret, &secp_pubkey, seckey->data, &ecdh_copy_xonly, NULL)) {
+        return false;
+    }
+
+    return true;
+}
+
+bool nip04_decrypt(const Pubkey* pubkey, const Seckey* seckey, const char* ciphertext, uint32_t len, char* plaintext_out, uint32_t* len_out) {
+
+    static auto secp256k1_context = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
+
+    // Step 1. Decode the content
+    uint8_t payload[len], iv[AES_BLOCKLEN];
+    uint32_t payload_len;
+    if (!decode_content(ciphertext, len, payload, &payload_len, iv)) {
+        return false;
+    }
+
+    // Step 2. Compute our shared secret
+    uint8_t shared_secret[32];
+    if (!compute_shared_secret(pubkey, seckey, shared_secret)) {
         return false;
     }
 
@@ -73,7 +84,54 @@ bool nip04_decrypt(const Pubkey* pubkey, const Seckey* seckey, const char* ciphe
 }
 
 bool nip04_encrypt(const Pubkey* pubkey, const Seckey* seckey, const char* plaintext, uint32_t len, char* ciphertext_out, uint32_t* len_out) {
-    return false;
+
+    static auto secp256k1_context = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
+
+    if (len == 0) {
+        return false;
+    }
+
+    // Step 1. Compute our shared secret
+    uint8_t shared_secret[32];
+    if (!compute_shared_secret(pubkey, seckey, shared_secret)) {
+        return false;
+    }
+
+    // Step 2. Generate our initialization vector
+    uint8_t iv[AES_BLOCKLEN] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    {
+        static_assert(AES_BLOCKLEN == 16);
+        static std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<uint32_t> distrib;
+        ((uint32_t*)iv)[0] = distrib(gen);
+        ((uint32_t*)iv)[1] = distrib(gen);
+        ((uint32_t*)iv)[2] = distrib(gen);
+        ((uint32_t*)iv)[3] = distrib(gen);
+    }
+
+    // Step 3. Prepare our payload
+    uint32_t num_padding = 16 - len % 16;
+    uint32_t payload_len = len + num_padding;
+    uint8_t payload[payload_len];
+    strncpy((char*)payload, plaintext, len);
+    for (int i = len; i < payload_len; i++) {
+        payload[i] = (uint8_t)num_padding;
+    }
+
+    // Step 4. Encrypt
+    AES_ctx ctx;
+    AES_init_ctx_iv(&ctx, shared_secret, iv);
+    AES_CBC_encrypt_buffer(&ctx, payload, payload_len);
+
+    // Step 5. Encode the result
+    char* ch = ciphertext_out;
+    ch += Base64encode(ch, payload, payload_len) - 1;
+    strncpy(ch, "?iv=", 4);
+    ch += 4;
+    ch += Base64encode(ch, iv, sizeof(iv)) - 1;
+    *len_out = (uint32_t)(ch - ciphertext_out);
+    return true;
 }
 
 bool decode_content(const char* ciphertext, uint32_t len, uint8_t* payload, uint32_t* payload_len, uint8_t* iv) {

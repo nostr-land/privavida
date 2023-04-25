@@ -42,6 +42,7 @@ void* game_view_controller = NULL;
     _textField = [[UITextField alloc] initWithFrame:CGRectMake(0, 0, 200, 30)];
     _textField.placeholder = @"Enter text";
     [_textField setHidden:YES];
+    [_textField setDelegate:self];
     [_view addSubview:_textField];
 
     _renderer = [[Renderer alloc] initWithMetalKitView:_view];
@@ -154,7 +155,7 @@ void* game_view_controller = NULL;
                                                green:config->text_color.g
                                                 blue:config->text_color.b
                                                alpha:config->text_color.a];
-        [_textField setText:[NSString stringWithUTF8String:config->text_content]];
+        [_textField setText:[NSString stringWithUTF8String:config->content]];
         [_textField setFrame:CGRectMake(config->x, config->y, config->width, config->height)];
         [_textField setHidden:NO];
         [_textField becomeFirstResponder];
@@ -185,6 +186,13 @@ void* game_view_controller = NULL;
     [_textField resignFirstResponder];
     [_textField setHidden:YES];
     // [self resignFirstResponder];
+}
+
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
+    NSString* newString = [[textField text] stringByReplacingCharactersInRange:range
+                                                                    withString:string];
+    app_text_input_content_changed([newString UTF8String]);
+    return YES;
 }
 
 - (void)keyboardWillChange:(NSNotification *)notification {

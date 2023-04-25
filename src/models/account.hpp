@@ -7,6 +7,7 @@
 
 #pragma once
 #include "event.hpp"
+#include <functional>
 
 struct Account {
 
@@ -21,31 +22,12 @@ struct Account {
     Seckey seckey_padded; // for Account::SECKEY_IN_MEMORY
 };
 
-struct AccountResponse {
-
-    enum Action {
-        SIGN_EVENT,
-        NIP04_ENCRYPT,
-        NIP04_DECRYPT
-    };
-
-    Action action;
-    void* user_data;
-
-    bool error;
-    const char* error_reason;
-
-    const char* result_nip04;
-    uint32_t    result_nip04_len;
-
-    const Event* result_sign_event;
-};
-
-typedef void (*AccountResponseCallback)(const AccountResponse* response);
-
 bool account_load_from_file(Account* account, const uint8_t* data, uint32_t len);
 
-void account_set_response_callback(AccountResponseCallback cb);
-void account_sign_event   (const Account* account, const Event* event, void* user_data);
-void account_nip04_encrypt(const Account* account, const Pubkey* pubkey, const char* plaintext,  uint32_t len, void* user_data);
-void account_nip04_decrypt(const Account* account, const Pubkey* pubkey, const char* ciphertext, uint32_t len, void* user_data);
+typedef std::function<void(bool error, const char* error_reason, const Event* event)> AccountSignEventCallback;
+typedef std::function<void(bool error, const char* error_reason, const char* ciphertext, uint32_t len)> AccountNIP04EncryptCallback;
+typedef std::function<void(bool error, const char* error_reason, const char* plaintext, uint32_t len)> AccountNIP04DecryptCallback;
+
+void account_sign_event   (const Account* account, const Event* event, AccountSignEventCallback cb);
+void account_nip04_encrypt(const Account* account, const Pubkey* pubkey, const char* plaintext,  uint32_t len, AccountNIP04EncryptCallback cb);
+void account_nip04_decrypt(const Account* account, const Pubkey* pubkey, const char* ciphertext, uint32_t len, AccountNIP04DecryptCallback cb);

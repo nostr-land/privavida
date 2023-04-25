@@ -12,6 +12,5 @@
 namespace network {
 
 void handle_event(const char* subscription_id, Event* event);
-void account_response_handler(const AccountResponse* response);
 
 }

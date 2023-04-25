@@ -12,8 +12,6 @@
 #include <string.h>
 #include <assert.h>
 
-static AccountResponseCallback account_response_cb = NULL;
-
 static void seckey_pad(const Seckey* seckey_in, Seckey* seckey_out) {
     auto ints_in  = (const uint64_t*)seckey_in->data;
     auto ints_out = (uint64_t*)seckey_out->data;
@@ -89,27 +87,52 @@ bool account_load_from_file(Account* account, const uint8_t* data, uint32_t len)
     }
 }
 
-void account_set_response_callback(AccountResponseCallback cb) {
-    account_response_cb = cb;
-}
-
-void account_sign_event(const Account* account, const Event* event, void* user_data) {
-    assert(0); // not implemented yet.
-}
-
-void account_nip04_encrypt(const Account* account, const Pubkey* pubkey, const char* plaintext,  uint32_t len, void* user_data) {
-    assert(0); // not implemented yet.
-}
-
-void account_nip04_decrypt(const Account* account, const Pubkey* pubkey, const char* ciphertext, uint32_t len, void* user_data) {
+void account_sign_event(const Account* account, const Event* event, AccountSignEventCallback cb) {
     if (account->type != Account::SECKEY_IN_MEMORY) {
-        // Decrypt not supported!
-        AccountResponse response;
-        response.action = AccountResponse::NIP04_DECRYPT;
-        response.user_data = user_data;
-        response.error = true;
-        response.error_reason = "Can't decrypt without a private key";
-        account_response_cb(&response);
+        cb(true, "Can't sign events without a private key", NULL);
+        return;
+    }
+
+    uint8_t event_copy_buf[Event::size_of(event)];
+    memcpy(event_copy_buf, event, Event::size_of(event));
+    Event* event_copy = (Event*)event_copy_buf;
+
+    Seckey seckey;
+    seckey_pad(&account->seckey_padded, &seckey);
+    auto res = event_finish(event_copy, &seckey);
+    memset(&seckey, 0, sizeof(Seckey));
+
+    if (!res) {
+        cb(true, "Failed to sign", NULL);
+    } else {
+        cb(false, NULL, event_copy);
+    }
+}
+
+void account_nip04_encrypt(const Account* account, const Pubkey* pubkey, const char* plaintext,  uint32_t len, AccountNIP04EncryptCallback cb) {
+    if (account->type != Account::SECKEY_IN_MEMORY) {
+        cb(true, "Can't encrypt events without a private key", NULL, 0);
+        return;
+    }
+
+    char ciphertext_out[32 + len * 2];
+    uint32_t len_out;
+
+    Seckey seckey;
+    seckey_pad(&account->seckey_padded, &seckey);
+    auto res = nip04_encrypt(pubkey, &seckey, plaintext, len, ciphertext_out, &len_out);
+    memset(&seckey, 0, sizeof(Seckey));
+
+    if (!res) {
+        cb(true, "Failed to encrypt", NULL, 0);
+    } else {
+        cb(false, NULL, ciphertext_out, len_out);
+    }
+}
+
+void account_nip04_decrypt(const Account* account, const Pubkey* pubkey, const char* ciphertext, uint32_t len, AccountNIP04DecryptCallback cb) {
+    if (account->type != Account::SECKEY_IN_MEMORY) {
+        cb(true, "Can't decrypt events without a private key", NULL, 0);
         return;
     }
 
@@ -121,18 +144,9 @@ void account_nip04_decrypt(const Account* account, const Pubkey* pubkey, const c
     auto res = nip04_decrypt(pubkey, &seckey, ciphertext, len, plaintext_out, &len_out);
     memset(&seckey, 0, sizeof(Seckey));
 
-    AccountResponse response;
-    response.action = AccountResponse::NIP04_DECRYPT;
-    response.user_data = user_data;
-
     if (!res) {
-        response.error = true;
-        response.error_reason = "Failed to decrypt";
+        cb(true, "Failed to decrypt", NULL, 0);
     } else {
-        response.error = false;
-        response.result_nip04 = plaintext_out;
-        response.result_nip04_len = len_out;
+        cb(false, NULL, plaintext_out, len_out);
     }
-
-    account_response_cb(&response);
 }

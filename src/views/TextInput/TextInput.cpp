@@ -43,7 +43,7 @@ TextInput& TextInput::set_styles(const StyleOptions* styles) {
 
 void TextInput::update() {
     bool is_editing = (
-        ui::controls_text_input(&state.ref) ||
+        ui::text_input->controller_id == &state.ref ||
         ui::simple_tap(0, 0, ui::view.width, ui::view.height)
     );
 
@@ -59,19 +59,28 @@ void TextInput::update() {
     }
 
     if (is_editing) {
-        ui::TextInputConfig config;
+        auto text_input = *ui::text_input;
+        text_input.controller_id = &state.ref;
         ui::to_screen_rect(
             styles->padding,
             styles->padding,
             ui::view.width  - 2 * styles->padding,
             ui::view.height - 2 * styles->padding,
-            &config.x, &config.y, &config.width, &config.height
+            &text_input.x, &text_input.y, &text_input.width, &text_input.height
         );
-        config.font_size = styles->font_size;
-        config.line_height = 1.0;
-        config.text_color = styles->text_color;
-        config.flags = 0;
-        config.text_content = "Hello, world!";
-        ui::set_text_input(&state.ref, &config);
+        text_input.font_size = styles->font_size;
+        text_input.line_height = 1.0;
+        text_input.text_color = styles->text_color;
+        text_input.flags = 0;
+        if (ui::text_input->controller_id != &state.ref) {
+            text_input.content = "";
+        }
+        ui::text_input_set(&text_input);
+    }
+}
+
+void TextInput::dismiss(const State* state) {
+    if (TextInput::is_editing(state)) {
+        ui::text_input_clear();
     }
 }
