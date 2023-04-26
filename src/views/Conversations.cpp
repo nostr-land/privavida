@@ -112,7 +112,7 @@ void Conversations::update() {
 
             nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (1.0 / 6.0), name, NULL);
 
-            auto event = conv.messages.front();
+            auto event = conv.messages.back();
 
             const char* text;
             if (event->kind != 4) {
