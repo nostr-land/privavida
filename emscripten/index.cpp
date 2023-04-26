@@ -308,8 +308,8 @@ int main() {
             image.crossOrigin = 'anonymous';
             image.onload = () => {
                 const tex = GLctx.createTexture();
-                const texId = GL.textures.length;
-                GL.textures.push(tex);
+                const texId = GL.getNewId(GL.textures);
+                GL.textures[texId] = tex;
                 GLctx.bindTexture(GLctx.TEXTURE_2D, tex);
                 GLctx.texParameteri(GLctx.TEXTURE_2D, GLctx.TEXTURE_WRAP_S, GLctx.CLAMP_TO_EDGE);
                 GLctx.texParameteri(GLctx.TEXTURE_2D, GLctx.TEXTURE_WRAP_T, GLctx.CLAMP_TO_EDGE);
