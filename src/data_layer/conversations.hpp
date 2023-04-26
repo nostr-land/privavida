@@ -17,7 +17,9 @@ struct Conversation {
 };
 
 extern std::vector<Conversation> conversations;
+extern std::vector<int> conversations_sorted;
 
+void receive_direct_message(Event* event);
 void send_direct_message(int conversation_id, const char* message_text);
 
 }

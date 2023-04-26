@@ -14,15 +14,9 @@
 #include "../data_layer/contact_lists.hpp"
 #include <string.h>
 #include <stdio.h>
-#include <algorithm>
-
-bool sort_by_created_at(const Event* a, const Event* b) {
-    return a->created_at < b->created_at;
-}
 
 static void handle_kind_0(const char* subscription_id, Event* event);
 static void handle_kind_3(const char* subscription_id, Event* event);
-static void handle_kind_4(const char* subscription_id, Event* event);
 
 void network::handle_event(const char* subscription_id, Event* event_) {
 
@@ -39,7 +33,7 @@ void network::handle_event(const char* subscription_id, Event* event_) {
     } else if (event->kind == 3) {
         handle_kind_3(subscription_id, event);
     } else if (event->kind == 4) {
-        handle_kind_4(subscription_id, event);
+        data_layer::receive_direct_message(event);
     } else {
         printf("received event kind %d, which we don't handle current...\n", event->kind);
     }
@@ -88,70 +82,6 @@ static void handle_kind_3(const char* subscription_id, Event* event) {
         }
         data_layer::batch_profile_requests_send();
     }
-
-    ui::redraw();
-}
-
-static void handle_kind_4(const char* subscription_id, Event* event) {
-
-    auto& account = data_layer::accounts[data_layer::account_selected];
-
-    // Process a NIP-04 direct message
-
-    Pubkey counterparty;
-    if (!event->p_tags.size) return;
-    if (compare_keys(&event->p_tags.get(event, 0).pubkey, &account.pubkey)) {
-        counterparty = event->pubkey;
-    } else {
-        counterparty = event->p_tags.get(event, 0).pubkey;
-    }
-
-    // Find the conversation (or create it)
-    int conversation_id = -1;
-    for (int i = 0; i < data_layer::conversations.size(); ++i) {
-        if (compare_keys(&data_layer::conversations[i].counterparty, &counterparty)) {
-            conversation_id = i;
-            break;
-        }
-    }
-    if (conversation_id == -1) {
-        data_layer::Conversation conv;
-        conv.counterparty = counterparty;
-        conversation_id = (int)data_layer::conversations.size();
-        data_layer::conversations.push_back(conv);
-    }
-
-    // Add the message to the conversation
-    auto& conv = data_layer::conversations[conversation_id];
-    conv.messages.push_back(event);
-    std::sort(conv.messages.begin(), conv.messages.end(), &sort_by_created_at);
-
-    // Decrypt the message
-    event->content_encryption = EVENT_CONTENT_ENCRYPTED;
-    auto ciphertext = event->content.data.get(event);
-    auto len = event->content.size;
-    account_nip04_decrypt(&account, &counterparty, ciphertext, len,
-        [event](bool error, const char* error_reason, const char* plaintext, uint32_t len) {
-            // Get the result
-            const char* result;
-            if (error) {
-                event->content_encryption = EVENT_CONTENT_DECRYPT_FAILED;
-                return;
-            }
-
-            // Copy over the decrypted data
-            if (len > event->content.size) {
-                printf("NIP04: Decoded plaintext longer than encoded ciphertext!!!\n");
-                event->content_encryption = EVENT_CONTENT_DECRYPT_FAILED;
-                return;
-            }
-
-            event->content_encryption = EVENT_CONTENT_DECRYPTED;
-            memcpy(event->content.data.get(event), plaintext, len);
-            event->content.data.get(event)[len] = '\0';
-            event->content.size = len;
-        }
-    );
 
     ui::redraw();
 }

@@ -52,13 +52,14 @@ void Conversations::update() {
 
         for (int i = start_block; i <= end_block && i < data_layer::conversations.size(); ++i) {
 
-            auto& conv = data_layer::conversations[i];
+            int conversation_id = data_layer::conversations_sorted[data_layer::conversations.size() - i - 1];
+            auto& conv = data_layer::conversations[conversation_id];
             auto profile = data_layer::get_or_request_profile(&conv.counterparty);
 
             int y = i * BLOCK_HEIGHT;
 
             // Highlight if conversation is open
-            if (Root::open_conversation() == i) {
+            if (Root::open_conversation() == conversation_id) {
                 nvgBeginPath(ui::vg);
                 nvgFillColor(ui::vg, ui::color(0x4D434B, 1.0 - Root::pop_transition_progress()));
                 nvgRect(ui::vg, 0, y, ui::view.width, BLOCK_HEIGHT);
@@ -66,7 +67,7 @@ void Conversations::update() {
             }
 
             if (ui::simple_tap(0, y, ui::view.width, BLOCK_HEIGHT)) {
-                Root::push_view_chat(i);
+                Root::push_view_chat(conversation_id);
                 return ui::redraw();
             }
 
