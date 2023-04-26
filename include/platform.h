@@ -140,22 +140,11 @@ void app_websocket_event(const AppWebsocketEvent* event);
 
 
 // HTTP requests
-enum AppHttpEventType {
-    HTTP_RESPONSE_ERROR,
-    HTTP_RESPONSE_SUCCESS
-};
+void platform_http_request(const char* url, void* user_data);
+void app_http_response(int status_code, const unsigned char* data, int data_length, void* user_data);
 
-typedef struct {
-    enum AppHttpEventType type;
-    int status_code;
-    const unsigned char* data;
-    int data_length;
-    void* user_data;
-} AppHttpEvent;
-
-void platform_http_request_send(const char* url, void* user_data);
-void app_http_event(const AppHttpEvent* event);
-
+void platform_http_image_request(const char* url, void* user_data);
+void app_http_image_response(int image_id, void* user_data);
 
 
 #ifdef __cplusplus

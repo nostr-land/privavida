@@ -121,12 +121,22 @@ void network::send(const char* message) {
 
 void network::fetch(const char* url, network::FetchCallback callback) {
     auto cb = new network::FetchCallback(std::move(callback));
-    platform_http_request_send(url, cb);
+    platform_http_request(url, cb);
 }
 
-void app_http_event(const AppHttpEvent* event) {
-    auto cb = (network::FetchCallback*)event->user_data;
-    auto err = (event->type == HTTP_RESPONSE_ERROR);
-    (*cb)(err, event->status_code, event->data, event->data_length);
+void network::fetch_image(const char* url, network::FetchImageCallback callback) {
+    auto cb = new network::FetchImageCallback(std::move(callback));
+    platform_http_image_request(url, cb);
+}
+
+void app_http_response(int status_code, const unsigned char* data, int data_length, void* user_data) {
+    auto cb = (network::FetchCallback*)user_data;
+    (*cb)(status_code == -1, status_code, data, data_length);
+    delete cb;
+}
+
+void app_http_image_response(int image_id, void* user_data) {
+    auto cb = (network::FetchImageCallback*)user_data;
+    (*cb)(image_id);
     delete cb;
 }

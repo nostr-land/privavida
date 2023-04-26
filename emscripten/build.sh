@@ -45,7 +45,7 @@ emcc \
     --embed-file assets/SFBold.ttf \
     --embed-file assets/SFRegular.ttf \
     --embed-file assets/bubble-tip.png \
-    -sEXPORTED_FUNCTIONS=_window_size,_main,_fs_mounted \
+    -sEXPORTED_FUNCTIONS=_window_size,_main,_fs_mounted,_app_http_image_response_tex \
     -sEXPORTED_RUNTIME_METHODS=cwrap,ccall \
     -lidbfs.js \
     -lwebsocket.js \

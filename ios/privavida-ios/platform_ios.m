@@ -9,6 +9,7 @@
 #import "GameViewController.h"
 #import "privavida_ios-Swift.h"
 
+NVGcontext* vg;
 const char* platform_user_data_dir = NULL;
 
 void init_platform_user_data_dir(void) {
@@ -60,6 +61,20 @@ void platform_websocket_close(AppWebsocketHandle socket, unsigned short code, co
     [[Networking sharedInstance] websocketCloseWithWs:socket code:code reason:(const int8_t*)reason];
 }
 
-void platform_http_request_send(const char* url, void* user_data) {
-    [[Networking sharedInstance] httpRequestSendWithUrl:url userData:user_data];
+void platform_http_request(const char* url, void* user_data) {
+    [[Networking sharedInstance] httpRequestWithUrl:(const int8_t*)url userData:user_data];
+}
+
+void platform_http_image_request(const char* url, void* user_data) {
+    [[Networking sharedInstance] httpRequestImageWithUrl:(const int8_t*)url userData:user_data];
+}
+
+void app_http_response_for_image(int status_code, const unsigned char* data, int data_length, void* user_data) {
+    if (status_code != 200) {
+        app_http_image_response(0, user_data);
+        return;
+    }
+    
+    int image_id = nvgCreateImageMem(vg, 0, data, data_length);
+    app_http_image_response(image_id, user_data);
 }

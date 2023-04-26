@@ -38,17 +38,10 @@ int get_image(const char* url, int* width, int* height) {
     image.url = url;
     image.state = Image::LOADING;
 
-    network::fetch(url,
-        [image_idx](bool err, int status_code, const uint8_t* data, uint32_t len) {
+    network::fetch_image(url,
+        [image_idx](int image_id) {
             auto& image = images[image_idx];
-            printf("Fetch: %s - error %d - status %d - len %d\n", image.url, err, status_code, len);
-
-            if (err || status_code != 200 || len == 0 || len > 250000) {
-                image.state = Image::ERROR;
-                return;
-            }
-
-            image.image_id = nvgCreateImageMem(ui::vg, 0, const_cast<uint8_t*>(data), len);
+            image.image_id = image_id;
             if (!image.image_id) {
                 image.state = Image::ERROR;
             } else {

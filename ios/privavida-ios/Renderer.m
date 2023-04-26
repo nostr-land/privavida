@@ -7,12 +7,11 @@
 
 #import "Renderer.h"
 #import <platform.h>
+#import "platform_ios.h"
 #include "nanovg_mtl.h"
 
 @implementation Renderer
-{
-    NVGcontext* _vg;
-}
+{}
 
 -(nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view {
     self = [super init];
@@ -21,13 +20,13 @@
     }
 
     // Initialise NanoVG    
-    _vg = nvgCreateMTL((__bridge void*)(view.layer), NVG_ANTIALIAS | NVG_STENCIL_STROKES);
-    if (!_vg) {
+    vg = nvgCreateMTL((__bridge void*)(view.layer), NVG_ANTIALIAS | NVG_STENCIL_STROKES);
+    if (!vg) {
         printf("Couldn't init nanovg.\n");
         exit(1);
     }
 
-    app_init(_vg);
+    app_init(vg);
 
     return self;
 }

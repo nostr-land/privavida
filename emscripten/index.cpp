@@ -9,6 +9,8 @@
 #include <nanovg/nanovg_gl_utils.h>
 
 #include <platform.h>
+#include <rapidjson/writer.h>
+#include <vector>
 
 static EMSCRIPTEN_WEBGL_CONTEXT_HANDLE ctx;
 static NVGcontext* vg;
@@ -24,6 +26,7 @@ void window_size(int window_width_, int window_height_, int pixel_ratio_) {
     force_render = true;
 }
 void fs_mounted(void);
+void app_http_image_response_tex(int error, int tex_id, int width, int height, int request_id);
 }
 
 void main_loop() {
@@ -216,37 +219,19 @@ void platform_websocket_close(AppWebsocketHandle socket, unsigned short code, co
 }
 
 static void fetch_success(emscripten_fetch_t* fetch) {
-    AppHttpEvent event;
-    event.type = HTTP_RESPONSE_SUCCESS;
-    event.user_data = fetch->userData;
-    event.status_code = fetch->status;
-    event.data = (const uint8_t*)fetch->data;
-    event.data_length = fetch->numBytes;
-    app_http_event(&event);
+    app_http_response(fetch->status, (const uint8_t*)fetch->data, fetch->numBytes, fetch->userData);
     emscripten_fetch_close(fetch);
 }
 
 static void fetch_failed(emscripten_fetch_t* fetch) {
-    AppHttpEvent event;
-    event.type = HTTP_RESPONSE_ERROR;
-    event.user_data = fetch->userData;
-    event.status_code = fetch->status;
-    event.data = NULL;
-    event.data_length = 0;
-    app_http_event(&event);
+    app_http_response(fetch->status, NULL, 0, fetch->userData);
     emscripten_fetch_close(fetch);
 }
 
-void platform_http_request_send(const char* url, void* user_data) {
+void platform_http_request(const char* url, void* user_data) {
     {
         // Disable fetches for now
-        AppHttpEvent event;
-        event.type = HTTP_RESPONSE_ERROR;
-        event.user_data = user_data;
-        event.status_code = -1;
-        event.data = NULL;
-        event.data_length = 0;
-        app_http_event(&event);
+        app_http_response(-1, NULL, 0, user_data);
         return;
     }
 
@@ -258,6 +243,49 @@ void platform_http_request_send(const char* url, void* user_data) {
     attr.onsuccess = &fetch_success;
     attr.onerror = &fetch_failed;
     emscripten_fetch(&attr, url);
+}
+
+static std::vector<void*> image_request_user_datas;
+
+void platform_http_image_request(const char* url, void* user_data) {
+    assert(user_data);
+    rapidjson::StringBuffer sb;
+
+    int request_id;
+    {
+        for (int i = 0; i < image_request_user_datas.size(); ++i) {
+            if (!image_request_user_datas[i]) {
+                request_id = i;
+                break;
+            }
+        }
+        request_id = image_request_user_datas.size();
+        image_request_user_datas.push_back(user_data);
+    }
+
+    const char* url_escaped;
+    {
+        rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+        writer.String(url);
+        url_escaped = sb.GetString();
+    }
+
+    int command_size = 64 + strlen(url_escaped);
+    char command[command_size];
+    snprintf(command, command_size, "__platform_http_image_request(%s, %d)", url_escaped, request_id);
+    emscripten_run_script(command);
+}
+
+void app_http_image_response_tex(int error, int tex_id, int width, int height, int request_id) {
+    void* user_data = image_request_user_datas[request_id];
+    image_request_user_datas[request_id] = NULL;
+    if (error) {
+        app_http_image_response(0, user_data);
+        return;
+    }
+
+    int image_id = nvglCreateImageFromHandleGLES2(vg, tex_id, width, height, 0);
+    app_http_image_response(image_id, user_data);
 }
 
 int main() {
@@ -272,6 +300,27 @@ int main() {
                 Module.ccall('fs_mounted', 'void', [], [])
             }
         });
+
+        const app_http_image_response_tex = Module.cwrap('app_http_image_response_tex', 'void', ['int', 'int', 'int', 'int', 'int']);
+
+        window.__platform_http_image_request = (url, request_id) => {
+            const image = new Image();
+            image.crossOrigin = 'anonymous';
+            image.onload = () => {
+                const tex = GLctx.createTexture();
+                const texId = GL.textures.length;
+                GL.textures.push(tex);
+                GLctx.bindTexture(GLctx.TEXTURE_2D, tex);
+                GLctx.texParameteri(GLctx.TEXTURE_2D, GLctx.TEXTURE_WRAP_S, GLctx.CLAMP_TO_EDGE);
+                GLctx.texParameteri(GLctx.TEXTURE_2D, GLctx.TEXTURE_WRAP_T, GLctx.CLAMP_TO_EDGE);
+                GLctx.texParameteri(GLctx.TEXTURE_2D, GLctx.TEXTURE_MIN_FILTER, GLctx.NEAREST);
+                GLctx.texParameteri(GLctx.TEXTURE_2D, GLctx.TEXTURE_MAG_FILTER, GLctx.NEAREST);
+                GLctx.texImage2D(GLctx.TEXTURE_2D, 0, GLctx.RGBA, GLctx.RGBA, GLctx.UNSIGNED_BYTE, image);
+                app_http_image_response_tex(0, texId, image.width, image.height, request_id);
+            };
+            image.onerror = () => app_http_image_response_tex(1, 0, 0, 0, request_id);
+            image.src = url;
+        }
     );
 
 }

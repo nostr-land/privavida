@@ -62,7 +62,7 @@ import Starscream
         self.websockets[Int(ws)] = nil
     }
 
-    @objc func httpRequestSend(url: UnsafePointer<Int8>?, userData: UnsafeMutableRawPointer?) {
+    @objc func httpRequest(url: UnsafePointer<Int8>?, userData: UnsafeMutableRawPointer?) {
         guard let url = url else {
             return
         }
@@ -75,35 +75,69 @@ import Starscream
         let request = URLRequest(url: url2)
 
         let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-            var event = AppHttpEvent()
-            event.data_length = 0;
-            event.data = nil;
-            event.user_data = userData;
 
             if error != nil {
-                event.type = HTTP_RESPONSE_ERROR;
-                event.status_code = -1;
-                app_http_event(&event)
+                app_http_response(-1, nil, 0, userData)
                 return
             }
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                event.type = HTTP_RESPONSE_ERROR;
-                event.status_code = -1;
-                app_http_event(&event)
+                app_http_response(-1, nil, 0, userData)
                 return
             }
 
-            event.status_code = Int32(httpResponse.statusCode)
+            let statusCode = Int32(httpResponse.statusCode)
 
-            if let responseData = data {
-                responseData.withUnsafeBytes { ptr in
-                    var dataEvent = event
-                    dataEvent.type = HTTP_RESPONSE_SUCCESS
-                    dataEvent.data_length = Int32(responseData.count)
-                    dataEvent.data = unsafeBitCast(ptr.baseAddress, to: UnsafePointer<UInt8>.self)
-                    app_http_event(&dataEvent)
-                }
+            guard let responseData = data else {
+                app_http_response(statusCode, nil, 0, userData)
+                return
+            }
+
+            responseData.withUnsafeBytes { ptr in
+                let data = unsafeBitCast(ptr.baseAddress, to: UnsafePointer<UInt8>.self)
+                let dataLength = Int32(responseData.count)
+                app_http_response(statusCode, data, dataLength, userData)
+            }
+        }
+
+        task.resume()
+    }
+
+    @objc func httpRequestImage(url: UnsafePointer<Int8>?, userData: UnsafeMutableRawPointer?) {
+        guard let url = url else {
+            return
+        }
+
+        let url2 = URL(string: String(cString: url))
+        guard let url2 = url2 else {
+            return
+        }
+
+        let request = URLRequest(url: url2)
+
+        let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+
+            if error != nil {
+                app_http_response_for_image(-1, nil, 0, userData)
+                return
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                app_http_response_for_image(-1, nil, 0, userData)
+                return
+            }
+
+            let statusCode = Int32(httpResponse.statusCode)
+
+            guard let responseData = data else {
+                app_http_response_for_image(statusCode, nil, 0, userData)
+                return
+            }
+
+            responseData.withUnsafeBytes { ptr in
+                let data = unsafeBitCast(ptr.baseAddress, to: UnsafePointer<UInt8>.self)
+                let dataLength = Int32(responseData.count)
+                app_http_response_for_image(statusCode, data, dataLength, userData)
             }
         }
 

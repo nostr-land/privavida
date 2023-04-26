@@ -18,4 +18,7 @@ void send(const char* message);
 typedef std::function<void(bool error, int status_code, const uint8_t* data, uint32_t data_length)> FetchCallback;
 void fetch(const char* url, FetchCallback callback);
 
+typedef std::function<void(int image_id)> FetchImageCallback;
+void fetch_image(const char* url, FetchImageCallback callback);
+
 }
