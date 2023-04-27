@@ -156,9 +156,10 @@ void text_emoji(float x, float y, const char* string, const char* end) {
             continue;
         }
 
+        float font_size_emoji = font_size_ * 1.2; // Bump them up a little
         float scale = get_font_scale();
-        int font_size = (int)(scale * font_size_);
-        float inv_scale = font_size_ / font_size;
+        int font_size = (int)(scale * font_size_emoji);
+        float inv_scale = font_size_emoji / font_size;
         EmojiTexture* em = get_emoji_texture(font_size, string + part_start[i], part_start[i + 1] - part_start[i]);
         if (!em) {
             x = nvgText(vg, x, y, "😀", NULL); // This will render as a question mark box
@@ -219,8 +220,9 @@ void text_bounds_emoji(float x, float y, const char* string, const char* end, fl
 
         {
             float scale = get_font_scale();
-            int font_size = (int)(scale * font_size_);
-            float inv_scale = font_size_ / font_size;
+            float font_size_emoji = font_size_ * 1.2; // Bump them up a little
+            int font_size = (int)(scale * font_size_emoji);
+            float inv_scale = font_size_emoji / font_size;
             EmojiTexture* em = get_emoji_texture(font_size, string + part_start[i], part_start[i + 1] - part_start[i]);
             if (!em) {
                 x = nvgTextBounds(vg, x, y, "😀", NULL, part_bounds); // This will render as a question mark box
@@ -297,8 +299,8 @@ static const uint32_t EMOJI_CODEPOINTS_RANGES[] = {
     0x1F000, 0x1F02F,
     0x1F0A0, 0x1F0FF,
     0x1F100, 0x1F64F,
-    0x1F680, 0x1F6FF,
-    0x1F910, 0x1F96B,
+    0x1F600, 0x1F6FF,
+    0x1F900, 0x1F9FF,
     0x1F980, 0x1F9E0
 };
 

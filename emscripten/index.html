@@ -121,7 +121,6 @@
         }
 
         function __platform_emoji_render(text, textSize, color, texId, x, y) {
-            console.log('Emoji render:', text, textSize, texId, x, y);
             emojiCanvasCtx.font = `${textSize}px sans-serif`;
             const metrics = emojiCanvasCtx.measureText(text);
 
