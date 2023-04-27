@@ -51,10 +51,12 @@ struct State {
         NVGcolor font_color;
         float font_size;
         const char* font_face;
+        float line_height;
+        int max_lines;
     } settings;
 };
 
-void set_font_settings(State* state, NVGcolor font_color, float font_size, const char* font_face);
+void set_font_settings(State* state, NVGcolor font_color, float font_size, const char* font_face, float line_height = 1.0, int max_lines = -1);
 void tokenize_and_append_text(State* state, std::string text, int action_id = -1);
 void tokenize_and_append_text(State* state, float space_before, float space_after, std::string text, int action_id = -1);
 void append_object(State* state, float width, float height, std::function<void()> update, int action_id = -1);

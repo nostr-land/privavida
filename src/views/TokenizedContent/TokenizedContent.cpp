@@ -13,10 +13,12 @@ namespace TokenizedContent {
 
 constexpr float SPACE_WIDTH = 3.0;
 
-void set_font_settings(State* state, NVGcolor font_color, float font_size, const char* font_face) {
+void set_font_settings(State* state, NVGcolor font_color, float font_size, const char* font_face, float line_height, int max_lines) {
     state->settings.font_color = font_color;
     state->settings.font_size = font_size;
     state->settings.font_face = font_face;
+    state->settings.line_height = line_height;
+    state->settings.max_lines = max_lines;
 }
 
 void tokenize_and_append_text(State* state, std::string text, int action_id) {
@@ -91,11 +93,12 @@ void append_object(State* state, float space_before, float space_after, float wi
     state->content_tokens.push_back(std::move(token));
 }
 
-static void measure_content(State* state, float total_width, float* xs, float* ys, float* ws, float* hs, float* max_x, float* max_y) {
+static int measure_content(State* state, float total_width, float* xs, float* ys, float* ws, float* hs, float* max_x, float* max_y) {
     float y = 0;
     *max_x = 0;
 
     int i = 0;
+    int line_number = 0;
     while (i < state->content_tokens.size()) {
 
         int line_start_index = i;
@@ -119,6 +122,7 @@ static void measure_content(State* state, float total_width, float* xs, float* y
 
                     float ascender, descender, line_height;
                     ui::text_metrics(&ascender, &descender, &line_height);
+                    line_height *= state->settings.line_height;
 
                     float bounds[4];
                     ui::text_bounds(0, 0, token.text.content.c_str(), NULL, bounds);
@@ -226,9 +230,16 @@ static void measure_content(State* state, float total_width, float* xs, float* y
         }
         y += max_height;
 
+        line_number++;
+        if (state->settings.max_lines != -1 &&
+            line_number >= state->settings.max_lines) {
+            break;
+        }
+
     }
 
     *max_y = y;
+    return i;
 }
 
 void measure_content(State* state, float total_width, float* width, float* height) {
@@ -245,12 +256,12 @@ void update(State* state) {
     float ws[state->content_tokens.size()];
     float hs[state->content_tokens.size()];
     float max_x, max_y;
-    measure_content(state, ui::view.width, xs, ys, ws, hs, &max_x, &max_y);
+    int max_tokens = measure_content(state, ui::view.width, xs, ys, ws, hs, &max_x, &max_y);
 
     ui::text_align(NVG_ALIGN_BASELINE | NVG_ALIGN_LEFT);
     state->action = -1;
 
-    for (int i = 0; i < state->content_tokens.size(); ++i) {
+    for (int i = 0; i < max_tokens; ++i) {
         auto& token = state->content_tokens[i];
 
         switch (token.type) {
@@ -290,10 +301,6 @@ void update(State* state) {
             case Token::LINE_BREAK: {
                 break;
             }
-            
-        }
-        
-        if (token.action_id != -1) {
             
         }
     }

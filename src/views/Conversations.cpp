@@ -17,6 +17,7 @@
 #include "../models/hex.hpp"
 #include "../models/nostr_entity.hpp"
 #include "../utils/animation.hpp"
+#include "TokenizedContent/TokenizedContent.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -84,8 +85,6 @@ void Conversations::update() {
                 if (image_url && (image_id = data_layer::get_image(image_url))) {
                     auto paint = nvgImagePattern(ui::vg, 0, 0, ui::view.width, ui::view.height, 0, image_id, 1);
                     nvgFillPaint(ui::vg, paint);
-                } else if (data_layer::does_first_follow_second(&account.pubkey, &conv.counterparty)) {
-                    nvgFillColor(ui::vg, (NVGcolor){ 0.7, 0.7, 0.7, 1.0 });
                 } else {
                     nvgFillColor(ui::vg, (NVGcolor){ 0.5, 0.5, 0.5, 1.0 });
                 }
@@ -105,7 +104,11 @@ void Conversations::update() {
             
             char name[100];
             if (!profile || !profile->display_name.size) {
-                NostrEntity::encode_npub(&conv.counterparty, name, NULL);
+                char npub[100];
+                uint32_t len;
+                NostrEntity::encode_npub(&conv.counterparty, npub, &len);
+                npub[12] = '\0';
+                snprintf(name, sizeof(name), "%s:%s", &npub[0], &npub[len - 8]);
             } else {
                 strcpy(name, profile->display_name.data.get(profile));
             }
@@ -125,15 +128,13 @@ void Conversations::update() {
                 text = "Failed to decrypt";
             }
 
-            ui::save();
-            nvgScissor(ui::vg, 0, y, ui::view.width, BLOCK_HEIGHT - 6);
-            nvgFillColor(ui::vg, ui::color(0xcccccc));
-            ui::font_size(15.0);
-            ui::font_face("regular");
-            ui::text_line_height(1.3);
-            ui::text_align(NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
-            ui::text_box(BLOCK_HEIGHT, y + 34, ui::view.width - BLOCK_HEIGHT - CONTENT_PADDING, text, NULL);
-            ui::restore();
+            {
+                SubView sv(BLOCK_HEIGHT, y + 36, ui::view.width - BLOCK_HEIGHT - CONTENT_PADDING, ui::view.height);
+                TokenizedContent::State tokenized_content;
+                TokenizedContent::set_font_settings(&tokenized_content, ui::color(0xcccccc), 15.0, "regular", 1.3, 2);
+                TokenizedContent::tokenize_and_append_text(&tokenized_content, text);
+                TokenizedContent::update(&tokenized_content);
+            }
 
             nvgFillColor(ui::vg, (NVGcolor){ 0.2, 0.2, 0.2, 1.0 });
             nvgBeginPath(ui::vg);

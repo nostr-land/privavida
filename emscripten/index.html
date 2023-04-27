@@ -93,7 +93,7 @@
             // if (configNew.lineHeight !== configOld.lineHeight) textInput.style.setProperty('line-height', configNew.lineHeight + 'px');
             if (configNew.textColor !== configOld.textColor) textInput.style.setProperty('color', configNew.textColor);
             textInput.style.setProperty('display', 'block');
-            textInput.focus();
+            setTimeout(() => textInput.focus(), 0);
 
             configOld = configNew;
         }

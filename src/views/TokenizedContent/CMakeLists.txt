@@ -1,0 +1,5 @@
+list(APPEND SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/TokenizedContent.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/TokenizedContent.cpp
+)
+set(SOURCES ${SOURCES} PARENT_SCOPE)

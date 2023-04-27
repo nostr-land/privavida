@@ -8,7 +8,7 @@
 #pragma once
 
 #include "../../models/event.hpp"
-#include "TokenizedContent.hpp"
+#include "../TokenizedContent/TokenizedContent.hpp"
 
 struct ChatMessage {
     const Event* event;
