@@ -98,10 +98,10 @@ void Conversations::update() {
             constexpr float CONTENT_PADDING = 10.0;
             float CONTENT_HEIGHT = BLOCK_HEIGHT - 2 * CONTENT_PADDING;
 
-            nvgTextAlign(ui::vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
+            ui::text_align(NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
             nvgFillColor(ui::vg, (NVGcolor){ 1.0, 1.0, 1.0, 1.0 });
-            nvgFontSize(ui::vg, 16.0);
-            nvgFontFace(ui::vg, "bold");
+            ui::font_size(16.0);
+            ui::font_face("bold");
             
             char name[100];
             if (!profile || !profile->display_name.size) {
@@ -110,7 +110,7 @@ void Conversations::update() {
                 strcpy(name, profile->display_name.data.get(profile));
             }
 
-            nvgText(ui::vg, BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (1.0 / 6.0), name, NULL);
+            ui::text(BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (1.0 / 6.0), name, NULL);
 
             auto event = conv.messages.back();
 
@@ -128,11 +128,11 @@ void Conversations::update() {
             ui::save();
             nvgScissor(ui::vg, 0, y, ui::view.width, BLOCK_HEIGHT - 6);
             nvgFillColor(ui::vg, ui::color(0xcccccc));
-            nvgFontSize(ui::vg, 15.0);
-            nvgFontFace(ui::vg, "regular");
-            nvgTextLineHeight(ui::vg, 1.3);
-            nvgTextAlign(ui::vg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
-            nvgTextBox(ui::vg, BLOCK_HEIGHT, y + 34, ui::view.width - BLOCK_HEIGHT - CONTENT_PADDING, text, NULL);
+            ui::font_size(15.0);
+            ui::font_face("regular");
+            ui::text_line_height(1.3);
+            ui::text_align(NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
+            ui::text_box(BLOCK_HEIGHT, y + 34, ui::view.width - BLOCK_HEIGHT - CONTENT_PADDING, text, NULL);
             ui::restore();
 
             nvgFillColor(ui::vg, (NVGcolor){ 0.2, 0.2, 0.2, 1.0 });

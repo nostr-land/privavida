@@ -11,24 +11,57 @@
             margin: 0;
             padding: 0;
         }
-        canvas {
+        #canvas {
             position: absolute;
+            z-index: 2;
+        }
+        #emoji-canvas {
+            position: absolute;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            opacity: 0;
+        }
+        #text-input {
+            display: none;
+            position: absolute;
+            z-index: 3;
+            top: 0;
+            background-color: transparent;
+            color: white;
+            padding: 0;
+            margin: 0;
+            outline: none;
+            border: none;
+            border-radius: 0;
+            background-image:none;
+            -webkit-box-shadow: none;
+            -moz-box-shadow: none;
+            box-shadow: none;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
+    <input id="text-input" type="text" />
+    <canvas id="emoji-canvas"></canvas>
     <script src="index.js"></script>
     <script>
+        const textInput = document.querySelector('#text-input');
+
         Module.onRuntimeInitialized = () => {
             const windowSize = Module.cwrap('window_size', 'void', ['number', 'number']);
             let widthPrev = 0;
             let heightPrev = 0;
+            let scrollYPrev = 0;
             function updateSize() {
-                const [width, height] = [window.innerWidth, window.innerHeight];
-                if (widthPrev === width && heightPrev === height) return;
+                const [width, height, scrollY] = [window.innerWidth, window.innerHeight, window.scrollY];
+                if (widthPrev === width && heightPrev === height && scrollYPrev === scrollY) return;
                 canvas.style.setProperty('width', width + 'px');
                 canvas.style.setProperty('height', height + 'px');
+                canvas.style.setProperty('transform', `translateY(${scrollY}px)`);
+                textInput.style.setProperty('transform', `translateY(${scrollY}px)`);
                 canvas.setAttribute('width', width * 2);
                 canvas.setAttribute('height', height * 2);
                 windowSize(width, height, 2);
@@ -36,8 +69,79 @@
                 heightPrev = height;
             };
             window.onresize = updateSize;
+            window.onscroll = updateSize;
             updateSize();
         };
+
+        let configOld = null;
+        function __platform_update_text_input(configNew) {
+            if (!configNew) {
+                textInput.style.removeProperty('display');
+                configOld = null;
+                return;
+            }
+
+            if (!configOld) {
+                textInput.value = configNew.content || '';
+                configOld = {};
+            }
+            if (configNew.x !== configOld.x) textInput.style.setProperty('left', configNew.x + 'px');
+            if (configNew.y !== configOld.y) textInput.style.setProperty('top', configNew.y + 'px');
+            if (configNew.width !== configOld.width) textInput.style.setProperty('width', configNew.width + 'px');
+            if (configNew.height !== configOld.height) textInput.style.setProperty('height', configNew.height + 'px');
+            if (configNew.fontSize !== configOld.fontSize) textInput.style.setProperty('font-size', configNew.fontSize + 'px');
+            // if (configNew.lineHeight !== configOld.lineHeight) textInput.style.setProperty('line-height', configNew.lineHeight + 'px');
+            if (configNew.textColor !== configOld.textColor) textInput.style.setProperty('color', configNew.textColor);
+            textInput.style.setProperty('display', 'block');
+            textInput.focus();
+
+            configOld = configNew;
+        }
+
+        textInput.addEventListener('input', () => {
+            const string = textInput.value;
+            const buffer = _malloc(string.length * 2);
+            stringToUTF8(string, buffer, string.length * 2);
+            Module.ccall('app_text_input_content_changed', 'void', ['void*'], [buffer]);
+            _free(buffer);
+        });
+
+        const emojiCanvas = document.querySelector('#emoji-canvas');
+        const emojiCanvasCtx = emojiCanvas.getContext('2d');
+        function __platform_emoji_measure(text, textSize) {
+            emojiCanvasCtx.font = `${textSize}px sans-serif`;
+            const metrics = emojiCanvasCtx.measureText(text);
+
+            const boundingHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+            const boundingWidth = metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight;
+            const baseline = metrics.actualBoundingBoxAscent;
+            const left = - metrics.actualBoundingBoxLeft;
+            const right = metrics.actualBoundingBoxLeft + metrics.width;
+            Module.ccall('platform_did_emoji_measure', 'void', ['int', 'int', 'int', 'int', 'int'], [boundingHeight, boundingWidth, baseline, left, right]);
+        }
+
+        function __platform_emoji_render(text, textSize, color, texId, x, y) {
+            console.log('Emoji render:', text, textSize, texId, x, y);
+            emojiCanvasCtx.font = `${textSize}px sans-serif`;
+            const metrics = emojiCanvasCtx.measureText(text);
+
+            const boundingHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+            const boundingWidth = metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight;
+            const baseline = metrics.actualBoundingBoxAscent;
+            const left = - metrics.actualBoundingBoxLeft;
+            const right = metrics.actualBoundingBoxLeft + metrics.width;
+            emojiCanvas.width = boundingWidth;
+            emojiCanvas.height = boundingHeight;
+            emojiCanvasCtx.font = `${textSize}px sans-serif`;
+            emojiCanvasCtx.fillStyle = color;
+            emojiCanvasCtx.fillText(text, left, baseline);
+
+            const pixels = emojiCanvasCtx.getImageData(0, 0, boundingWidth, boundingHeight).data;
+
+            const tex = GL.textures[texId];
+            GLctx.bindTexture(GLctx.TEXTURE_2D, tex);
+            GLctx.texSubImage2D(GLctx.TEXTURE_2D, 0, x, y, boundingWidth, boundingHeight, GLctx.RGBA, GLctx.UNSIGNED_BYTE, pixels);
+        }
     </script>
 </body>
 </html>

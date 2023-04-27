@@ -5,6 +5,7 @@ emcc \
     src/app.cpp \
     src/utils/animation.cpp \
     src/utils/timer.cpp \
+    src/utils/text_rendering.cpp \
     src/views/Root.cpp \
     src/views/Conversations.cpp \
     src/views/ChatView/ChatView.cpp \
@@ -45,8 +46,8 @@ emcc \
     --embed-file assets/SFBold.ttf \
     --embed-file assets/SFRegular.ttf \
     --embed-file assets/bubble-tip.png \
-    -sEXPORTED_FUNCTIONS=_window_size,_main,_fs_mounted,_app_http_image_response_tex \
-    -sEXPORTED_RUNTIME_METHODS=cwrap,ccall \
+    -sEXPORTED_FUNCTIONS=_window_size,_main,_fs_mounted,_app_http_image_response_tex,_app_text_input_content_changed,_platform_did_emoji_measure \
+    -sEXPORTED_RUNTIME_METHODS=cwrap,ccall,writeStringToMemory \
     -lidbfs.js \
     -lwebsocket.js \
     -sFETCH

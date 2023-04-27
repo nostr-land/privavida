@@ -27,6 +27,7 @@ void window_size(int window_width_, int window_height_, int pixel_ratio_) {
 }
 void fs_mounted(void);
 void app_http_image_response_tex(int error, int tex_id, int width, int height, int request_id);
+void platform_did_emoji_measure(int bounding_height, int bounding_width, int baseline, int left, int right);
 }
 
 void main_loop() {
@@ -114,12 +115,136 @@ EM_BOOL scroll_event(int event_type, const EmscriptenWheelEvent* event, void* us
     return 1;
 }
 
+static bool text_input_showing = false;
+static AppTextInputConfig text_input_config = { 0 };
+
 void platform_update_text_input(const AppTextInputConfig* config) {
-    // Todo
+    if (text_input_showing &&
+        memcmp(&text_input_config, config, sizeof(AppTextInputConfig)) == 0) {
+        return; // No change
+    }
+
+    bool resend_all = !text_input_showing;
+
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    writer.StartObject();
+
+    if (resend_all || text_input_config.x != config->x) {
+        writer.String("x");
+        writer.Int(config->x);
+    }
+    if (resend_all || text_input_config.y != config->y) {
+        writer.String("y");
+        writer.Int(config->y);
+    }
+    if (resend_all || text_input_config.width != config->width) {
+        writer.String("width");
+        writer.Int(config->width);
+    }
+    if (resend_all || text_input_config.height != config->height) {
+        writer.String("height");
+        writer.Int(config->height);
+    }
+    if (resend_all || text_input_config.font_size != config->font_size) {
+        writer.String("fontSize");
+        writer.Int(config->font_size);
+    }
+    if (resend_all || text_input_config.line_height != config->line_height) {
+        writer.String("lineHeight");
+        writer.Int(config->line_height);
+    }
+    if (resend_all || memcmp(&text_input_config.text_color, &config->text_color, sizeof(NVGcolor)) != 0) {
+        writer.String("textColor");
+        char text_color[64];
+        if (config->text_color.a == 1.0) {
+            snprintf(text_color, sizeof(text_color), "#%02x%02x%02x", (int)(config->text_color.r * 255.0), (int)(config->text_color.g * 255.0), (int)(config->text_color.b * 255.0));
+        } else {
+            snprintf(text_color, sizeof(text_color), "rgba(%d,%d,%d,%f)", (int)(config->text_color.r * 255.0), (int)(config->text_color.g * 255.0), (int)(config->text_color.b * 255.0), config->text_color.a);
+        }
+        writer.String(text_color);
+    }
+    if (resend_all || text_input_config.flags != config->flags) {
+        writer.String("flags");
+        writer.Int(config->flags);
+    }
+    if (resend_all || strcmp(text_input_config.content, config->content) != 0) {
+        writer.String("content");
+        writer.String(config->content);
+    }
+
+    writer.EndObject();
+
+    auto config_json = sb.GetString();
+
+    int command_size = 64 + strlen(config_json);
+    char command[command_size];
+    snprintf(command, command_size, "__platform_update_text_input(%s)", config_json);
+    emscripten_run_script(command);
+
+    text_input_showing = true;
+    text_input_config = *config;
 }
 
 void platform_remove_text_input() {
-    // Todo
+    text_input_showing = false;
+
+    emscripten_run_script("__platform_update_text_input(null)");
+}
+
+
+int platform_supports_emoji = 1;
+
+static bool emoji_success;
+static PlatformEmojiMetrics* emoji_metrics;
+void platform_did_emoji_measure(int bounding_height, int bounding_width, int baseline, int left, int width) {
+    emoji_metrics->bounding_height = bounding_height;
+    emoji_metrics->bounding_width = bounding_width;
+    emoji_metrics->baseline = baseline;
+    emoji_metrics->left = left;
+    emoji_metrics->width = width;
+    emoji_success = true;
+}
+
+int platform_emoji_measure(const char* data, int data_length, int text_size, PlatformEmojiMetrics* metrics) {
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    writer.String(data, (rapidjson::SizeType)data_length);
+    auto data_encoded = sb.GetString();
+
+    emoji_success = false;
+    emoji_metrics = metrics;
+
+    int command_size = 64 + strlen(data_encoded);
+    char command[command_size];
+    snprintf(command, command_size, "__platform_emoji_measure(%s,%d)", data_encoded, text_size);
+    emscripten_run_script(command);
+
+    return emoji_success;
+}
+
+void platform_emoji_render(const char* data, int data_length, int text_size, NVGcolor color, const PlatformEmojiRenderTarget* render_target) {
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    writer.String(data, (rapidjson::SizeType)data_length);
+    auto data_encoded = sb.GetString();
+
+    char color_encoded[32];
+    if (color.a == 1.0) {
+        snprintf(color_encoded, sizeof(color_encoded), "\"#%02x%02x%02x\"", (int)(color.r * 255.0), (int)(color.g * 255.0), (int)(color.b * 255.0));
+    } else {
+        snprintf(color_encoded, sizeof(color_encoded), "\"rgba(%d,%d,%d,%f)\"", (int)(color.r * 255.0), (int)(color.g * 255.0), (int)(color.b * 255.0), color.a);
+    }
+
+    auto tex_id = nvglImageHandleGLES2(vg, render_target->image_id);
+    auto x = render_target->left;
+    auto y = render_target->top;
+
+    int command_size = 64 + strlen(data_encoded);
+    char command[command_size];
+    snprintf(command, command_size, "__platform_emoji_render(%s,%d,%s,%d,%d,%d)", data_encoded, text_size, color_encoded, tex_id, x, y);
+
+    emscripten_run_script(command);
 }
 
 const char* platform_user_data_dir = "/idbfs";
@@ -320,7 +445,7 @@ int main() {
             };
             image.onerror = () => app_http_image_response_tex(1, 0, 0, 0, request_id);
             image.src = url;
-        }
+        };
     );
 
 }

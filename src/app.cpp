@@ -14,6 +14,7 @@
 #include <string.h>
 #include "utils/animation.hpp"
 #include "utils/timer.hpp"
+#include "utils/text_rendering.hpp"
 #include "views/Root.hpp"
 #include "network/network.hpp"
 #include "data_layer/accounts.hpp"
@@ -30,6 +31,7 @@ static void clear_scroll();
 
 void app_init(NVGcontext* vg_) {
     redraw_requested = true;
+    ui::text_rendering_init();
     ui::vg = vg_;
     if (!data_layer::accounts_load()) return;
     timer::init();
@@ -174,6 +176,8 @@ void ui::to_view_rect(float x, float y, float width, float height, float* vx, fl
 
 
 
+
+
 // Touches
 static AppTouchEvent touch_event_queue[1024];
 static int touch_event_queue_size = 0;
@@ -289,7 +293,17 @@ struct NVGcontext_ {
     float commandx, commandy;
     NVGstate states[NVG_MAX_STATES];
     int nstates;
+    void* cache;
+    float tessTol;
+    float distTol;
+    float fringeWidth;
+    float devicePxRatio;
 };
+
+float ui::device_pixel_ratio() {
+    auto vg_ = (NVGcontext_*)ui::vg;
+    return vg_->devicePxRatio;
+}
 
 static NVGscissor* get_scissor() {
     auto vg_ = (NVGcontext_*)ui::vg;

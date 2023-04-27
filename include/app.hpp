@@ -46,6 +46,7 @@ void to_screen_point(float x, float y, float* sx, float* sy);
 void to_screen_rect(float x, float y, float width, float height, float* sx, float* sy, float* swidth, float* sheight);
 void to_view_point(float x, float y, float* sx, float* sy);
 void to_view_rect(float x, float y, float width, float height, float* sx, float* sy, float* swidth, float* sheight);
+float device_pixel_ratio();
 static inline NVGcolor color(int rgb, float a) {
     return (NVGcolor){ ((rgb >> 16) % 256) / 255.0f, ((rgb >> 8) % 256) / 255.0f, ((rgb) % 256) / 255.0f, a };
 }
@@ -75,7 +76,7 @@ bool get_scroll(float x, float y, float width, float height, float* dx, float* d
 
 
 
-// Keyboard
+// Text input
 struct TextInput {
     // The identifier for the view component that currently
     // controls the text input. NULL if there is no text input.
@@ -96,5 +97,18 @@ extern const TextInput* text_input;
 void text_input_set(const TextInput* text_input);
 void text_input_clear();
 float keyboard_y();
+
+
+
+// Text rendering
+void font_size(float size);
+void text_line_height(float line_height);
+void text_align(int align);
+void font_face_id(int font);
+void font_face(const char* font);
+extern void (*text)(float x, float y, const char* string, const char* end);
+extern void (*text_box)(float x, float y, float breakRowWidth, const char* string, const char* end);
+extern void (*text_bounds)(float x, float y, const char* string, const char* end, float* bounds);
+extern void (*text_metrics)(float* ascender, float* descender, float* lineh);
 
 }

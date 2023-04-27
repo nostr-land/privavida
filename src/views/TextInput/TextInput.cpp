@@ -63,9 +63,9 @@ void TextInput::update() {
         text_input.controller_id = &state.ref;
         ui::to_screen_rect(
             styles->padding,
-            styles->padding,
+            0,
             ui::view.width  - 2 * styles->padding,
-            ui::view.height - 2 * styles->padding,
+            ui::view.height,
             &text_input.x, &text_input.y, &text_input.width, &text_input.height
         );
         text_input.font_size = styles->font_size;

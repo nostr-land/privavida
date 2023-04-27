@@ -78,3 +78,12 @@ void app_http_response_for_image(int status_code, const unsigned char* data, int
     int image_id = nvgCreateImageMem(vg, 0, data, data_length);
     app_http_image_response(image_id, user_data);
 }
+
+// Not supported
+int platform_supports_emoji = 0;
+int platform_emoji_measure(const char* data, int data_length, int text_size, PlatformEmojiMetrics* metrics) {
+    return 0;
+}
+void platform_emoji_render(const char* data, int data_length, int text_size, NVGcolor color, const PlatformEmojiRenderTarget* render_target) {
+    
+}

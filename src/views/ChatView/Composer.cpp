@@ -10,7 +10,7 @@
 
 const float MARGIN = 6;
 const float PADDING = 8;
-const float FONT_SIZE = 18;
+const float FONT_SIZE = 16;
 
 float Composer::height() const {
     return 2 * MARGIN + 2 * PADDING + FONT_SIZE;

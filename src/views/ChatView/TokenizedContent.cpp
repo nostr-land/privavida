@@ -7,6 +7,7 @@
 
 #include "TokenizedContent.hpp"
 #include "../SubView.hpp"
+#include <stdio.h>
 
 namespace TokenizedContent {
 
@@ -113,14 +114,14 @@ static void measure_content(State* state, float total_width, float* xs, float* y
                 case Token::TEXT: {
 
                     // Measure text
-                    nvgFontFace(ui::vg, token.text.font_face);
-                    nvgFontSize(ui::vg, token.text.font_size);
+                    ui::font_face(token.text.font_face);
+                    ui::font_size(token.text.font_size);
 
                     float ascender, descender, line_height;
-                    nvgTextMetrics(ui::vg, &ascender, &descender, &line_height);
+                    ui::text_metrics(&ascender, &descender, &line_height);
 
                     float bounds[4];
-                    nvgTextBounds(ui::vg, 0, 0, token.text.content.c_str(), NULL, bounds);
+                    ui::text_bounds(0, 0, token.text.content.c_str(), NULL, bounds);
 
                     auto width = bounds[2] - bounds[0];
 
@@ -246,7 +247,7 @@ void update(State* state) {
     float max_x, max_y;
     measure_content(state, ui::view.width, xs, ys, ws, hs, &max_x, &max_y);
 
-    nvgTextAlign(ui::vg, NVG_ALIGN_BASELINE | NVG_ALIGN_LEFT);
+    ui::text_align(NVG_ALIGN_BASELINE | NVG_ALIGN_LEFT);
     state->action = -1;
 
     for (int i = 0; i < state->content_tokens.size(); ++i) {
@@ -255,10 +256,10 @@ void update(State* state) {
         switch (token.type) {
         
             case Token::TEXT: {
-                nvgFontFace(ui::vg, token.text.font_face);
-                nvgFontSize(ui::vg, token.text.font_size);
+                ui::font_face(token.text.font_face);
+                ui::font_size(token.text.font_size);
                 nvgFillColor(ui::vg, token.text.font_color);
-                nvgText(ui::vg, xs[i], ys[i], token.text.content.c_str(), NULL);
+                ui::text(xs[i], ys[i], token.text.content.c_str(), NULL);
                 // if (token.action_id != -1) {
                 //     if (mouse_over(xs[i], ys[i] - hs[i], ws[i], hs[i])) {
                 //         set_cursor(CURSOR_POINTING_HAND);

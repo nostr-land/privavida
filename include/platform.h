@@ -147,6 +147,26 @@ void platform_http_image_request(const char* url, void* user_data);
 void app_http_image_response(int image_id, void* user_data);
 
 
+
+// Platform Emoji rendering extension
+extern int platform_supports_emoji; // Set to 0 if not available
+
+typedef struct {
+    int bounding_height;
+    int bounding_width;
+    int baseline;
+    int left;
+    int width;
+} PlatformEmojiMetrics;
+int platform_emoji_measure(const char* data, int data_length, int text_size, PlatformEmojiMetrics* metrics);
+
+typedef struct {
+    int image_id;
+    int left, top;
+} PlatformEmojiRenderTarget;
+void platform_emoji_render(const char* data, int data_length, int text_size, NVGcolor color, const PlatformEmojiRenderTarget* render_target);
+
+
 #ifdef __cplusplus
 }
 #endif

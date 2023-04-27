@@ -72,6 +72,7 @@ struct Event {
     // Derived data
     EventValidState validity;
     EventContentEncryptionState content_encryption;
+    RelString content_decrypted;
     RelArray<ETag> e_tags;
     RelArray<PTag> p_tags;
 
