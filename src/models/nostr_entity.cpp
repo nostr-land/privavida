@@ -19,7 +19,8 @@ enum TLV_Type : uint8_t {
     TLV_RELAY = 1,
     TLV_AUTHOR = 2,
     TLV_KIND = 3,
-    TLV_TYPE_COUNT = 4,
+    TLV_SIG = 4,
+    TLV_TYPE_COUNT = 5,
 };
 
 int32_t NostrEntity::decoded_size(const char* input, uint32_t input_len) {
@@ -37,6 +38,8 @@ int32_t NostrEntity::decoded_size(const char* input, uint32_t input_len) {
         type = NRELAY;
     } else if (strncmp(input, "naddr", strlen("naddr")) == 0) {
         type = NADDR;
+    } else if (strncmp(input, "ninvite", strlen("ninvite")) == 0) {
+        type = NINVITE;
     } else {
         return -1;
     }
@@ -47,6 +50,12 @@ int32_t NostrEntity::decoded_size(const char* input, uint32_t input_len) {
         return sizeof(NostrEntity) + input_len;
     }
 
+}
+
+template <typename T>
+static inline RelPointer<T> make_rel_pointer(uint8_t* buffer, uint8_t* ptr) {
+    uint32_t offset = (uint32_t)(ptr - (uint8_t*)buffer) + sizeof(NostrEntity);
+    return RelPointer<T>(offset);
 }
 
 bool NostrEntity::decode(NostrEntity* entity, const char* input, uint32_t input_len) {
@@ -84,6 +93,8 @@ bool NostrEntity::decode(NostrEntity* entity, const char* input, uint32_t input_
         entity->type = NRELAY;
     } else if (strcmp(prefix, "naddr") == 0) {
         entity->type = NADDR;
+    } else if (strcmp(prefix, "ninvite") == 0) {
+        entity->type = NINVITE;
     } else {
         return FAIL;
     }
@@ -130,6 +141,7 @@ bool NostrEntity::decode(NostrEntity* entity, const char* input, uint32_t input_
         if (type_counts[TLV_SPECIAL] != 1 ||
             type_counts[TLV_AUTHOR]  != 0 ||
             type_counts[TLV_KIND]    != 0 ||
+            type_counts[TLV_SIG]     != 0 ||
             type_length[TLV_SPECIAL] != sizeof(Pubkey)) {
             return FAIL;
         }
@@ -141,6 +153,7 @@ bool NostrEntity::decode(NostrEntity* entity, const char* input, uint32_t input_
         if (type_counts[TLV_SPECIAL] != 1 ||
             type_counts[TLV_AUTHOR]  >  1 ||
             type_counts[TLV_KIND]    >  1 ||
+            type_counts[TLV_SIG]     != 0 ||
             type_length[TLV_SPECIAL] != sizeof(EventId)) {
             return FAIL;
         }
@@ -152,20 +165,37 @@ bool NostrEntity::decode(NostrEntity* entity, const char* input, uint32_t input_
         if (type_counts[TLV_SPECIAL] != 1 ||
             type_counts[TLV_RELAY]   != 0 ||
             type_counts[TLV_AUTHOR]  != 0 ||
-            type_counts[TLV_KIND]    != 0) {
+            type_counts[TLV_KIND]    != 0 ||
+            type_counts[TLV_SIG]     != 0) {
             return FAIL;
         }
         return SUCCESS;
 
-    } else { // entity.type == NADDR
+    } else if (entity->type == NADDR) {
         if (type_counts[TLV_SPECIAL] != 1 ||
             type_counts[TLV_AUTHOR]  >  1 ||
             type_counts[TLV_KIND]    >  1 ||
-            type_counts[TLV_AUTHOR]  != sizeof(Pubkey)) {
+            type_counts[TLV_SIG]     != 0 ||
+            type_length[TLV_AUTHOR]  != sizeof(Pubkey)) {
             return FAIL;
         }
 
         memcpy(entity->pubkey.data, &buffer[type_value_idx[TLV_AUTHOR]], sizeof(Pubkey));
+        return SUCCESS;
+    } else { // entity.type == NINVITE
+        if (type_counts[TLV_SPECIAL] != 1 ||
+            type_counts[TLV_AUTHOR]  != 1 ||
+            type_counts[TLV_KIND]    != 0 ||
+            type_counts[TLV_SIG]     != 1 ||
+            type_length[TLV_SPECIAL] != sizeof(Pubkey) ||
+            type_length[TLV_AUTHOR]  != sizeof(Pubkey) ||
+            type_length[TLV_SIG]     != sizeof(Signature)) {
+            return FAIL;
+        }
+
+        memcpy(entity->pubkey.data, &buffer[type_value_idx[TLV_AUTHOR]], sizeof(Pubkey));
+        entity->invite_conversation_pubkey = make_rel_pointer<Pubkey>(&buffer[0], &buffer[type_value_idx[TLV_SPECIAL]]);
+        entity->invite_signature = make_rel_pointer<Signature>(&buffer[0], &buffer[type_value_idx[TLV_SIG]]);
         return SUCCESS;
     }
 }
@@ -208,6 +238,11 @@ void NostrEntity::encode(const NostrEntity* entity, char* output, uint32_t* outp
             break;
         case NADDR:
             prefix = "naddr";
+            data = entity->tlv.data.get(entity);
+            data_len = entity->tlv.size;
+            break;
+        case NINVITE:
+            prefix = "ninvite";
             data = entity->tlv.data.get(entity);
             data_len = entity->tlv.size;
             break;

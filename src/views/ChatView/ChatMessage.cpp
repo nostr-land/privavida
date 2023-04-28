@@ -9,6 +9,7 @@
 #include "../SubView.hpp"
 #include "../Root.hpp"
 #include "../../data_layer/accounts.hpp"
+#include "../../models/nip31.hpp"
 #include <time.h>
 
 extern "C" {
@@ -77,23 +78,40 @@ ChatMessage* ChatMessage::create(const Event* event) {
 
             if (token.type == EventContentToken::ENTITY) {
                 auto entity = token.entity.get(event);
-
-                char data[200];
-                uint32_t len;
-                NostrEntity::encode(entity, data, &len);
-                data[12] = '\0';
-
-                sprintf(&text_content[offset], "@%s:%s", &data[0], &data[len - 8]);
-                offset += (int)strlen(&text_content[offset]);
-
-                attr.text_color = ui::color(0xffffff, 0.8);
+                
                 if (entity->type == NostrEntity::NPUB ||
                     entity->type == NostrEntity::NOTE) {
-                    attr.action_id = i;
+                    char data[200];
+                    uint32_t len;
+                    NostrEntity::encode(entity, data, &len);
+                    data[12] = '\0';
+
+                    sprintf(&text_content[offset], "@%s:%s", &data[0], &data[len - 8]);
+                    offset += (int)strlen(&text_content[offset]);
+
+                    attr.text_color = ui::color(0xffffff, 0.8);
+                    if (entity->type == NostrEntity::NPUB ||
+                        entity->type == NostrEntity::NOTE) {
+                        attr.action_id = i;
+                    }
+                    continue;
+                } else if (entity->type == NostrEntity::NINVITE) {
+                    if (entity->invite_signature_state == INVITE_SIGNATURE_NOT_CHECKED) {
+                        nip31_verify_invite(const_cast<NostrEntity*>(entity), &event->pubkey);
+                    }
+                    if (entity->invite_signature_state == INVITE_SIGNATURE_VALID) {
+                        sprintf(&text_content[offset], "<INVITATION VALID>");
+                    } else {
+                        sprintf(&text_content[offset], "<INVITATION INVALID>");
+                    }
+                    offset += (int)strlen(&text_content[offset]);
+
+                    attr.text_color = COLOR_ERROR;
+                    attr.font_face = "bold";
+                    continue;
                 }
-                continue;
             }
-            
+
             if (token.type == EventContentToken::NIP08_MENTION) {
                 NostrEntity entity;
                 bool found = false;

@@ -24,6 +24,8 @@ list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/nostr_entity.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/nip04.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/nip04.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/nip31.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/nip31.cpp
 )
 add_subdirectory(c)
 set(SOURCES ${SOURCES} PARENT_SCOPE)

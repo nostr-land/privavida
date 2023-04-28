@@ -11,6 +11,12 @@
 #include "relative.hpp"
 #include "keys.hpp"
 
+enum InviteSignatureState {
+    INVITE_SIGNATURE_NOT_CHECKED = 0,
+    INVITE_SIGNATURE_VALID,
+    INVITE_SIGNATURE_INVALID,
+};
+
 struct NostrEntity {
     enum Type {
         NOTE,
@@ -19,11 +25,15 @@ struct NostrEntity {
         NEVENT,
         NRELAY,
         NADDR,
+        NINVITE
     };
 
     Type type;
     EventId event_id;
     Pubkey pubkey;
+    RelPointer<Pubkey>    invite_conversation_pubkey;
+    RelPointer<Signature> invite_signature;
+    InviteSignatureState  invite_signature_state;
     RelArray<uint8_t> tlv;
 
     uint8_t  __buffer[];

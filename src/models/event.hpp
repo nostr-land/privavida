@@ -129,10 +129,3 @@ void event_compute_hash(const Event* event, EventId* hash_out);
 //   event is valid.
 //
 bool event_validate(Event* event);
-
-//
-/// event_check_hash()
-//
-//   Given an event, will verify that the signature is correct.
-//
-bool event_verify_signature(const Event* event);

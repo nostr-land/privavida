@@ -26,6 +26,7 @@ emcc \
     src/models/hex.cpp \
     src/models/nostr_entity.cpp \
     src/models/nip04.cpp \
+    src/models/nip31.cpp \
     src/models/account.cpp \
     src/models/c/aes.c \
     src/models/c/secp256k1.c \

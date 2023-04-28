@@ -51,6 +51,10 @@ void platform_user_data_flush(void) {
     // No-op
 }
 
+void platform_open_url(const char* url) {
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[NSString stringWithCString:url encoding:NSUTF8StringEncoding]]];
+}
+
 AppWebsocketHandle platform_websocket_open(const char* url, void* user_data) {
     return [[Networking sharedInstance] websocketOpenWithUrl:(const int8_t*)url userData:user_data];
 }
