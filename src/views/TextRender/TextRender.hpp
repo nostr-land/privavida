@@ -19,6 +19,7 @@ struct Attribute {
     const char* font_face;
     float font_size;
     float line_spacing;
+    int action_id;
 };
 
 struct Props {
@@ -32,7 +33,9 @@ struct Line {
     int run_start;
     int run_end;
     float y;
+    float y_baseline;
     float width;
+    float height;
 };
 
 struct Run {
@@ -63,5 +66,6 @@ struct StateFixed : State {
 
 void layout(State* state, const Props* props);
 void render(const State* state);
+int  simple_tap(const State* state);
 
 }

@@ -276,9 +276,11 @@ void layout(State* state, const Props* props) {
         // Calculate baseline
         float baseline = (max_height - max_line_height) / 2 + max_ascender;
 
-        line.y = y + baseline;
+        line.y = y;
+        line.y_baseline = y + baseline;
         line.run_end = (int)runs.size;
         line.width = x;
+        line.height = max_height;
 
         // Check if we've exceeded our bounding height
         if (y + max_height > bounding_height) {
@@ -314,9 +316,26 @@ void render(const State* state) {
                 last_attribute_index = run.attribute_index;
             }
 
-            ui::text(run.x, line.y, &state->data[run.data_start], &state->data[run.data_end]);
+            ui::text(run.x, line.y_baseline, &state->data[run.data_start], &state->data[run.data_end]);
         }
     }
+}
+
+int simple_tap(const State* state) {
+    for (auto& line : state->lines) {
+
+        for (int i = line.run_start; i < line.run_end; ++i) {
+            auto& run = state->runs[i];
+            auto& attr = state->attributes[run.attribute_index];
+            if (attr.action_id != -1) {
+                if (ui::simple_tap(run.x, line.y, run.width, line.height)) {
+                    return attr.action_id;
+                }
+            }
+        }
+    }
+
+    return -1;
 }
 
 }

@@ -559,6 +559,13 @@ void process_next_key_event() {
 
 
 
+// External linking
+void app::open_url(const char* url) {
+    platform_open_url(url);
+}
+
+
+
 // Storage
 const char* app::get_asset_name(const char* asset_name, const char* asset_type) {
     return platform_get_asset_name(asset_name, asset_type);

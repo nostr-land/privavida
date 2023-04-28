@@ -22,6 +22,9 @@ const char* get_asset_name(const char* asset_name, const char* asset_type);
 const char* get_user_data_path(const char* filename);
 void user_data_flush();
 
+// External linking
+void open_url(const char* url);
+
 }
 
 

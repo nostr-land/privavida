@@ -113,6 +113,11 @@ void platform_user_data_flush(void);
 
 
 
+// External linking
+void platform_open_url(const char* url);
+
+
+
 // Websockets
 typedef int AppWebsocketHandle;
 

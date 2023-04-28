@@ -56,6 +56,7 @@ ChatMessage* ChatMessage::create(const Event* event) {
     default_attr.font_face = "regular";
     default_attr.font_size = 17.0;
     default_attr.line_spacing = 3.0;
+    default_attr.action_id = -1;
 
     // Create our text_content
     if (event->content_encryption != EVENT_CONTENT_DECRYPTED) {
@@ -67,7 +68,9 @@ ChatMessage* ChatMessage::create(const Event* event) {
     } else {
 
         int offset = 0;
-        for (auto& token : event->content_tokens.get(event)) {
+        auto tokens = event->content_tokens.get(event);
+        for (int i = 0; i < tokens.size; ++i) {
+            auto& token = tokens[i];
             auto& attr = message->text_attrs.push_back();
             attr = default_attr;
             attr.index = offset;
@@ -84,6 +87,10 @@ ChatMessage* ChatMessage::create(const Event* event) {
                 offset += (int)strlen(&text_content[offset]);
 
                 attr.text_color = ui::color(0xffffff, 0.8);
+                if (entity->type == NostrEntity::NPUB ||
+                    entity->type == NostrEntity::NOTE) {
+                    attr.action_id = i;
+                }
                 continue;
             }
             
@@ -117,6 +124,7 @@ ChatMessage* ChatMessage::create(const Event* event) {
                     offset += (int)strlen(&text_content[offset]);
 
                     attr.text_color = ui::color(0xffffff, 0.8);
+                    attr.action_id = i;
                     continue;
                 }
             }
@@ -126,6 +134,7 @@ ChatMessage* ChatMessage::create(const Event* event) {
                 
             if (token.type == EventContentToken::URL) {
                 attr.text_color = ui::color(0xffffff, 0.8);
+                attr.action_id = i;
             }
         }
         text_content[offset] = '\0';
@@ -250,6 +259,46 @@ void ChatMessage::update() {
         state.attributes = Array<TextRender::Attribute>((uint32_t)text_attrs.size, &text_attrs[0]);
 
         TextRender::render(&state);
+        int action_id = TextRender::simple_tap(&state);
+        if (action_id != -1) {
+            auto& token = event->content_tokens.get(event, action_id);
+            if (token.type == EventContentToken::URL) {
+                char url[token.text.size + 1];
+                strncpy(url, token.text.data.get(event), token.text.size);
+                url[token.text.size] = '\0';
+                app::open_url(url);
+            } else {
+                NostrEntity entity;
+
+                if (token.type == EventContentToken::ENTITY) {
+                    entity = *token.entity.get(event);
+                } else {
+                    for (auto& p_tag : event->p_tags.get(event)) {
+                        if (p_tag.index == token.nip08_mention_index) {
+                            entity.type = NostrEntity::NPUB;
+                            entity.pubkey = p_tag.pubkey;
+                            break;
+                        }
+                    }
+                    for (auto& e_tag : event->e_tags.get(event)) {
+                        if (e_tag.index == token.nip08_mention_index) {
+                            entity.type = NostrEntity::NOTE;
+                            entity.event_id = e_tag.event_id;
+                            break;
+                        }
+                    }
+                }
+
+                char data[200];
+                uint32_t len;
+                NostrEntity::encode(&entity, data, &len);
+
+                const char* prefix = "https://iris.to/";
+                char url[len + strlen(prefix) + 1];
+                snprintf(url, len + strlen(prefix) + 1, "%s%s", prefix, data);
+                app::open_url(url);
+            }
+        }
     }
 
     {

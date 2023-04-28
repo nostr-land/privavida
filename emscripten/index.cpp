@@ -50,6 +50,19 @@ void main_loop() {
     app_render(window_width, window_height, pixel_ratio);
 }
 
+void platform_open_url(const char* url) {
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    writer.String(url, strlen(url));
+    auto url_encoded = sb.GetString();
+
+    int command_size = 64 + strlen(url_encoded);
+    char command[command_size];
+    snprintf(command, command_size, "window.location.assign(%s)", url_encoded);
+
+    emscripten_run_script(command);
+}
+
 EM_BOOL touch_event(int event_type, const EmscriptenTouchEvent* event, void* user_data) {
 
     AppTouchEvent app_event;
