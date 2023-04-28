@@ -32,16 +32,19 @@ void (*text)(float x, float y, const char* string, const char* end);
 void (*text_box)(float x, float y, float breakRowWidth, const char* string, const char* end);
 void (*text_bounds)(float x, float y, const char* string, const char* end, float* bounds);
 void (*text_metrics)(float* ascender, float* descender, float* lineh);
+int (*text_glyph_positions)(float x, float y, const char* string, const char* end, NVGglyphPosition* positions, int maxPositions);
 
 static void text_no_emoji(float x, float y, const char* string, const char* end);
 static void text_box_no_emoji(float x, float y, float breakRowWidth, const char* string, const char* end);
 static void text_bounds_no_emoji(float x, float y, const char* string, const char* end, float* bounds);
 static void text_metrics_no_emoji(float* ascender, float* descender, float* lineh);
+static int  text_glyph_positions_no_emoji(float x, float y, const char* string, const char* end, NVGglyphPosition* positions, int maxPositions);
 
 static void text_emoji(float x, float y, const char* string, const char* end);
 static void text_box_emoji(float x, float y, float breakRowWidth, const char* string, const char* end);
 static void text_bounds_emoji(float x, float y, const char* string, const char* end, float* bounds);
 static void text_metrics_emoji(float* ascender, float* descender, float* lineh);
+static int  text_glyph_positions_emoji(float x, float y, const char* string, const char* end, NVGglyphPosition* positions, int maxPositions);
 
 void text_rendering_init() {
     if (platform_supports_emoji) {
@@ -49,11 +52,13 @@ void text_rendering_init() {
         text_box = text_box_emoji;
         text_bounds = text_bounds_emoji;
         text_metrics = text_metrics_emoji;
+        text_glyph_positions = text_glyph_positions_emoji;
     } else {
         text = text_no_emoji;
         text_box = text_box_no_emoji;
         text_bounds = text_bounds_no_emoji;
         text_metrics = text_metrics_no_emoji;
+        text_glyph_positions = text_glyph_positions_no_emoji;
     }
 }
 
@@ -101,6 +106,10 @@ void text_bounds_no_emoji(float x, float y, const char* string, const char* end,
 
 void text_metrics_no_emoji(float* ascender, float* descender, float* lineh) {
     nvgTextMetrics(vg, ascender, descender, lineh);
+}
+
+int text_glyph_positions_no_emoji(float x, float y, const char* string, const char* end, NVGglyphPosition* positions, int maxPositions) {
+    return nvgTextGlyphPositions(vg, x, y, string, end, positions, maxPositions);
 }
 
 static int break_into_parts(const uint8_t* string, const uint8_t* end, int* part_start, bool* part_is_emoji);
@@ -259,6 +268,53 @@ void text_bounds_emoji(float x, float y, const char* string, const char* end, fl
 
 void text_metrics_emoji(float* ascender, float* descender, float* lineh) {
     nvgTextMetrics(vg, ascender, descender, lineh);
+}
+
+int text_glyph_positions_emoji(float x, float y, const char* string, const char* end, NVGglyphPosition* positions, int maxPositions) {
+    if (!end) end = string + strlen(string);
+
+    int part_start[MAX_PARTS];
+    bool part_is_emoji[MAX_PARTS];
+    int num_parts = break_into_parts((const uint8_t*)string, (const uint8_t*)end, part_start, part_is_emoji);
+    if (num_parts == 1 && !part_is_emoji[0]) {
+        return nvgTextGlyphPositions(vg, x, y, string, end, positions, maxPositions);
+    }
+
+    int num_positions = 0;
+
+    for (int i = 0; i < num_parts; ++i) {
+
+        float part_bounds[4];
+        if (!part_is_emoji[i]) {
+            num_positions += nvgTextGlyphPositions(vg, x, y, string + part_start[i], string + part_start[i + 1], &positions[num_positions], maxPositions - num_positions);
+            x = positions[num_positions - 1].maxx;
+            continue;
+        }
+
+        {
+            float scale = get_font_scale();
+            float font_size_emoji = font_size_ * 1.2; // Bump them up a little
+            int font_size = (int)(scale * font_size_emoji);
+            float inv_scale = font_size_emoji / font_size;
+            EmojiTexture* em = get_emoji_texture(font_size, string + part_start[i], part_start[i + 1] - part_start[i]);
+            if (!em) {
+                num_positions = nvgTextGlyphPositions(vg, x, y, "😀", NULL, &positions[num_positions], maxPositions - num_positions); // This will render as a question mark box
+                positions[num_positions - 1].str = string + part_start[i];
+                x = positions[num_positions - 1].maxx;
+                continue;
+            }
+
+            positions[num_positions].str = string + part_start[i];
+            positions[num_positions].x = x;
+            positions[num_positions].minx = x - em->left*inv_scale;
+            positions[num_positions].maxx = x - em->left*inv_scale + em->bounding_width*inv_scale;
+            ++num_positions;
+
+            x = positions[num_positions - 1].maxx;
+        }
+    }
+
+    return num_positions;
 }
 
 // Single one-off code points for emoji

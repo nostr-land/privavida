@@ -9,6 +9,7 @@
 #include "../SubView.hpp"
 #include "../Root.hpp"
 #include "../../data_layer/accounts.hpp"
+#include <time.h>
 
 extern "C" {
 #include "../../../lib/nanovg/stb_image.h"
@@ -19,10 +20,9 @@ constexpr auto VERTICAL_MARGIN = 1;
 constexpr auto HORIZONTAL_PADDING = 12;
 constexpr auto VERTICAL_PADDING = 10;
 constexpr auto SPACING = 10;
-constexpr auto BUBBLE_CORNER_RADIUS = 17;
-static const auto COLOR_BUBBLE_SENDER    = ui::color(0x883955);
-static const auto COLOR_BUBBLE_RECIPIENT = ui::color(0x4D434B);
-static const auto COLOR_DECRYPT_FAILED   = ui::color(0xff3e41);
+constexpr auto BUBBLE_CORNER_RADIUS = 16; //17;
+constexpr auto TIME_SPACING_Y = 4.0;
+constexpr auto TIME_SPACING_X = 6.0;
 
 static bool author_is_me(const Event* event) {
     return compare_keys(&event->pubkey, &data_layer::accounts[0].pubkey);
@@ -49,7 +49,7 @@ ChatMessage* ChatMessage::create(const Event* event) {
         message->text_attr.text_color = ui::color(0xffffff);
     } else {
         message->text_content = "Failed to decrypt";
-        message->text_attr.text_color = COLOR_DECRYPT_FAILED;
+        message->text_attr.text_color = COLOR_ERROR;
     }
     message->text_attr.index = 0;
     message->text_attr.font_face = "regular";
@@ -76,13 +76,35 @@ float ChatMessage::measure_height(float width, const Event* event_before, const 
     props.attributes = Array<TextRender::Attribute>(1, &text_attr);
     props.bounding_width = max_content_width;
     props.bounding_height = 1E10;
-    
+
     TextRender::State state(text_lines, text_runs);
     TextRender::layout(&state, &props);
 
     content_width = state.width;
+    float content_height = state.height;
 
-    float bubble_height = state.height + 2 * VERTICAL_PADDING + (space_above ? SPACING : 0) + (space_below ? SPACING : 0);
+    float time_width, time_height;
+    {
+        char time_string[16];
+        auto created_at = (time_t)event->created_at;
+        struct tm *t = localtime(&created_at);
+        strftime(time_string, sizeof(time_string), "%H:%M", t);
+        ui::font_size(10.0);
+        float bounds[4];
+        ui::text_bounds(0, 0, time_string, NULL, bounds);
+        time_width = bounds[2] - bounds[0];
+        time_height = bounds[3] - bounds[1];
+        
+        if (!text_lines.size) {
+            // No-op
+        } else if (text_lines.size == 1 && (content_width + time_width + TIME_SPACING_X) < max_content_width) {
+            content_width += time_width + TIME_SPACING_X;
+        } else if (content_width - text_lines.back().width < time_width) {
+            content_height += time_height + TIME_SPACING_Y;
+        }
+    }
+
+    float bubble_height = content_height + 2 * VERTICAL_PADDING + (space_above ? SPACING : 0) + (space_below ? SPACING : 0);
     return bubble_height + VERTICAL_MARGIN;
 }
 
@@ -98,10 +120,10 @@ void ChatMessage::update() {
 
     BubbleTipType tip_type;
     if (event->content_encryption == EVENT_CONTENT_DECRYPTED && author_is_me(event)) {
-        nvgFillColor(ui::vg, COLOR_BUBBLE_SENDER);
+        nvgFillColor(ui::vg, COLOR_PRIMARY);
         tip_type = BUBBLE_TIP_SENDER;
     } else {
-        nvgFillColor(ui::vg, COLOR_BUBBLE_RECIPIENT);
+        nvgFillColor(ui::vg, COLOR_SECONDARY);
         tip_type = BUBBLE_TIP_RECIPIENT;
     }
 
@@ -141,13 +163,31 @@ void ChatMessage::update() {
     }
 
     {
-        SubView sv(content_x, content_y, content_width, ui::view.height);
+        SubView sv(content_x, content_y, content_width, content_height);
 
         TextRender::State state(text_lines, text_runs);
         state.data = Array<const char>((int)strlen(text_content), text_content);
         state.attributes = Array<TextRender::Attribute>(1, &text_attr);
 
         TextRender::render(&state);
+    }
+
+    {
+        char time_string[16];
+        auto created_at = (time_t)event->created_at;
+        struct tm *t = localtime(&created_at);
+        strftime(time_string, sizeof(time_string), "%H:%M", t);
+        ui::font_size(10.0);
+
+        float bounds[4];
+        ui::text_bounds(0, 0, time_string, NULL, bounds);
+
+        float time_width  = bounds[2] - bounds[0];
+        float time_height = bounds[3] - bounds[1];
+
+        nvgFillColor(ui::vg, ui::color(0xffffff, 0.7));
+        ui::text_align(NVG_ALIGN_RIGHT | NVG_ALIGN_BOTTOM);
+        ui::text(content_x + content_width, content_y + content_height, time_string, NULL);
     }
 
     if (ui::simple_tap(bubble_x, bubble_y, bubble_width, bubble_height)) {
@@ -181,7 +221,7 @@ int get_bubble_tip(BubbleTipType tip_type, float* width, float* height) {
     if (img_id != -1) return img_id;
 
     // Image has not been created, create it now
-    auto color = tip_type == BUBBLE_TIP_SENDER ? COLOR_BUBBLE_SENDER : COLOR_BUBBLE_RECIPIENT;
+    auto color = tip_type == BUBBLE_TIP_SENDER ? COLOR_PRIMARY : COLOR_SECONDARY;
     uint8_t color_r = (uint8_t)(color.r * 255);
     uint8_t color_g = (uint8_t)(color.g * 255);
     uint8_t color_b = (uint8_t)(color.b * 255);

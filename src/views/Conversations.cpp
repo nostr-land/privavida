@@ -34,7 +34,7 @@ void Conversations::update() {
     auto& account = data_layer::accounts[data_layer::account_selected];
     
     // Background
-    nvgFillColor(ui::vg, (NVGcolor){ 0.0, 0.0, 0.0, 1.0 });
+    nvgFillColor(ui::vg, COLOR_BACKGROUND);
     nvgBeginPath(ui::vg);
     nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
     nvgFill(ui::vg);
@@ -63,7 +63,9 @@ void Conversations::update() {
             // Highlight if conversation is open
             if (Root::open_conversation() == conversation_id) {
                 nvgBeginPath(ui::vg);
-                nvgFillColor(ui::vg, ui::color(0x4D434B, 1.0 - Root::pop_transition_progress()));
+                auto color = COLOR_HEADER;
+                color.a = 1.0 - Root::pop_transition_progress();
+                nvgFillColor(ui::vg, color);
                 nvgRect(ui::vg, 0, y, ui::view.width, BLOCK_HEIGHT);
                 nvgFill(ui::vg);
             }
@@ -162,7 +164,7 @@ void Conversations::update() {
         SubView sub(0, 0, ui::view.width, HEADER_HEIGHT);
         nvgBeginPath(ui::vg);
         nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
-        nvgFillColor(ui::vg, ui::color(0x4D434B));
+        nvgFillColor(ui::vg, COLOR_HEADER);
         nvgFill(ui::vg);
 
         nvgBeginPath(ui::vg);

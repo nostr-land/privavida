@@ -110,5 +110,8 @@ extern void (*text)(float x, float y, const char* string, const char* end);
 extern void (*text_box)(float x, float y, float breakRowWidth, const char* string, const char* end);
 extern void (*text_bounds)(float x, float y, const char* string, const char* end, float* bounds);
 extern void (*text_metrics)(float* ascender, float* descender, float* lineh);
+extern int (*text_glyph_positions)(float x, float y, const char* string, const char* end, NVGglyphPosition* positions, int maxPositions);
 
 }
+
+#include "../src/theme.hpp"

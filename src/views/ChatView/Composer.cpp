@@ -20,7 +20,7 @@ const char* Composer::update() {
 
     // Background
     nvgBeginPath(ui::vg);
-    nvgFillColor(ui::vg, ui::color(0x2D232B));
+    nvgFillColor(ui::vg, COLOR_SUBDUED);
     nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
     nvgFill(ui::vg);
     
@@ -40,10 +40,10 @@ const char* Composer::update() {
         styles.border_width = 2;
         styles.font_size = FONT_SIZE;
         styles.text_color = ui::color(0xffffff);
-        styles.border_color = ui::color(0x4D434B);
-        styles.border_color_focused = ui::color(0x883955);
-        styles.bg_color = ui::color(0x000000);
-        styles.bg_color_focused = ui::color(0x000000);
+        styles.border_color = COLOR_SECONDARY;
+        styles.border_color_focused = COLOR_PRIMARY;
+        styles.bg_color = COLOR_BACKGROUND;
+        styles.bg_color_focused = COLOR_BACKGROUND;
 
         TextInput(&text_state).set_styles(&styles).update();
     }
@@ -53,7 +53,7 @@ const char* Composer::update() {
         SubView sv(ui::view.width - MARGIN - button_size, 0, button_size, button_size);
 
         nvgBeginPath(ui::vg);
-        nvgFillColor(ui::vg, TextInput::is_editing(&text_state) ? ui::color(0x883955) : ui::color(0x4D434B));
+        nvgFillColor(ui::vg, TextInput::is_editing(&text_state) ? COLOR_PRIMARY : COLOR_SECONDARY);
         nvgCircle(ui::vg, 0.5 * button_size, 0.5 * button_size, 0.5 * button_size);
         nvgFill(ui::vg);
         if (ui::simple_tap(0, 0, ui::view.width, ui::view.height)) {

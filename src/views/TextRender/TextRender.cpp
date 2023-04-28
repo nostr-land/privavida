@@ -212,13 +212,53 @@ void layout(State* state, const Props* props) {
                 last_attribute_index = token.attribute_index;
             }
 
+            if (max_line_height < line_height) {
+                max_line_height = line_height;
+            }
+            if (max_ascender < ascender) {
+                max_ascender = ascender;
+            }
+            if (max_height < line_height) {
+                max_height = line_height;
+            }
+
             // Measure text
             float bounds[4];
             ui::text_bounds(0, 0, &data[token.data_start], &data[token.data_end], bounds);
 
             auto width = bounds[2] - bounds[0];
 
-            if (x + width > bounding_width && x > 0) {
+            if (x + width > bounding_width && x == 0) {
+                // We've got a TOKEN here that is larger than our allowed
+                // size, gotta cut it up more!
+
+                int max_positions = (int)(token.data_end - token.data_start);
+                NVGglyphPosition positions[max_positions];
+                int num_positions = ui::text_glyph_positions(0, 0, &data[token.data_start], &data[token.data_end], positions, max_positions);
+
+                // Find the longest set of glyphs we can place on this line
+                int count = num_positions;
+                for (; count > 0; --count) {
+                    if (positions[count - 1].minx < bounding_width) {
+                        break;
+                    }
+                }
+
+                // Turn this into a run
+                auto& run = runs.push_back();
+                run.attribute_index = token.attribute_index;
+                run.data_start = token.data_start;
+                run.data_end = (int)(positions[count].str - data.data);
+                run.x = 0;
+                run.width = positions[count].minx;
+                x = run.width;
+
+                // Mutate our token to contain what is left over
+                token.data_start = run.data_end;
+                token.space_before = 0;
+                break;
+
+            } else if (x + width > bounding_width) {
                 break;
             }
 
@@ -230,15 +270,6 @@ void layout(State* state, const Props* props) {
             run.x = x;
             run.width = width;
 
-            if (max_line_height < line_height) {
-                max_line_height = line_height;
-            }
-            if (max_ascender < ascender) {
-                max_ascender = ascender;
-            }
-            if (max_height < line_height) {
-                max_height = line_height;
-            }
             x += width + token.space_after;
         }
 

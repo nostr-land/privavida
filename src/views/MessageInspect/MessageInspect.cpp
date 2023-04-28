@@ -13,7 +13,7 @@
 
 void MessageInspect::update(const Event* event) {
     // Background
-    nvgFillColor(ui::vg, (NVGcolor){ 0.0, 0.0, 0.0, 1.0 });
+    nvgFillColor(ui::vg, COLOR_BACKGROUND);
     nvgBeginPath(ui::vg);
     nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
     nvgFill(ui::vg);
@@ -24,7 +24,7 @@ void MessageInspect::update(const Event* event) {
         SubView sub(0, 0, ui::view.width, HEADER_HEIGHT);
         nvgBeginPath(ui::vg);
         nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
-        nvgFillColor(ui::vg, ui::color(0x4D434B));
+        nvgFillColor(ui::vg, COLOR_HEADER);
         nvgFill(ui::vg);
 
         nvgBeginPath(ui::vg);
