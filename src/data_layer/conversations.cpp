@@ -102,19 +102,19 @@ static void send_direct_message_2(int conversation_id, const char* ciphertext) {
     auto& account = data_layer::accounts[data_layer::account_selected];
     auto& conv = conversations[conversation_id];
 
-    EventTemplate temp = { 0 };
-    temp.pubkey = account.pubkey;
-    temp.kind = 4;
-    temp.content = ciphertext;
+    EventDraft draft = { 0 };
+    draft.pubkey = account.pubkey;
+    draft.kind = 4;
+    draft.content = ciphertext;
 
     PTag p_tags[1];
     p_tags[0].pubkey = conv.counterparty;
-    temp.p_tags.data = p_tags;
-    temp.p_tags.size = 1;
+    draft.p_tags.data = p_tags;
+    draft.p_tags.size = 1;
 
-    uint8_t event_buffer[event_compose_size(&temp)];
+    uint8_t event_buffer[event_compose_size(&draft)];
     auto event = (Event*)event_buffer;
-    event_compose(event, &temp);
+    event_compose(event, &draft);
 
     account_sign_event(&account, event, [](bool error, const char* error_reason, const Event* signed_event) {
 

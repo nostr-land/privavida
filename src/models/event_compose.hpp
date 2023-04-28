@@ -8,7 +8,7 @@
 #pragma once
 #include "event.hpp"
 
-struct EventTemplate {
+struct EventDraft {
     Pubkey      pubkey;
     uint32_t    kind;
     const char* content;
@@ -17,6 +17,6 @@ struct EventTemplate {
     Array<ETag> e_tags;
 };
 
-uint32_t event_compose_size(const EventTemplate* temp);
+uint32_t event_compose_size(const EventDraft* draft);
 
-void event_compose(Event* event, const EventTemplate* temp);
+void event_compose(Event* event, const EventDraft* draft);

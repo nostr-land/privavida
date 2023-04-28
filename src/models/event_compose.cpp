@@ -19,22 +19,22 @@ const char* ETAG_REPLY   = "reply";
 const char* ETAG_ROOT    = "root";
 const char* ETAG_MENTION = "mention";
 
-static uint32_t get_sizes(const EventTemplate* temp, uint32_t* num_tags, uint32_t* num_tag_values, uint32_t* text_content_len) {
+static uint32_t get_sizes(const EventDraft* draft, uint32_t* num_tags, uint32_t* num_tag_values, uint32_t* text_content_len) {
 
-    *num_tags = temp->tags_other.size + temp->p_tags.size + temp->e_tags.size;
+    *num_tags = draft->tags_other.size + draft->p_tags.size + draft->e_tags.size;
     *num_tag_values = 0;
 
     *text_content_len = 0;
-    *text_content_len += strlen(temp->content) + 1;
-    *text_content_len += (sizeof(TAG_E) + 1 + 2 * sizeof(EventId) + 1) * temp->e_tags.size;
-    *text_content_len += (sizeof(TAG_P) + 1 + 2 * sizeof(Pubkey)  + 1) * temp->p_tags.size;
-    for (auto& tag : temp->tags_other) {
+    *text_content_len += strlen(draft->content) + 1;
+    *text_content_len += (sizeof(TAG_E) + 1 + 2 * sizeof(EventId) + 1) * draft->e_tags.size;
+    *text_content_len += (sizeof(TAG_P) + 1 + 2 * sizeof(Pubkey)  + 1) * draft->p_tags.size;
+    for (auto& tag : draft->tags_other) {
         for (auto& tag_value : tag) {
             (*num_tag_values)++;
             *text_content_len += strlen(tag_value) + 1;
         }
     }
-    for (auto& e_tag : temp->e_tags) {
+    for (auto& e_tag : draft->e_tags) {
         if (e_tag.marker == ETag::REPLY) {
             *num_tag_values += 3;
             *text_content_len += strlen(ETAG_REPLY) + 1;
@@ -48,15 +48,15 @@ static uint32_t get_sizes(const EventTemplate* temp, uint32_t* num_tags, uint32_
             *num_tag_values += 2;
         }
     }
-    *num_tag_values += 2 * temp->p_tags.size;
+    *num_tag_values += 2 * draft->p_tags.size;
 
     return align_8(
         sizeof(Event) +
         align_8(*text_content_len) +
         *num_tags * sizeof(RelArray<RelArray<RelString>>) +
         *num_tag_values * sizeof(RelArray<RelString>) +
-        temp->e_tags.size * sizeof(ETag) +
-        temp->p_tags.size * sizeof(PTag)
+        draft->e_tags.size * sizeof(ETag) +
+        draft->p_tags.size * sizeof(PTag)
     );
 }
 
@@ -73,15 +73,15 @@ static RelString write_rel_string(void* base, int* text_offset, const char* str,
     return rel_string;
 }
 
-uint32_t event_compose_size(const EventTemplate* temp) {
+uint32_t event_compose_size(const EventDraft* draft) {
     uint32_t num_tags, num_tag_values, text_content_len;
-    return get_sizes(temp, &num_tags, &num_tag_values, &text_content_len);
+    return get_sizes(draft, &num_tags, &num_tag_values, &text_content_len);
 }
 
-void event_compose(Event* event, const EventTemplate* temp) {
+void event_compose(Event* event, const EventDraft* draft) {
 
     uint32_t num_tags, num_tag_values, text_content_len;
-    uint32_t event_size = get_sizes(temp, &num_tags, &num_tag_values, &text_content_len);
+    uint32_t event_size = get_sizes(draft, &num_tags, &num_tag_values, &text_content_len);
 
     memset(event, 0, sizeof(Event));
 
@@ -89,8 +89,8 @@ void event_compose(Event* event, const EventTemplate* temp) {
     int total_size = event_size;
     
     int tags_size   = sizeof(RelArray<RelString>) * num_tags;
-    int e_tags_size = sizeof(ETag) * temp->e_tags.size;
-    int p_tags_size = sizeof(PTag) * temp->p_tags.size;
+    int e_tags_size = sizeof(ETag) * draft->e_tags.size;
+    int p_tags_size = sizeof(PTag) * draft->p_tags.size;
     int vals_size   = sizeof(RelString) * num_tag_values;
 
     int data_offset   = fixed_size;
@@ -103,9 +103,9 @@ void event_compose(Event* event, const EventTemplate* temp) {
     event->__header__ = (Event::VERSION << 24) | (uint32_t)total_size;
 
     // Copy over the pubkey, kind & content
-    event->pubkey = temp->pubkey;
-    event->kind = temp->kind;
-    event->content = write_rel_string(event, &text_offset, temp->content, strlen(temp->content));
+    event->pubkey = draft->pubkey;
+    event->kind = draft->kind;
+    event->content = write_rel_string(event, &text_offset, draft->content, strlen(draft->content));
 
     // Copy over all tags
     RelString const_e = write_rel_string(event, &text_offset, TAG_E, strlen(TAG_E));
@@ -120,26 +120,26 @@ void event_compose(Event* event, const EventTemplate* temp) {
     tag_values_rel.data.offset = vals_offset;
     Array<RelString> tag_values = tag_values_rel.get(event);
 
-    event->p_tags.size = temp->p_tags.size;
-    event->e_tags.size = temp->e_tags.size;
+    event->p_tags.size = draft->p_tags.size;
+    event->e_tags.size = draft->e_tags.size;
     event->p_tags.data.offset = p_tags_offset;
     event->e_tags.data.offset = e_tags_offset;
 
     int tag_index = 0;
     int tag_value_index = 0;
 
-    for (auto& tag_temp : temp->tags_other) {
+    for (auto& tag_draft : draft->tags_other) {
         RelArray<RelString>& tag = tags[tag_index++];
         tag = tag_values_rel;
-        tag.size = tag_temp.size;
+        tag.size = tag_draft.size;
         tag.data += tag_value_index;
 
-        for (auto& tag_value_temp : tag_temp) {
-            tag_values[tag_value_index++] = write_rel_string(event, &text_offset, tag_value_temp, strlen(tag_value_temp));
+        for (auto& tag_value_draft : tag_draft) {
+            tag_values[tag_value_index++] = write_rel_string(event, &text_offset, tag_value_draft, strlen(tag_value_draft));
         }
     }
-    for (int i = 0; i < temp->p_tags.size; ++i) {
-        PTag p_tag = temp->p_tags[i];
+    for (int i = 0; i < draft->p_tags.size; ++i) {
+        PTag p_tag = draft->p_tags[i];
         p_tag.index = tag_index;
         event->p_tags.get(event, i) = p_tag;
 
@@ -154,8 +154,8 @@ void event_compose(Event* event, const EventTemplate* temp) {
         tag_values[tag_value_index++] = const_p;
         tag_values[tag_value_index++] = write_rel_string(event, &text_offset, hex_string, sizeof(hex_string));
     }
-    for (int i = 0; i < temp->e_tags.size; ++i) {
-        ETag e_tag = temp->e_tags[i];
+    for (int i = 0; i < draft->e_tags.size; ++i) {
+        ETag e_tag = draft->e_tags[i];
         e_tag.index = tag_index;
         event->e_tags.get(event, i) = e_tag;
 
