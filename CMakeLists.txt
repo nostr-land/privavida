@@ -13,7 +13,6 @@ set(SECP256K1_BUILD_EXHAUSTIVE_TESTS OFF CACHE BOOL "Build exhaustive tests.")
 
 add_subdirectory(src)
 add_subdirectory(lib/nanovg)
-add_subdirectory(lib/sha256)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fobjc-abi-version=2 -fobjc-arc -std=gnu++17 -stdlib=libc++ -isysroot ${CMAKE_OSX_SYSROOT}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fobjc-abi-version=2 -fobjc-arc -isysroot ${CMAKE_OSX_SYSROOT}")

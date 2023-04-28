@@ -8,7 +8,7 @@
 #include "keys.hpp"
 
 extern "C" {
-#include <sha256/sha256.h>
+#include "c/sha256.h"
 #include <secp256k1_schnorrsig.h>
 }
 

@@ -13,11 +13,11 @@
 #include <random>
 
 extern "C" {
-#include <sha256/sha256.h>
 #include <secp256k1_schnorrsig.h>
 #include <secp256k1_ecdh.h>
 #include "c/aes.h"
 #include "c/base64.h"
+#include "c/sha256.h"
 }
 
 static bool decode_content(const char* ciphertext, uint32_t len, uint8_t* payload, uint32_t* payload_len, uint8_t* iv);

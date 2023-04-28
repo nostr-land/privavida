@@ -1,7 +1,6 @@
 emcc \
     emscripten/index.cpp \
     lib/nanovg/nanovg.c \
-    lib/sha256/sha256.c \
     src/app.cpp \
     src/utils/animation.cpp \
     src/utils/timer.cpp \
@@ -31,6 +30,7 @@ emcc \
     src/models/c/secp256k1.c \
     src/models/c/base64.c \
     src/models/c/bech32.c \
+    src/models/c/sha256.c \
     src/network/network.cpp \
     src/network/handle_event.cpp \
     src/data_layer/accounts.cpp \

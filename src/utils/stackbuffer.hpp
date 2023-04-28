@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <assert.h>
+#include "../models/relative.hpp"
 
 // StackBuffer is a simple elastic buffer that starts out managing a certain amount of
 // pre-allocated memory that exists on the stack.
@@ -48,6 +50,129 @@ struct StackBuffer {
             data = realloc(data, size_new);
             size = size_new;
         }
+    }
+};
+
+struct StackAllocator {
+    struct StackNode {
+        uint32_t size;
+        RelPointer<StackNode> next;
+        uint8_t ptr[];
+    };
+    struct HeapNode {
+        HeapNode* next;
+        uint8_t ptr[];
+    };
+
+    uint8_t* stack;
+    uint32_t stack_size;
+    RelPointer<StackNode> stack_head;
+    RelPointer<StackNode> stack_tail;
+
+    HeapNode* heap_head;
+    HeapNode* heap_tail;
+
+    StackAllocator(void* data, uint32_t size) {
+        assert(data && size >= 2 * sizeof(StackNode));
+        stack = (uint8_t*)data;
+        stack_size = size;
+        stack_head = RelPointer<StackNode>(0);
+        stack_tail = RelPointer<StackNode>(0);
+        heap_head = NULL;
+        heap_tail = NULL;
+        stack_head.get(stack)->size = 0;
+    }
+    StackAllocator(StackAllocator&&) = delete;
+    StackAllocator(const StackAllocator&) = delete;
+    ~StackAllocator() {
+        if (heap_head) {
+            auto node = heap_head;
+            while (node) {
+                auto next = node->next;
+                free(node);
+                node = next;
+            }
+        }
+    }
+
+    void* alloc(size_t size_wanted) {
+        if (!size_wanted) return NULL;
+        size_wanted = align_8(size_wanted);
+
+        // Can we allocate on the stack?
+        bool empty = (stack_tail.offset == 0 && stack_tail.get(stack)->size == 0);
+        uint32_t bytes_available = (
+            empty ? stack_size :
+            (stack_size - stack_tail.offset + stack_tail.get(stack)->size)
+        );
+        if (bytes_available >= sizeof(StackNode) + size_wanted) {
+            if (empty) {
+                auto head = stack_head.get(stack);
+                head->size = sizeof(StackNode) + (int)size_wanted;
+                return (void*)head->ptr;
+            } else {
+                auto tail = stack_tail.get(stack);
+                tail->next.offset = stack_tail.offset + tail->size;
+
+                auto next = tail->next.get(stack);
+                stack_tail = tail->next;
+                return (void*)next->ptr;
+            }
+        }
+
+        // No space on the stack! Allocate in heap
+        auto node = (HeapNode*)malloc(sizeof(HeapNode) + size_wanted);
+        node->next = NULL;
+        if (heap_tail) {
+            heap_tail->next = node;
+            heap_tail = node;
+        } else {
+            heap_head = node;
+            heap_tail = node;
+        }
+        return node->ptr;
+    }
+    void* realloc(void* ptr, size_t size_wanted) {
+        assert(0);
+        // printf("Calling StackAllocator.realloc() (not implemented yet!)");
+        // if (!size_wanted) return NULL;
+        // if (!ptr) alloc(size_wanted);
+        // size_wanted = align_8(size_wanted);
+
+        // // Are we realloc-ing the head?
+        // if (heap_head && heap_head->ptr == ptr) {
+        //     auto next = heap_head->next;
+        //     heap_head = (HeapNode*)realloc(heap_head, sizeof(HeapNode) + size_wanted);
+        //     heap_head->next = next;
+        //     return heap_head->ptr;
+        // }
+
+        // // Find the non-head node and realloc
+        // auto node = heap_head;
+        // while (node && node->next) {
+        //     if (node->next->ptr == ptr) {
+        //         auto next_next = node->next->next;
+        //         node->next = (HeapNode*)realloc(node->next, sizeof(HeapNode) + size_wanted);
+        //         node->next->next = next_next;
+        //         return node->next->ptr;
+        //     }
+        // }
+
+        // // Didn't find the pointer? Look for it on the stack
+        // bool empty = (stack_tail.offset == 0 && stack_tail.get(stack).size == 0);
+        // assert(!empty);
+
+        // auto node2 = stack_head;
+        // while () {
+
+        // }
+
+        // void* new_ptr = alloc(size_wanted);
+    }
+
+private:
+    static size_t align_8(size_t N) {
+        return N + (8 - N % 8) % 8;
     }
 };
 
