@@ -23,19 +23,19 @@ enum TLV_Type : uint8_t {
 };
 
 int32_t NostrEntity::decoded_size(const char* input, uint32_t input_len) {
-
+    
     NostrEntity::Type type;
-    if (strncmp(input, "note", input_len) == 0) {
+    if (strncmp(input, "note", strlen("note")) == 0) {
         type = NOTE;
-    } else if (strncmp(input, "npub", input_len) == 0) {
+    } else if (strncmp(input, "npub", strlen("npub")) == 0) {
         type = NPUB;
-    } else if (strncmp(input, "nprofile", input_len) == 0) {
+    } else if (strncmp(input, "nprofile", strlen("nprofile")) == 0) {
         type = NPROFILE;
-    } else if (strncmp(input, "nevent", input_len) == 0) {
+    } else if (strncmp(input, "nevent", strlen("nevent")) == 0) {
         type = NEVENT;
-    } else if (strncmp(input, "nrelay", input_len) == 0) {
+    } else if (strncmp(input, "nrelay", strlen("nrelay")) == 0) {
         type = NRELAY;
-    } else if (strncmp(input, "naddr", input_len) == 0) {
+    } else if (strncmp(input, "naddr", strlen("naddr")) == 0) {
         type = NADDR;
     } else {
         return -1;

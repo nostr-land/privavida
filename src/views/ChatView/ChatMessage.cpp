@@ -40,21 +40,101 @@ enum BubbleTipType {
 
 static int get_bubble_tip(BubbleTipType tip_type, float* width, float* height);
 
+static int max(int a, int b) {
+    return (a < b) ? b : a;
+}
+
 ChatMessage* ChatMessage::create(const Event* event) {
     auto message = new ChatMessage;
-
     message->event = event;
-    if (event->content_encryption == EVENT_CONTENT_DECRYPTED) {
-        message->text_content = event->content.data.get(event);
-        message->text_attr.text_color = ui::color(0xffffff);
+
+    char text_content[max(100, event->content.size + 1)];
+
+    TextRender::Attribute default_attr;
+    default_attr.index = 0;
+    default_attr.text_color = ui::color(0xffffff);
+    default_attr.font_face = "regular";
+    default_attr.font_size = 17.0;
+    default_attr.line_spacing = 3.0;
+
+    // Create our text_content
+    if (event->content_encryption != EVENT_CONTENT_DECRYPTED) {
+        strcpy(text_content, "Failed to decrypt");
+
+        default_attr.text_color = COLOR_ERROR;
+        message->text_attrs.push_back(default_attr);
+
     } else {
-        message->text_content = "Failed to decrypt";
-        message->text_attr.text_color = COLOR_ERROR;
+
+        int offset = 0;
+        for (auto& token : event->content_tokens.get(event)) {
+            auto& attr = message->text_attrs.push_back();
+            attr = default_attr;
+            attr.index = offset;
+
+            if (token.type == EventContentToken::ENTITY) {
+                auto entity = token.entity.get(event);
+
+                char data[200];
+                uint32_t len;
+                NostrEntity::encode(entity, data, &len);
+                data[12] = '\0';
+
+                sprintf(&text_content[offset], "@%s:%s", &data[0], &data[len - 8]);
+                offset += (int)strlen(&text_content[offset]);
+
+                attr.text_color = ui::color(0xffffff, 0.8);
+                continue;
+            }
+            
+            if (token.type == EventContentToken::NIP08_MENTION) {
+                NostrEntity entity;
+                bool found = false;
+                for (auto& p_tag : event->p_tags.get(event)) {
+                    if (p_tag.index == token.nip08_mention_index) {
+                        entity.type = NostrEntity::NPUB;
+                        entity.pubkey = p_tag.pubkey;
+                        found = true;
+                        break;
+                    }
+                }
+                for (auto& e_tag : event->e_tags.get(event)) {
+                    if (e_tag.index == token.nip08_mention_index) {
+                        entity.type = NostrEntity::NOTE;
+                        entity.event_id = e_tag.event_id;
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (found) {
+                    char data[200];
+                    uint32_t len;
+                    NostrEntity::encode(&entity, data, &len);
+                    data[12] = '\0';
+
+                    sprintf(&text_content[offset], "@%s:%s", &data[0], &data[len - 8]);
+                    offset += (int)strlen(&text_content[offset]);
+
+                    attr.text_color = ui::color(0xffffff, 0.8);
+                    continue;
+                }
+            }
+
+            strncpy(&text_content[offset], token.text.data.get(event), token.text.size);
+            offset += token.text.size;
+                
+            if (token.type == EventContentToken::URL) {
+                attr.text_color = ui::color(0xffffff, 0.8);
+            }
+        }
+        text_content[offset] = '\0';
     }
-    message->text_attr.index = 0;
-    message->text_attr.font_face = "regular";
-    message->text_attr.font_size = 17.0;
-    message->text_attr.line_spacing = 3.0;
+
+    // Copy our text content into the message
+    message->text_content.reserve(strlen(text_content) + 1);
+    message->text_content.size = strlen(text_content);
+    strcpy(message->text_content.begin(), text_content);
 
     return message;
 }
@@ -72,8 +152,8 @@ float ChatMessage::measure_height(float width, const Event* event_before, const 
     float max_content_width = max_bubble_width - 2 * HORIZONTAL_PADDING;
 
     TextRender::Props props;
-    props.data = Array<const char>((int)strlen(text_content), text_content);
-    props.attributes = Array<TextRender::Attribute>(1, &text_attr);
+    props.data = Array<const char>((uint32_t)text_content.size, &text_content[0]);
+    props.attributes = Array<TextRender::Attribute>((uint32_t)text_attrs.size, &text_attrs[0]);
     props.bounding_width = max_content_width;
     props.bounding_height = 1E10;
 
@@ -166,8 +246,8 @@ void ChatMessage::update() {
         SubView sv(content_x, content_y, content_width, content_height);
 
         TextRender::State state(text_lines, text_runs);
-        state.data = Array<const char>((int)strlen(text_content), text_content);
-        state.attributes = Array<TextRender::Attribute>(1, &text_attr);
+        state.data = Array<const char>((uint32_t)text_content.size, &text_content[0]);
+        state.attributes = Array<TextRender::Attribute>((uint32_t)text_attrs.size, &text_attrs[0]);
 
         TextRender::render(&state);
     }

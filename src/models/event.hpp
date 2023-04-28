@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include "relative.hpp"
 #include "keys.hpp"
+#include "nostr_entity.hpp"
 
 enum EventValidState {
     EVENT_NOT_CHECKED = 0,
@@ -42,6 +43,21 @@ struct PTag {
     Pubkey  pubkey;
 };
 
+struct EventContentToken {
+    enum Type {
+        TEXT,
+        URL,
+        HASHTAG,
+        ENTITY,
+        NIP08_MENTION
+    };
+
+    Type type;
+    RelString text;
+    uint32_t nip08_mention_index;
+    RelPointer<NostrEntity> entity;
+};
+
 //
 /// Event
 //
@@ -72,7 +88,7 @@ struct Event {
     // Derived data
     EventValidState validity;
     EventContentEncryptionState content_encryption;
-    RelString content_decrypted;
+    RelArray<EventContentToken> content_tokens;
     RelArray<ETag> e_tags;
     RelArray<PTag> p_tags;
 
@@ -83,6 +99,9 @@ struct Event {
     }
     static uint8_t version_number(const Event* event) {
         return (0xFF000000 & event->__header__) >> 24;
+    }
+    static void set_size(Event* event, uint32_t size) {
+        event->__header__ = (VERSION << 24) | size;
     }
 };
 

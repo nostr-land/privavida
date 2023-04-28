@@ -13,6 +13,7 @@
 #include "../../data_layer/conversations.hpp"
 #include "../../data_layer/accounts.hpp"
 #include "../../data_layer/profiles.hpp"
+#include "../../data_layer/images.hpp"
 #include "../../models/nostr_entity.hpp"
 
 #include <stdlib.h>
@@ -20,6 +21,9 @@
 #include <string.h>
 
 void ChatView::update() {
+
+    auto& conv = data_layer::conversations[conversation_id];
+    auto profile = data_layer::get_or_request_profile(&conv.counterparty);
 
     // Background
     nvgFillColor(ui::vg, COLOR_BACKGROUND);
@@ -46,9 +50,32 @@ void ChatView::update() {
             Root::pop_view();
             ui::redraw();
         }
-    }
 
-    auto& conv = data_layer::conversations[conversation_id];
+        // Profile picture
+        constexpr float STATUS_BAR = 14.0;
+        constexpr float PROFILE_PADDING = 8.0;
+        {
+            SubView sub(0, STATUS_BAR + PROFILE_PADDING, ui::view.width, ui::view.height - 2.0 * PROFILE_PADDING - STATUS_BAR);
+            SubView sv(0.5 * (ui::view.width - ui::view.height), 0, ui::view.height, ui::view.height);
+
+            const char* image_url = NULL;
+            if (profile && profile->picture.size) {
+                image_url = profile->picture.data.get(profile);
+            }
+
+            int image_id;
+            if (image_url && (image_id = data_layer::get_image(image_url))) {
+                auto paint = nvgImagePattern(ui::vg, 0, 0, ui::view.height, ui::view.height, 0, image_id, 1);
+                nvgFillPaint(ui::vg, paint);
+            } else {
+                nvgFillColor(ui::vg, (NVGcolor){ 0.5, 0.5, 0.5, 1.0 });
+            }
+
+            nvgBeginPath(ui::vg);
+            nvgCircle(ui::vg, 0.5 * ui::view.height, 0.5 * ui::view.height, 0.5 * ui::view.height);
+            nvgFill(ui::vg);
+        }
+    }
 
     // Update messages
     if (conv.messages.size() != messages.size()) {

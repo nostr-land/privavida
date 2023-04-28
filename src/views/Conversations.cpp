@@ -104,7 +104,7 @@ void Conversations::update() {
             nvgFillColor(ui::vg, (NVGcolor){ 1.0, 1.0, 1.0, 1.0 });
             ui::font_size(16.0);
             ui::font_face("bold");
-            
+
             char name[100];
             if (!profile || !profile->display_name.size) {
                 char npub[100];
@@ -119,33 +119,51 @@ void Conversations::update() {
             ui::text(BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (1.0 / 6.0), name, NULL);
 
             auto event = conv.messages.back();
+            auto sent_by_me = compare_keys(&event->pubkey, &account.pubkey);
 
-            const char* text;
-            if (event->kind != 4) {
-                text = event->content.data.get(event);
-            } else if (event->content_encryption == EVENT_CONTENT_DECRYPTED) {
-                text = event->content.data.get(event);
+            char text[200];
+            bool err = false;
+            if (event->content_encryption == EVENT_CONTENT_DECRYPTED) {
+                if (!sent_by_me) {
+                    strncpy(text, event->content.data.get(event), sizeof(text) - 1);
+                } else {
+                    snprintf(text, sizeof(text) - 1, "You: %s", event->content.data.get(event));
+                }
             } else if (event->content_encryption == EVENT_CONTENT_DECRYPT_FAILED) {
-                text = "Failed to decrypt";
+                err = true;
+                strcpy(text, "Failed to decrypt");
             } else {
-                text = "Failed to decrypt";
+                err = true;
+                strcpy(text, "Unknown data");
             }
 
             {
                 SubView sv(BLOCK_HEIGHT, y + 36, ui::view.width - BLOCK_HEIGHT - CONTENT_PADDING, BLOCK_HEIGHT - 36);
 
-                TextRender::Attribute attr;
-                attr.index = 0;
-                attr.font_face = "regular";
-                attr.font_size = 15.0;
-                attr.text_color = ui::color(0xcccccc);
-                attr.line_spacing = 5.0;
-                
                 TextRender::Props props;
                 props.data = Array<const char>((int)strlen(text), text);
-                props.attributes = Array<TextRender::Attribute>(1, &attr);
                 props.bounding_width = ui::view.width;
                 props.bounding_height = ui::view.height;
+
+                TextRender::Attribute attr[2];
+                attr[0].index = 0;
+                attr[0].font_face = "regular";
+                attr[0].font_size = 15.0;
+                attr[0].text_color = ui::color(0xcccccc);
+                attr[0].line_spacing = 5.0;
+
+                attr[1] = attr[0];
+                attr[1].index = 5;
+
+                if (sent_by_me) {
+                    attr[0].text_color = ui::color(0xdddddd, 0.8);
+                    props.attributes = Array<TextRender::Attribute>(2, attr);
+                } else if (err) {
+                    attr[0].text_color = COLOR_ERROR;
+                    props.attributes = Array<TextRender::Attribute>(1, attr);
+                } else {
+                    props.attributes = Array<TextRender::Attribute>(1, attr);
+                }
 
                 TextRender::StateFixed state;
                 TextRender::layout(&state, &props);

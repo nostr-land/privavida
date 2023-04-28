@@ -12,8 +12,8 @@
 
 struct ChatMessage {
     const Event* event;
-    TextRender::Attribute text_attr;
-    const char* text_content;
+    StackArrayFixed<char, 100> text_content;
+    StackArrayFixed<TextRender::Attribute, 4> text_attrs;
     StackArrayFixed<TextRender::Line, 16> text_lines;
     StackArrayFixed<TextRender::Run, 32>  text_runs;
     float content_width;

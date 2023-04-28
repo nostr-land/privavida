@@ -9,7 +9,7 @@
 
 #include <inttypes.h>
 #include "relative.hpp"
-#include "event.hpp"
+#include "keys.hpp"
 
 struct NostrEntity {
     enum Type {

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "../models/relative.hpp"
+#include <string.h>
 
 // StackBuffer is a simple elastic buffer that starts out managing a certain amount of
 // pre-allocated memory that exists on the stack.
@@ -220,13 +221,7 @@ struct StackArray {
     void reserve(size_t size) {
         buffer.reserve(size * sizeof(T));
     }
-    void push_back(T& item) {
-        if (size * sizeof(T) >= buffer.size) {
-            reserve(size + 1);
-        }
-        ((T*)buffer.data)[size++] = std::move(item);
-    }
-    void push_back(const T& item) {
+    void push_back(T item) {
         if (size * sizeof(T) >= buffer.size) {
             reserve(size + 1);
         }

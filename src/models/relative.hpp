@@ -61,6 +61,10 @@ struct Array {
     T* end() { return &data[size]; }
     const T* begin() const { return &data[0]; }
     const T* end() const { return &data[size]; }
+    T& front() { return data[0]; }
+    T& back() { return data[size - 1]; }
+    const T& front() const { return data[0]; }
+    const T& back() const { return data[size - 1]; }
 };
 
 template <typename T>
