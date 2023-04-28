@@ -40,21 +40,21 @@ enum BubbleTipType {
 
 static int get_bubble_tip(BubbleTipType tip_type, float* width, float* height);
 
-ChatMessage ChatMessage::create(const Event* event) {
-    ChatMessage message;
+ChatMessage* ChatMessage::create(const Event* event) {
+    auto message = new ChatMessage;
 
-    message.event = event;
-    
-    // Prepare TokenizedContent
-    auto tc = &message.tokenized_content;
-
+    message->event = event;
     if (event->content_encryption == EVENT_CONTENT_DECRYPTED) {
-        TokenizedContent::set_font_settings(tc, (NVGcolor){ 1.0, 1.0, 1.0, 1.0 }, 17.0, "regular");
-        TokenizedContent::tokenize_and_append_text(tc, event->content.data.get(event));
+        message->text_content = event->content.data.get(event);
+        message->text_attr.text_color = ui::color(0xffffff);
     } else {
-        TokenizedContent::set_font_settings(tc, COLOR_DECRYPT_FAILED, 17.0, "regular");
-        TokenizedContent::tokenize_and_append_text(tc, "Failed to decrypt");
+        message->text_content = "Failed to decrypt";
+        message->text_attr.text_color = COLOR_DECRYPT_FAILED;
     }
+    message->text_attr.index = 0;
+    message->text_attr.font_face = "regular";
+    message->text_attr.font_size = 17.0;
+    message->text_attr.line_spacing = 3.0;
 
     return message;
 }
@@ -71,10 +71,18 @@ float ChatMessage::measure_height(float width, const Event* event_before, const 
     float max_bubble_width = width - 2 * HORIZONTAL_MARGIN - 0.2 * ui::view.width;
     float max_content_width = max_bubble_width - 2 * HORIZONTAL_PADDING;
 
-    float content_height;
-    TokenizedContent::measure_content(&tokenized_content, max_content_width, &content_width, &content_height);
+    TextRender::Props props;
+    props.data = Array<const char>((int)strlen(text_content), text_content);
+    props.attributes = Array<TextRender::Attribute>(1, &text_attr);
+    props.bounding_width = max_content_width;
+    props.bounding_height = 1E10;
+    
+    TextRender::State state(text_lines, text_runs);
+    TextRender::layout(&state, &props);
 
-    float bubble_height = content_height + 2 * VERTICAL_PADDING + (space_above ? SPACING : 0) + (space_below ? SPACING : 0);
+    content_width = state.width;
+
+    float bubble_height = state.height + 2 * VERTICAL_PADDING + (space_above ? SPACING : 0) + (space_below ? SPACING : 0);
     return bubble_height + VERTICAL_MARGIN;
 }
 
@@ -133,8 +141,13 @@ void ChatMessage::update() {
     }
 
     {
-        SubView sv(content_x, content_y, content_width, content_height);
-        TokenizedContent::update(&tokenized_content);
+        SubView sv(content_x, content_y, content_width, ui::view.height);
+
+        TextRender::State state(text_lines, text_runs);
+        state.data = Array<const char>((int)strlen(text_content), text_content);
+        state.attributes = Array<TextRender::Attribute>(1, &text_attr);
+
+        TextRender::render(&state);
     }
 
     if (ui::simple_tap(bubble_x, bubble_y, bubble_width, bubble_height)) {

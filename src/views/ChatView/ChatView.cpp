@@ -68,10 +68,10 @@ void ChatView::update() {
             [&](int i) {
                 auto event_before = i - 1 >= 0 ? conv.messages[i - 1] : NULL;
                 auto event_after  = i + 1 < conv.messages.size() ? conv.messages[i + 1] : NULL;
-                return messages[i].measure_height(ui::view.width, event_before, event_after);
+                return messages[i]->measure_height(ui::view.width, event_before, event_after);
             },
             [&](int i) {
-                messages[i].update();
+                messages[i]->update();
             },
             []() {}
         );

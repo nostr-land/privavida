@@ -14,7 +14,7 @@ emcc \
     src/views/ChatView/Composer.cpp \
     src/views/MessageInspect/MessageInspect.cpp \
     src/views/TextInput/TextInput.cpp \
-    src/views/TokenizedContent/TokenizedContent.cpp \
+    src/views/TextRender/TextRender.cpp \
     src/views/ScrollView.cpp \
     src/models/keys.cpp \
     src/models/event.cpp \

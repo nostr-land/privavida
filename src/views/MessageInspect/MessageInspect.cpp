@@ -42,8 +42,8 @@ void MessageInspect::update(const Event* event) {
     // Message
     {
         auto cm = ChatMessage::create(event);
-        auto height = cm.measure_height(ui::view.width, NULL, NULL);
+        auto height = cm->measure_height(ui::view.width, NULL, NULL);
         SubView sub(0, HEADER_HEIGHT, ui::view.width, height);
-        cm.update();
+        cm->update();
     }
 }

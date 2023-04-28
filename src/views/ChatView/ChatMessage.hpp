@@ -8,15 +8,18 @@
 #pragma once
 
 #include "../../models/event.hpp"
-#include "../TokenizedContent/TokenizedContent.hpp"
+#include "../TextRender/TextRender.hpp"
 
 struct ChatMessage {
     const Event* event;
-    TokenizedContent::State tokenized_content;
+    TextRender::Attribute text_attr;
+    const char* text_content;
+    StackArrayFixed<TextRender::Line, 16> text_lines;
+    StackArrayFixed<TextRender::Run, 32>  text_runs;
     float content_width;
     bool space_above, space_below;
 
-    static ChatMessage create(const Event* event);
+    static ChatMessage* create(const Event* event);
     float measure_height(float width, const Event* event_before, const Event* event_after);
     void update();
 };

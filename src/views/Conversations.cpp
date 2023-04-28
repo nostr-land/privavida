@@ -17,7 +17,8 @@
 #include "../models/hex.hpp"
 #include "../models/nostr_entity.hpp"
 #include "../utils/animation.hpp"
-#include "TokenizedContent/TokenizedContent.hpp"
+//#include "TokenizedContent/TokenizedContent.hpp"
+#include "TextRender/TextRender.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -129,11 +130,24 @@ void Conversations::update() {
             }
 
             {
-                SubView sv(BLOCK_HEIGHT, y + 36, ui::view.width - BLOCK_HEIGHT - CONTENT_PADDING, ui::view.height);
-                TokenizedContent::State tokenized_content;
-                TokenizedContent::set_font_settings(&tokenized_content, ui::color(0xcccccc), 15.0, "regular", 1.3, 2);
-                TokenizedContent::tokenize_and_append_text(&tokenized_content, text);
-                TokenizedContent::update(&tokenized_content);
+                SubView sv(BLOCK_HEIGHT, y + 36, ui::view.width - BLOCK_HEIGHT - CONTENT_PADDING, BLOCK_HEIGHT - 36);
+
+                TextRender::Attribute attr;
+                attr.index = 0;
+                attr.font_face = "regular";
+                attr.font_size = 15.0;
+                attr.text_color = ui::color(0xcccccc);
+                attr.line_spacing = 5.0;
+                
+                TextRender::Props props;
+                props.data = Array<const char>((int)strlen(text), text);
+                props.attributes = Array<TextRender::Attribute>(1, &attr);
+                props.bounding_width = ui::view.width;
+                props.bounding_height = ui::view.height;
+
+                TextRender::StateFixed state;
+                TextRender::layout(&state, &props);
+                TextRender::render(&state);
             }
 
             nvgFillColor(ui::vg, (NVGcolor){ 0.2, 0.2, 0.2, 1.0 });
