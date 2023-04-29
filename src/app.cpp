@@ -46,6 +46,7 @@ void app_init(NVGcontext* vg_) {
     // nvgCreateFont(vg_, "boldi",    app::get_asset_name("SFBoldItalic",    "ttf"));
     // nvgCreateFont(vg_, "thin",     app::get_asset_name("SFThin",          "ttf"));
     // nvgCreateImage(vg_, app::get_asset_name("profile", "jpeg"), 0);
+    nvgCreateFont(vg_, "icons",    app::get_asset_name("privavida-icons", "ttf"));
 
     Root::init();
 }
@@ -66,8 +67,9 @@ void app_render(float window_width, float window_height, float pixel_density) {
         animation::update_animation();
 
         ui::reset();
-        ui::view.width = window_width;
-        ui::view.height = window_height;
+        ui::screen.width = window_width;
+        ui::screen.height = window_height;
+        ui::view = ui::screen;
 
         process_immediate_callbacks();
         process_next_key_event();
@@ -113,6 +115,7 @@ void process_immediate_callbacks() {
 // Rendering & Viewport
 NVGcontext* ui::vg;
 ui::Viewport ui::view;
+ui::Viewport ui::screen;
 constexpr int MAX_SAVED_VIEWS = 128;
 static ui::Viewport saved_views[MAX_SAVED_VIEWS];
 static int num_saved_views = 0;
@@ -141,16 +144,14 @@ void ui::sub_view(float x, float y, float width, float height) {
 }
 
 void ui::to_screen_point(float x, float y, float* sx, float* sy) {
-    float xform[6], inv_xform[6];
+    float xform[6];
     nvgCurrentTransform(ui::vg, xform);
-    nvgTransformInverse(inv_xform, xform);
     nvgTransformPoint(sx, sy, xform, x, y);
 }
 
 void ui::to_screen_rect(float x, float y, float width, float height, float* sx, float* sy, float* swidth, float* sheight) {
-    float xform[6], inv_xform[6];
+    float xform[6];
     nvgCurrentTransform(ui::vg, xform);
-    nvgTransformInverse(inv_xform, xform);
     nvgTransformPoint(sx, sy, xform, x, y);
     nvgTransformPoint(swidth, sheight, xform, x + width, y + height);
     *swidth -= *sx;
@@ -158,16 +159,18 @@ void ui::to_screen_rect(float x, float y, float width, float height, float* sx, 
 }
 
 void ui::to_view_point(float x, float y, float* vx, float* vy) {
-    float xform[6];
+    float xform[6], inv_xform[6];
     nvgCurrentTransform(ui::vg, xform);
+    nvgTransformInverse(inv_xform, xform);
     nvgTransformPoint(vx, vy, xform, x, y);
 }
 
 void ui::to_view_rect(float x, float y, float width, float height, float* vx, float* vy, float* vwidth, float* vheight) {
-    float xform[6];
+    float xform[6], inv_xform[6];
     nvgCurrentTransform(ui::vg, xform);
-    nvgTransformPoint(vx, vy, xform, x, y);
-    nvgTransformPoint(vwidth, vheight, xform, x + width, y + height);
+    nvgTransformInverse(inv_xform, xform);
+    nvgTransformPoint(vx, vy, inv_xform, x, y);
+    nvgTransformPoint(vwidth, vheight, inv_xform, x + width, y + height);
     *vwidth -= *vx;
     *vheight -= *vy;
 }

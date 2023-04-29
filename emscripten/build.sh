@@ -47,7 +47,7 @@ emcc \
     -o emscripten/index.js \
     --embed-file assets/SFBold.ttf \
     --embed-file assets/SFRegular.ttf \
-    --embed-file assets/bubble-tip.png \
+    --embed-file assets/privavida-icons.ttf \
     -sEXPORTED_FUNCTIONS=_window_size,_main,_fs_mounted,_app_http_image_response_tex,_app_text_input_content_changed,_platform_did_emoji_measure \
     -sEXPORTED_RUNTIME_METHODS=cwrap,ccall,writeStringToMemory \
     -lidbfs.js \

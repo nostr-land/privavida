@@ -7,6 +7,7 @@
 
 #include "Composer.hpp"
 #include "../SubView.hpp"
+#include "../../utils/icons.hpp"
 
 const float MARGIN = 6;
 const float PADDING = 8;
@@ -56,6 +57,13 @@ const char* Composer::update() {
         nvgFillColor(ui::vg, TextInput::is_editing(&text_state) ? COLOR_PRIMARY : COLOR_SECONDARY);
         nvgCircle(ui::vg, 0.5 * button_size, 0.5 * button_size, 0.5 * button_size);
         nvgFill(ui::vg);
+
+        ui::font_face("icons");
+        ui::font_size(button_size * 0.8);
+        ui::text_align(NVG_ALIGN_LEFT);
+        nvgFillColor(ui::vg, TextInput::is_editing(&text_state) ? ui::color(0xffffff) : COLOR_BACKGROUND);
+        ui::text(0.5 * button_size, 0.5 * button_size, ui::ICON_MESSAGE_SEND, NULL);
+
         if (ui::simple_tap(0, 0, ui::view.width, ui::view.height)) {
             const char* message = TextInput::get_text(&text_state);
             TextInput::dismiss(&text_state);

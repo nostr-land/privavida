@@ -1,0 +1,17 @@
+StartChar: B
+Encoding: 66 66 1
+Width: 1024
+VWidth: 1280
+Flags: HW
+LayerCount: 2
+Fore
+SplineSet
+448 192 m 0
+ 448 1024 l 1
+ 0 1024 l 1
+ 0 640 l 1
+ 0 544 0 288 -448 0 c 0
+ -448 0 192 0 448 192 c 0
+EndSplineSet
+Validated: 9
+EndChar

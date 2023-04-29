@@ -41,6 +41,7 @@ struct Viewport {
     float height;
 };
 extern Viewport view;
+extern Viewport screen;
 void save();
 void restore();
 void reset();

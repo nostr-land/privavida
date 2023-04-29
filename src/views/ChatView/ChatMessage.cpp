@@ -10,6 +10,7 @@
 #include "../Root.hpp"
 #include "../../data_layer/accounts.hpp"
 #include "../../models/nip31.hpp"
+#include "../../utils/icons.hpp"
 #include <time.h>
 
 extern "C" {
@@ -33,13 +34,20 @@ static bool a_moment_passed(const Event* earlier, const Event* later) {
     return (later->created_at - earlier->created_at) > 5 * 60; // 5 minutes
 }
 
+static NVGcolor interpolate_colors(NVGcolor a, NVGcolor b, float i) {
+    NVGcolor c;
+    c.r = a.r + (b.r - a.r) * i;
+    c.g = a.g + (b.g - a.g) * i;
+    c.b = a.b + (b.b - a.b) * i;
+    c.a = a.a + (b.a - a.a) * i;
+    return c;
+}
+
 enum BubbleTipType {
     BUBBLE_TIP_SENDER,
     BUBBLE_TIP_SENDER_FAIL,
     BUBBLE_TIP_RECIPIENT
 };
-
-static int get_bubble_tip(BubbleTipType tip_type, float* width, float* height);
 
 static int max(int a, int b) {
     return (a < b) ? b : a;
@@ -225,50 +233,52 @@ void ChatMessage::update() {
     float content_y = bubble_y + VERTICAL_PADDING;
     float content_height = bubble_height - 2 * VERTICAL_PADDING;
 
-    BubbleTipType tip_type;
-    if (event->content_encryption == EVENT_CONTENT_DECRYPTED && author_is_me(event)) {
-        nvgFillColor(ui::vg, COLOR_PRIMARY);
-        tip_type = BUBBLE_TIP_SENDER;
-    } else {
-        nvgFillColor(ui::vg, COLOR_SECONDARY);
-        tip_type = BUBBLE_TIP_RECIPIENT;
+    // Create the gradient colour for the bubble background
+    NVGcolor gradient_top_color, gradient_bottom_color;
+    float gradient_top_y, gradient_bottom_y;
+    {
+        if (event->content_encryption == EVENT_CONTENT_DECRYPTED && author_is_me(event)) {
+            gradient_top_color = gradient_bottom_color = COLOR_PRIMARY;
+        } else {
+            gradient_top_color = gradient_bottom_color = COLOR_SECONDARY;
+        }
+
+        // Lighten the bottom colour
+        gradient_bottom_color.r *= 1.4;
+        gradient_bottom_color.g *= 1.4;
+        gradient_bottom_color.b *= 1.4;
+
+        // We need the absolute screen coordinates for this
+        float x, y, width, height;
+        ui::to_view_rect(0, 0, ui::screen.width, ui::screen.height, &x, &y, &width, &height);
+        gradient_top_y = y;
+        gradient_bottom_y = y + height;
+
+        auto paint = nvgLinearGradient(ui::vg, 0, gradient_top_y, 0, gradient_bottom_y, gradient_top_color, gradient_bottom_color);
+        nvgFillPaint(ui::vg, paint);
     }
 
+    // Render the background
     nvgBeginPath(ui::vg);
     nvgRoundedRect(ui::vg, bubble_x, bubble_y, bubble_width, bubble_height, BUBBLE_CORNER_RADIUS);
     nvgFill(ui::vg);
 
-    // Render the little speech bubble flick
-    
+    // Render the little speech bubble tip
     if (space_below) {
-        nvgSave(ui::vg);
-        float width, height;
-        if (author_is_me(event)) {
-            int img_id = get_bubble_tip(tip_type, &width, &height);
-            nvgTranslate(ui::vg, bubble_x + bubble_width - 0.5 * width, bubble_y + bubble_height - height);
-            nvgFillPaint(ui::vg, nvgImagePattern(ui::vg, 0, 0, width, height, 0, img_id, 1));
-        } else {
-            int img_id = get_bubble_tip(tip_type, &width, &height);
-            nvgTranslate(ui::vg, bubble_x + 0.5 * width, bubble_y + bubble_height - height);
-            nvgScale(ui::vg, -1.0, 1.0);
-            nvgFillPaint(ui::vg, nvgImagePattern(ui::vg, 0, 0, width, height, 0, img_id, 1));
-        }
-        nvgBeginPath(ui::vg);
-        nvgRect(ui::vg, 0, 0, width, height);
-        nvgFill(ui::vg);
+        float tip_y = bubble_y + bubble_height;
+        float tip_x = author_is_me(event) ? bubble_x + bubble_width : bubble_x;
+        auto  icon  = author_is_me(event) ? ui::ICON_BUBBLE_TIP_RIGHT : ui::ICON_BUBBLE_TIP_LEFT;
 
-        // Originally I was just drawing a path for the bubble tip, which is
-        // much nicer, but for some reason paths are broken when using the WebGL
-        // backend. So images will do...
-        // nvgMoveTo(ui::vg, 0, 0);
-        // nvgLineTo(ui::vg, 0, 6);
-        // nvgBezierTo(ui::vg, 0, 10.5, 4.5, 14, 7, 16);
-        // nvgBezierTo(ui::vg, 7, 16, -2.5, 17, -9, 12);
-        // nvgClosePath(ui::vg);
-        // nvgFill(ui::vg);
-        nvgRestore(ui::vg);
+        float ratio = (tip_y - gradient_top_y) / (gradient_bottom_y - gradient_top_y);
+        auto  color = interpolate_colors(gradient_top_color, gradient_bottom_color, ratio);
+
+        ui::font_face("icons");
+        ui::font_size(BUBBLE_CORNER_RADIUS);
+        nvgFillColor(ui::vg, color);
+        ui::text(tip_x, tip_y, icon, NULL);
     }
 
+    // Render the text content
     {
         SubView sv(content_x, content_y, content_width, content_height);
 
@@ -319,11 +329,13 @@ void ChatMessage::update() {
         }
     }
 
+    // Render the message time
     {
         char time_string[16];
         auto created_at = (time_t)event->created_at;
         struct tm *t = localtime(&created_at);
         strftime(time_string, sizeof(time_string), "%H:%M", t);
+        ui::font_face("regular");
         ui::font_size(10.0);
 
         float bounds[4];
@@ -340,44 +352,5 @@ void ChatMessage::update() {
     if (ui::simple_tap(bubble_x, bubble_y, bubble_width, bubble_height)) {
         Root::push_view_message_inspect(event);
     }
-
-}
-
-int get_bubble_tip(BubbleTipType tip_type, float* width, float* height) {
-
-    // Load the bubble tip asset (if not already loaded)
-    static bool did_load = false;
-    static uint8_t* img;
-    static int x, y, comp;
-    if (!did_load) {
-        did_load = true;
-        img = stbi_load(app::get_asset_name("bubble-tip", "png"), &x, &y, &comp, 4);
-    }
-    if (!img) {
-        *width = *height = 1;
-        return -1;
-    }
-    *width  = 0.5 * x;
-    *height = 0.5 * y;
-
-    static int img_id_sender = -1;
-    static int img_id_recipient = -1;
-
-    // Fetch the image id (if already loaded)
-    int& img_id = tip_type == BUBBLE_TIP_SENDER ? img_id_sender : img_id_recipient;
-    if (img_id != -1) return img_id;
-
-    // Image has not been created, create it now
-    auto color = tip_type == BUBBLE_TIP_SENDER ? COLOR_PRIMARY : COLOR_SECONDARY;
-    uint8_t color_r = (uint8_t)(color.r * 255);
-    uint8_t color_g = (uint8_t)(color.g * 255);
-    uint8_t color_b = (uint8_t)(color.b * 255);
-    for (int i = 0; i < x * y * comp; i += comp) {
-        img[i+0] = color_r;
-        img[i+1] = color_g;
-        img[i+2] = color_b;
-    }
-    img_id = nvgCreateImageRGBA(ui::vg, x, y, 0, img);
-    return img_id;
 
 }

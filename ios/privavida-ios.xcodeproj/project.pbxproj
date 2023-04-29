@@ -12,11 +12,9 @@
 		A407D3AF29E568C80025AF52 /* SFMediumItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3A629E568C80025AF52 /* SFMediumItalic.ttf */; };
 		A407D3B029E568C80025AF52 /* PTMono.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3A729E568C80025AF52 /* PTMono.ttf */; };
 		A407D3B129E568C80025AF52 /* SFThin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3A829E568C80025AF52 /* SFThin.ttf */; };
-		A407D3B229E568C80025AF52 /* profile.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A407D3A929E568C80025AF52 /* profile.jpeg */; };
 		A407D3B329E568C80025AF52 /* SFBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AA29E568C80025AF52 /* SFBold.ttf */; };
 		A407D3B429E568C80025AF52 /* SFBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */; };
 		A407D3B529E568C80025AF52 /* SFRegular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A407D3AC29E568C80025AF52 /* SFRegular.ttf */; };
-		A44E0A9E29F37A210098D525 /* bubble-tip.png in Resources */ = {isa = PBXBuildFile; fileRef = A44E0A9D29F37A210098D525 /* bubble-tip.png */; };
 		A45DD56C29F13E8E0073B3E6 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = A45DD56B29F13E8E0073B3E6 /* Starscream */; };
 		A45DD57129F143A00073B3E6 /* Networking.swift in Sources */ = {isa = PBXBuildFile; fileRef = A45DD57029F143A00073B3E6 /* Networking.swift */; };
 		A45E6D9129F6C82B0036EE7C /* platform_ios.m in Sources */ = {isa = PBXBuildFile; fileRef = A45E6D9029F6C82B0036EE7C /* platform_ios.m */; };
@@ -29,6 +27,7 @@
 		A4D058B926D043CA001CB0B5 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A4D058B726D043CA001CB0B5 /* Main.storyboard */; };
 		A4D058BB26D043CC001CB0B5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A4D058BA26D043CC001CB0B5 /* Assets.xcassets */; };
 		A4D058BE26D043CC001CB0B5 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A4D058BD26D043CC001CB0B5 /* main.m */; };
+		A4D0B79329FD9E2D001F846A /* privavida-icons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A4D0B79229FD9E2D001F846A /* privavida-icons.ttf */; };
 		A4F7BC8126D5923F0070D1D5 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A4F7BC8026D5923F0070D1D5 /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
@@ -48,11 +47,9 @@
 		A407D3A629E568C80025AF52 /* SFMediumItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFMediumItalic.ttf; path = ../../../assets/SFMediumItalic.ttf; sourceTree = "<group>"; };
 		A407D3A729E568C80025AF52 /* PTMono.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = PTMono.ttf; path = ../../../assets/PTMono.ttf; sourceTree = "<group>"; };
 		A407D3A829E568C80025AF52 /* SFThin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFThin.ttf; path = ../../../assets/SFThin.ttf; sourceTree = "<group>"; };
-		A407D3A929E568C80025AF52 /* profile.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = profile.jpeg; path = ../../../assets/profile.jpeg; sourceTree = "<group>"; };
 		A407D3AA29E568C80025AF52 /* SFBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFBold.ttf; path = ../../../assets/SFBold.ttf; sourceTree = "<group>"; };
 		A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFBoldItalic.ttf; path = ../../../assets/SFBoldItalic.ttf; sourceTree = "<group>"; };
 		A407D3AC29E568C80025AF52 /* SFRegular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = SFRegular.ttf; path = ../../../assets/SFRegular.ttf; sourceTree = "<group>"; };
-		A44E0A9D29F37A210098D525 /* bubble-tip.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "bubble-tip.png"; path = "../../../assets/bubble-tip.png"; sourceTree = "<group>"; };
 		A45DD57029F143A00073B3E6 /* Networking.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Networking.swift; sourceTree = "<group>"; };
 		A45DD57229F144A20073B3E6 /* privavida-ios-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "privavida-ios-Bridging-Header.h"; sourceTree = "<group>"; };
 		A45E6D9029F6C82B0036EE7C /* platform_ios.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = platform_ios.m; sourceTree = "<group>"; };
@@ -72,6 +69,7 @@
 		A4D058BA26D043CC001CB0B5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A4D058BC26D043CC001CB0B5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A4D058BD26D043CC001CB0B5 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		A4D0B79229FD9E2D001F846A /* privavida-icons.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "privavida-icons.ttf"; path = "../../../assets/privavida-icons.ttf"; sourceTree = "<group>"; };
 		A4F7BC8026D5923F0070D1D5 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -117,8 +115,7 @@
 		A4C5A61526D1C009007C5F37 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				A44E0A9D29F37A210098D525 /* bubble-tip.png */,
-				A407D3A929E568C80025AF52 /* profile.jpeg */,
+				A4D0B79229FD9E2D001F846A /* privavida-icons.ttf */,
 				A407D3A729E568C80025AF52 /* PTMono.ttf */,
 				A407D3AA29E568C80025AF52 /* SFBold.ttf */,
 				A407D3AB29E568C80025AF52 /* SFBoldItalic.ttf */,
@@ -252,9 +249,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				A407D3B529E568C80025AF52 /* SFRegular.ttf in Resources */,
-				A407D3B229E568C80025AF52 /* profile.jpeg in Resources */,
 				A407D3AD29E568C80025AF52 /* SFRegularItalic.ttf in Resources */,
 				A407D3B329E568C80025AF52 /* SFBold.ttf in Resources */,
+				A4D0B79329FD9E2D001F846A /* privavida-icons.ttf in Resources */,
 				A4D058BB26D043CC001CB0B5 /* Assets.xcassets in Resources */,
 				A407D3B129E568C80025AF52 /* SFThin.ttf in Resources */,
 				A407D3B429E568C80025AF52 /* SFBoldItalic.ttf in Resources */,
@@ -262,7 +259,6 @@
 				A407D3B029E568C80025AF52 /* PTMono.ttf in Resources */,
 				A407D3AE29E568C80025AF52 /* SFMedium.ttf in Resources */,
 				A4D058B926D043CA001CB0B5 /* Main.storyboard in Resources */,
-				A44E0A9E29F37A210098D525 /* bubble-tip.png in Resources */,
 				A4F7BC8126D5923F0070D1D5 /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
