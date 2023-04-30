@@ -6,15 +6,53 @@
 //
 
 #include "contact_lists.hpp"
+#include "profiles.hpp"
+#include "accounts.hpp"
+#include <vector>
+#include <app.hpp>
 
 namespace data_layer {
 
-std::vector<Event*> contact_lists;
+std::vector<EventLocator> contact_lists;
+
+void receive_contact_list(EventLocator event_loc) {
+
+    auto event = data_layer::event(event_loc);
+
+    // Add the contact list
+    bool replaced_older = false;
+    for (auto i = 0; i < contact_lists.size(); ++i) {
+        auto other_event = data_layer::event(contact_lists[i]);
+        if (compare_keys(&other_event->pubkey, &event->pubkey)) {
+            if (other_event->created_at > event->created_at) {
+                return;
+            }
+            contact_lists[i] = event_loc;
+            replaced_older = true;
+            break;
+        }
+    }
+    if (!replaced_older) {
+        contact_lists.push_back(event_loc);
+    }
+
+    // Is it our contact list?
+    if (compare_keys(&event->pubkey, &current_account()->pubkey)) {
+        auto p_tags = event->p_tags.get(event);
+        for (auto& p_tag : p_tags) {
+            request_profile(&p_tag.pubkey);
+        }
+        batch_profile_requests_send();
+    }
+
+    ui::redraw();
+}
 
 const Event* get_contact_list(const Pubkey* pubkey) {
-    for (auto list : contact_lists) {
-        if (compare_keys(&list->pubkey, pubkey)) {
-            return list;
+    for (auto event_loc : contact_lists) {
+        auto event = data_layer::event(event_loc);
+        if (compare_keys(&event->pubkey, pubkey)) {
+            return event;
         }
     }
     return NULL;

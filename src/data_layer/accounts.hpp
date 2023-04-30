@@ -11,9 +11,7 @@
 
 namespace data_layer {
 
-extern int account_selected;
-extern std::vector<Account> accounts;
-
 bool accounts_load();
+const Account* current_account();
 
 }

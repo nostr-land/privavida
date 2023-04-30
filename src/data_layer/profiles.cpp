@@ -15,9 +15,26 @@
 
 namespace data_layer {
 
-std::vector<Profile*> profiles;
+static std::vector<Profile*> profiles;
 static std::vector<Pubkey> profiles_requested;
 static bool is_batching = false;
+
+void receive_profile(EventLocator event_loc) {
+    auto event = data_layer::event(event_loc);
+
+    Profile* profile = (Profile*)malloc(Profile::size_from_event(event));
+
+    if (!parse_profile_data(profile, event)) {
+        printf("Invalid profile data :(\n");
+        printf("%s\n", event->content.data.get(event));
+        free(profile);
+        return;
+    }
+
+    data_layer::profiles.push_back(profile);
+
+    ui::redraw();
+}
 
 const Profile* get_profile(const Pubkey* pubkey) {
     for (auto profile : profiles) {

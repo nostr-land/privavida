@@ -14,8 +14,8 @@
 
 namespace data_layer {
 
-int account_selected = -1;
-std::vector<Account> accounts;
+static int account_selected = -1;
+static std::vector<Account> accounts;
 
 static bool write_default_account(const char* file_name) {
     FILE* f = fopen(file_name, "wb");
@@ -82,6 +82,13 @@ bool accounts_load() {
     accounts.push_back(account);
     account_selected = 0;
     return (load_success = true);
+}
+
+const Account* current_account() {
+    if (accounts.empty() || account_selected == -1) {
+        return NULL;
+    }
+    return &accounts[account_selected];
 }
 
 }

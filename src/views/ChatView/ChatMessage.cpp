@@ -9,7 +9,6 @@
 #include "../SubView.hpp"
 #include "../Root.hpp"
 #include "../../data_layer/accounts.hpp"
-#include "../../models/nip31.hpp"
 #include "../../utils/icons.hpp"
 #include <time.h>
 
@@ -17,21 +16,14 @@ extern "C" {
 #include "../../../lib/nanovg/stb_image.h"
 }
 
-constexpr auto HORIZONTAL_MARGIN = 14;
-constexpr auto VERTICAL_MARGIN = 1;
 constexpr auto HORIZONTAL_PADDING = 12;
 constexpr auto VERTICAL_PADDING = 10;
-constexpr auto SPACING = 10;
 constexpr auto BUBBLE_CORNER_RADIUS = 16; //17;
 constexpr auto TIME_SPACING_Y = 4.0;
 constexpr auto TIME_SPACING_X = 6.0;
 
 static bool author_is_me(const Event* event) {
-    return compare_keys(&event->pubkey, &data_layer::accounts[0].pubkey);
-}
-
-static bool a_moment_passed(const Event* earlier, const Event* later) {
-    return (later->created_at - earlier->created_at) > 5 * 60; // 5 minutes
+    return compare_keys(&event->pubkey, &data_layer::current_account()->pubkey);
 }
 
 static NVGcolor interpolate_colors(NVGcolor a, NVGcolor b, float i) {
@@ -53,9 +45,10 @@ static int max(int a, int b) {
     return (a < b) ? b : a;
 }
 
-ChatMessage* ChatMessage::create(const Event* event) {
-    auto message = new ChatMessage;
-    message->event = event;
+void ChatMessage::create(ChatMessage* message, EventLocator event_loc) {
+    message->event_loc = event_loc;
+
+    auto event = data_layer::event(event_loc);
 
     char text_content[max(100, event->content.size + 1)];
 
@@ -104,9 +97,6 @@ ChatMessage* ChatMessage::create(const Event* event) {
                     }
                     continue;
                 } else if (entity->type == NostrEntity::NINVITE) {
-                    if (entity->invite_signature_state == INVITE_SIGNATURE_NOT_CHECKED) {
-                        nip31_verify_invite(const_cast<NostrEntity*>(entity), &event->pubkey);
-                    }
                     if (entity->invite_signature_state == INVITE_SIGNATURE_VALID) {
                         sprintf(&text_content[offset], "<INVITATION VALID>");
                     } else {
@@ -170,21 +160,14 @@ ChatMessage* ChatMessage::create(const Event* event) {
     message->text_content.reserve(strlen(text_content) + 1);
     message->text_content.size = strlen(text_content);
     strcpy(message->text_content.begin(), text_content);
-
-    return message;
 }
 
-float ChatMessage::measure_height(float width, const Event* event_before, const Event* event_after) {
+void ChatMessage::measure_size(float width_available, float* width, float* height) {
 
-    space_above = !event_before;
-    space_below = (
-        !event_after ||
-        author_is_me(event) != author_is_me(event_after) ||
-        a_moment_passed(event, event_after)
-    );
-
-    float max_bubble_width = width - 2 * HORIZONTAL_MARGIN - 0.2 * ui::view.width;
-    float max_content_width = max_bubble_width - 2 * HORIZONTAL_PADDING;
+    auto event = data_layer::event(event_loc);
+    
+    float max_width = width_available - 0.2 * ui::view.width;
+    float max_content_width = max_width - 2 * HORIZONTAL_PADDING;
 
     TextRender::Props props;
     props.data = Array<const char>((uint32_t)text_content.size, &text_content[0]);
@@ -219,16 +202,18 @@ float ChatMessage::measure_height(float width, const Event* event_before, const 
         }
     }
 
-    float bubble_height = content_height + 2 * VERTICAL_PADDING + (space_above ? SPACING : 0) + (space_below ? SPACING : 0);
-    return bubble_height + VERTICAL_MARGIN;
+    *width  = content_width  + 2 * HORIZONTAL_PADDING;
+    *height = content_height + 2 * VERTICAL_PADDING;
 }
 
-void ChatMessage::update() {
+void ChatMessage::update(bool draw_bubble_tip) {
 
-    float bubble_height = ui::view.height - VERTICAL_MARGIN - (space_above ? SPACING : 0) - (space_below ? SPACING : 0);
+    auto event = data_layer::event(event_loc);
+    
     float bubble_width = content_width + 2 * HORIZONTAL_PADDING;
-    float bubble_x = author_is_me(event) ? ui::view.width - HORIZONTAL_MARGIN - bubble_width : HORIZONTAL_MARGIN;
-    float bubble_y = (space_above ? SPACING : 0);
+    float bubble_height = ui::view.height;
+    float bubble_x = author_is_me(event) ? ui::view.width - bubble_width : 0;
+    float bubble_y = 0;
     float content_x = bubble_x + HORIZONTAL_PADDING;
     float content_y = bubble_y + VERTICAL_PADDING;
     float content_height = bubble_height - 2 * VERTICAL_PADDING;
@@ -260,11 +245,11 @@ void ChatMessage::update() {
 
     // Render the background
     nvgBeginPath(ui::vg);
-    nvgRoundedRect(ui::vg, bubble_x, bubble_y, bubble_width, bubble_height, BUBBLE_CORNER_RADIUS);
+    nvgRoundedRect(ui::vg, bubble_x, 0, bubble_width, bubble_height, BUBBLE_CORNER_RADIUS);
     nvgFill(ui::vg);
 
     // Render the little speech bubble tip
-    if (space_below) {
+    if (draw_bubble_tip) {
         float tip_y = bubble_y + bubble_height;
         float tip_x = author_is_me(event) ? bubble_x + bubble_width : bubble_x;
         auto  icon  = author_is_me(event) ? ui::ICON_BUBBLE_TIP_RIGHT : ui::ICON_BUBBLE_TIP_LEFT;
@@ -350,7 +335,7 @@ void ChatMessage::update() {
     }
 
     if (ui::simple_tap(bubble_x, bubble_y, bubble_width, bubble_height)) {
-        Root::push_view_message_inspect(event);
+        Root::push_view_message_inspect(event_loc);
     }
 
 }

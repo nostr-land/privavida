@@ -28,6 +28,8 @@ static int ecdh_copy_xonly(uint8_t* output, const uint8_t* x32, const uint8_t* y
     return 1;
 }
 
+static uint32_t length_without_pkcs_padding(const uint8_t* data, uint32_t len);
+
 static bool compute_shared_secret(const Pubkey* pubkey, const Seckey* seckey, uint8_t* shared_secret) {
 
     static auto secp256k1_context = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
@@ -74,7 +76,7 @@ bool nip04_decrypt(const Pubkey* pubkey, const Seckey* seckey, const char* ciphe
     AES_CBC_decrypt_buffer(&ctx, payload, payload_len);
 
     // Step 4. Check & copy result
-    payload_len = strlen((char*)payload);
+    payload_len = length_without_pkcs_padding(payload, payload_len);
     if (!is_valid_unicode(payload, &payload_len)) {
         return false;
     }
@@ -167,19 +169,36 @@ bool decode_content(const char* ciphertext, uint32_t len, uint8_t* payload, uint
     return true;
 }
 
-static uint8_t valid_ascii[128] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x00 - 0x0F
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x10 - 0x1F
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x20 - 0x2F
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x30 - 0x3F
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x40 - 0x4F
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x50 - 0x5F
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x60 - 0x6F
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, // 0x70 - 0x7F
-};
+uint32_t length_without_pkcs_padding(const uint8_t* data, uint32_t len) {
+
+    // PKCS padding works like this:
+    // If there are 5 bytes padded at the end,
+    // the final 5 bytes will be:
+    //
+    //     0x05 0x05 0x05 0x05 0x05
+    //
+    // So we just want to check for that and subtract those
+    // bytes from the length if they're there.
+
+    uint8_t padding = data[len - 1];
+    if (padding <= 0x10) {
+        bool valid_padding = true;
+        for (int i = len - padding; i < len; ++i) {
+            if (data[i] != padding) {
+                valid_padding = false;
+                break;
+            }
+        }
+        if (valid_padding) {
+            return len - padding;
+        }
+    }
+
+    return len;
+}
 
 bool is_valid_unicode(uint8_t* data, uint32_t* len) {
-
+    
     // Reference: https://en.wikipedia.org/wiki/UTF-8
     //
     // First code point   Last code point   Byte 1      Byte 2      Byte 3      Byte 4
@@ -189,6 +208,7 @@ bool is_valid_unicode(uint8_t* data, uint32_t* len) {
     // U+10000            U+10FFFF          11110xxx    10xxxxxx    10xxxxxx    10xxxxxx
 
     int i = 0;
+    int remaining = *len;
     while (i < *len) {
         auto ch = data[i];
         auto ch_len = (
@@ -207,16 +227,8 @@ bool is_valid_unicode(uint8_t* data, uint32_t* len) {
             continue;
         }
 
-        // Handle ASCII characters
-        if (ch <= 0x10) {
-            // We've reached a PCKS padding byte, which signals the end of the message
-            *len = i;
-            return true;
-        } else if (!valid_ascii[ch]) {
-            return false;
-        }
         i += 1;
     }
-
+    
     return true;
 }

@@ -6,12 +6,12 @@
 //
 
 #pragma once
+#include "events.hpp"
 #include "../models/profile.hpp"
-#include <vector>
 
 namespace data_layer {
 
-extern std::vector<Profile*> profiles;
+void receive_profile(EventLocator event_loc);
 const Profile* get_profile(const Pubkey* pubkey);
 const Profile* get_or_request_profile(const Pubkey* pubkey);
 void request_profile(const Pubkey* pubkey);

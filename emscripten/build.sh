@@ -8,6 +8,7 @@ emcc \
     src/views/Root.cpp \
     src/views/Conversations.cpp \
     src/views/ChatView/ChatView.cpp \
+    src/views/ChatView/ChatViewEntry.cpp \
     src/views/ChatView/VirtualizedList.cpp \
     src/views/ChatView/ChatMessage.cpp \
     src/views/ChatView/Composer.cpp \
@@ -34,8 +35,8 @@ emcc \
     src/models/c/bech32.c \
     src/models/c/sha256.c \
     src/network/network.cpp \
-    src/network/handle_event.cpp \
     src/data_layer/accounts.cpp \
+    src/data_layer/events.cpp \
     src/data_layer/conversations.cpp \
     src/data_layer/profiles.cpp \
     src/data_layer/contact_lists.cpp \

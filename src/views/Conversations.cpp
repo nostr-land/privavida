@@ -30,8 +30,6 @@ void Conversations::init() {
 }
 
 void Conversations::update() {
-
-    auto& account = data_layer::accounts[data_layer::account_selected];
     
     // Background
     nvgFillColor(ui::vg, COLOR_BACKGROUND);
@@ -118,22 +116,34 @@ void Conversations::update() {
 
             ui::text(BLOCK_HEIGHT, y + CONTENT_PADDING + CONTENT_HEIGHT * (1.0 / 6.0), name, NULL);
 
-            auto event = conv.messages.back();
-            auto sent_by_me = compare_keys(&event->pubkey, &account.pubkey);
 
             char text[200];
-            bool err = false;
-            if (event->content_encryption == EVENT_CONTENT_DECRYPTED) {
+            NVGcolor color = ui::color(0xcccccc);
+            bool sent_by_me = false;
+            const data_layer::Message* message;
+            const Event* event;
+
+            if (conv.messages.empty()) {
+                color = COLOR_SUBDUED;
+                strcpy(text, "Empty conversation");
+            } else if (conv.messages.back().type != data_layer::Message::DIRECT_MESSAGE) {
+                color = COLOR_SUBDUED;
+                strcpy(text, "Invitation received");
+            } else if (!(event = data_layer::event(conv.messages.back().event_loc))) {
+                color = COLOR_SUBDUED;
+                strcpy(text, "Messages loading...");
+            } else if (event->content_encryption == EVENT_CONTENT_DECRYPTED) {
+                auto sent_by_me = compare_keys(&event->pubkey, &data_layer::current_account()->pubkey);
                 if (!sent_by_me) {
                     strncpy(text, event->content.data.get(event), sizeof(text) - 1);
                 } else {
                     snprintf(text, sizeof(text) - 1, "You: %s", event->content.data.get(event));
                 }
             } else if (event->content_encryption == EVENT_CONTENT_DECRYPT_FAILED) {
-                err = true;
+                color = COLOR_ERROR;
                 strcpy(text, "Failed to decrypt");
             } else {
-                err = true;
+                color = COLOR_ERROR;
                 strcpy(text, "Unknown data");
             }
 
@@ -149,7 +159,7 @@ void Conversations::update() {
                 attr[0].index = 0;
                 attr[0].font_face = "regular";
                 attr[0].font_size = 15.0;
-                attr[0].text_color = ui::color(0xcccccc);
+                attr[0].text_color = color;
                 attr[0].line_spacing = 5.0;
 
                 attr[1] = attr[0];
@@ -158,9 +168,6 @@ void Conversations::update() {
                 if (sent_by_me) {
                     attr[0].text_color = ui::color(0xdddddd, 0.8);
                     props.attributes = Array<TextRender::Attribute>(2, attr);
-                } else if (err) {
-                    attr[0].text_color = COLOR_ERROR;
-                    props.attributes = Array<TextRender::Attribute>(1, attr);
                 } else {
                     props.attributes = Array<TextRender::Attribute>(1, attr);
                 }

@@ -29,7 +29,7 @@ struct ViewStackItem {
 
     Type type;
     int conversation_id;
-    const Event* event;
+    EventLocator event_loc;
 };
 
 enum TransitionState {
@@ -42,7 +42,7 @@ static std::vector<ViewStackItem> view_stack;
 static TransitionState transition_state = STATE_IDLE;
 
 void Root::init() {
-    if (data_layer::accounts.empty()) {
+    if (!data_layer::current_account()) {
         // TODO: login flow??
         return;
     }
@@ -74,7 +74,7 @@ static void update_stack_item(ViewStackItem& item) {
             return;
         }
         case ViewStackItem::MESSAGE_INSPECT: {
-            MessageInspect::update(item.event);
+            MessageInspect::update(item.event_loc);
             return;
         }
     }
@@ -130,10 +130,10 @@ void Root::push_view_chat(int conversation_id) {
     animation::start(ANIMATION_PUSH);
 }
 
-void Root::push_view_message_inspect(const Event* event) {
+void Root::push_view_message_inspect(EventLocator event_loc) {
     ViewStackItem item;
     item.type = ViewStackItem::MESSAGE_INSPECT;
-    item.event = event;
+    item.event_loc = event_loc;
     view_stack.push_back(item);
     animation::start(ANIMATION_PUSH);
 }

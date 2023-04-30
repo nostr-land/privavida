@@ -6,8 +6,8 @@
 //
 
 #pragma once
-#include "../../models/event.hpp"
+#include "../../data_layer/events.hpp"
 
 struct MessageInspect {
-    static void update(const Event* event);
+    static void update(EventLocator event_loc);
 };

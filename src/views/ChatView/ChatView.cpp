@@ -77,12 +77,12 @@ void ChatView::update() {
         }
     }
 
-    // Update messages
-    if (conv.messages.size() != messages.size()) {
-        messages.clear();
-        messages.reserve(conv.messages.size());
-        for (auto event : conv.messages) {
-            messages.push_back(ChatMessage::create(event));
+    // Update entries
+    if (conv.messages.size() != entries.size()) {
+        entries.clear();
+        entries.reserve(conv.messages.size());
+        for (auto& message : conv.messages) {
+            entries.push_back(ChatViewEntry::create(&message));
         }
     }
 
@@ -91,14 +91,14 @@ void ChatView::update() {
         SubView sub(0, HEADER_HEIGHT, ui::view.width, ui::keyboard_y() - HEADER_HEIGHT - composer.height());
         VirtualizedList::update(
             &virt_state,
-            (int)conv.messages.size(),
+            (int)entries.size(),
             [&](int i) {
-                auto event_before = i - 1 >= 0 ? conv.messages[i - 1] : NULL;
-                auto event_after  = i + 1 < conv.messages.size() ? conv.messages[i + 1] : NULL;
-                return messages[i]->measure_height(ui::view.width, event_before, event_after);
+                auto entry_before = i - 1 >= 0 ? entries[i - 1] : NULL;
+                auto entry_after  = i + 1 < entries.size() ? entries[i + 1] : NULL;
+                return entries[i]->measure_height(ui::view.width, entry_before, entry_after);
             },
             [&](int i) {
-                messages[i]->update();
+                entries[i]->update();
             },
             []() {}
         );

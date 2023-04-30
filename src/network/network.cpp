@@ -8,18 +8,19 @@
 #include "network.hpp"
 #include <app.hpp>
 #include <platform.h>
-#include "handle_event.hpp"
 #include "../models/event_parse.hpp"
 #include "../models/event_stringify.hpp"
 #include "../models/relay_message_parse.hpp"
 #include "../models/hex.hpp"
 #include "../data_layer/profiles.hpp"
+#include "../data_layer/accounts.hpp"
+#include "../data_layer/events.hpp"
 #include <string.h>
 
 static std::vector<AppWebsocketHandle> sockets;
 
 void network::init() {
-    if (data_layer::accounts.empty()) {
+    if (!data_layer::current_account()) {
         return;
     }
 
@@ -30,14 +31,12 @@ void network::init() {
 
 void app_websocket_event(const AppWebsocketEvent* event) {
 
-    auto account = data_layer::accounts[data_layer::account_selected];
-
     if (event->type == WEBSOCKET_OPEN) {
         printf("websocket open!\n");
         sockets.push_back(event->socket);
 
         char pubkey_hex[65];
-        hex_encode(pubkey_hex, account.pubkey.data, sizeof(Pubkey));
+        hex_encode(pubkey_hex, data_layer::current_account()->pubkey.data, sizeof(Pubkey));
         pubkey_hex[64] = '\0';
 
         char req[128];
@@ -110,7 +109,7 @@ void app_websocket_event(const AppWebsocketEvent* event) {
     Event* nostr_event = (Event*)nostr_event_buf;
     event_create(nostr_event, buffer, res);
 
-    network::handle_event(message.event.subscription_id, nostr_event);
+    data_layer::receive_event(nostr_event);
 }
 
 void network::send(const char* message) {

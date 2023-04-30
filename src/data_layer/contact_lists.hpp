@@ -6,12 +6,11 @@
 //
 
 #pragma once
-#include "../models/event.hpp"
-#include <vector>
+#include "events.hpp"
 
 namespace data_layer {
 
-extern std::vector<Event*> contact_lists;
+void receive_contact_list(EventLocator event_loc);
 const Event* get_contact_list(const Pubkey* pubkey);
 bool does_first_follow_second(const Pubkey* first, const Pubkey* second);
 

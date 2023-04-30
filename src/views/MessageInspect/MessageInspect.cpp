@@ -11,7 +11,7 @@
 #include "../Root.hpp"
 #include <app.hpp>
 
-void MessageInspect::update(const Event* event) {
+void MessageInspect::update(EventLocator event_loc) {
     // Background
     nvgFillColor(ui::vg, COLOR_BACKGROUND);
     nvgBeginPath(ui::vg);
@@ -41,9 +41,11 @@ void MessageInspect::update(const Event* event) {
 
     // Message
     {
-        auto cm = ChatMessage::create(event);
-        auto height = cm->measure_height(ui::view.width, NULL, NULL);
-        SubView sub(0, HEADER_HEIGHT, ui::view.width, height);
-        cm->update();
+        ChatMessage cm;
+        ChatMessage::create(&cm, event_loc);
+        float width, height;
+        cm.measure_size(ui::view.width, &width, &height);
+        SubView sub(0.5 * (ui::view.width - width), HEADER_HEIGHT + 20, width, height);
+        cm.update(true);
     }
 }

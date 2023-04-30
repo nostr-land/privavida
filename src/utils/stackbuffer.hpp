@@ -241,3 +241,66 @@ struct StackArrayFixed : StackArray<T> {
 
     T data_fixed[N];
 };
+
+template <typename T>
+struct HeapArray {
+    T* data;
+    size_t size;
+    size_t capacity;
+
+    HeapArray() : data(NULL), size(0), capacity(0) {}
+    HeapArray(size_t initial_capacity) {
+        data = (T*)malloc(initial_capacity * sizeof(T));
+        size = 0;
+        capacity = initial_capacity;
+    }
+    ~HeapArray() {
+        free(data);
+    }
+
+    T& operator[](size_t index) {
+        return data[index];
+    }
+    const T& operator[](size_t index) const {
+        return data[index];
+    }
+    T* begin() {
+        return &data[0];
+    }
+    T* end() {
+        return &data[size];
+    }
+    const T* begin() const {
+        return &data[0];
+    }
+    const T* end() const {
+        return &data[size];
+    }
+    T& front() const {
+        return data[0];
+    }
+    T& back() const {
+        return data[size - 1];
+    }
+
+    void reserve(size_t new_capacity) {
+        if (new_capacity > capacity) {
+            data = realloc(data, new_capacity * sizeof(T));
+            capacity = new_capacity;
+        }
+    }
+    void push_back(T item) {
+        if (size * sizeof(T) >= capacity) {
+            size_t grow = (capacity * 3) / 2;
+            reserve(grow < 4 ? 4 : grow);
+        }
+        data[size++] = item;
+    }
+    T& push_back() {
+        if (size * sizeof(T) >= capacity) {
+            size_t grow = (capacity * 3) / 2;
+            reserve(grow < 4 ? 4 : grow);
+        }
+        return data[size++];
+    }
+};
