@@ -11,6 +11,7 @@
 #include "../models/event_parse.hpp"
 #include "../models/event_stringify.hpp"
 #include "../models/relay_message.hpp"
+#include "../models/client_message.hpp"
 #include "../models/hex.hpp"
 #include "../data_layer/profiles.hpp"
 #include "../data_layer/accounts.hpp"
@@ -18,6 +19,7 @@
 #include <string.h>
 
 static std::vector<AppWebsocketHandle> sockets;
+static std::vector<char*> subs_to_keep_alive;
 
 void network::init() {
     if (!data_layer::current_account()) {
@@ -42,22 +44,41 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         printf("websocket open!\n");
         sockets.push_back(event->socket);
 
-        char pubkey_hex[65];
-        hex_encode(pubkey_hex, data_layer::current_account()->pubkey.data, sizeof(Pubkey));
-        pubkey_hex[64] = '\0';
+        auto pubkey = data_layer::current_account()->pubkey;
 
-        char req[128];
-        snprintf(req, 128, "[\"REQ\",\"dms_sent\",{\"authors\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
-        printf("Request: %s\n", req);
-        platform_websocket_send(event->socket, req);
+        StackBufferFixed<128> text_buffer;
+        StackBufferFixed<128> filters_buffer;
 
-        snprintf(req, 128, "[\"REQ\",\"dms_received\",{\"#p\":[\"%s\"],\"kinds\":[4]}]", pubkey_hex);
-        printf("Request: %s\n", req);
-        platform_websocket_send(event->socket, req);
+        // "dms_sent" subscription
+        {
+            auto filters = FiltersBuilder(&filters_buffer)
+                .kind(4)
+                .author(&pubkey)
+                .get();
 
-        snprintf(req, 128, "[\"REQ\",\"profile\",{\"authors\":[\"%s\"],\"kinds\":[0,3]}]", pubkey_hex);
-        printf("Request: %s\n", req);
-        platform_websocket_send(event->socket, req);
+            network::subscribe("dms_sent", filters, false);
+        }
+
+        // "dms_received" subscription
+        {
+            auto filters = FiltersBuilder(&filters_buffer)
+                .kind(4)
+                .p_tag(&pubkey)
+                .get();
+
+            network::subscribe("dms_recv", filters, false);
+        }
+
+        // "profile" subscription (fetches kind 0 metadata and kind 3 contact list)
+        {
+            uint32_t kinds[2] = { 0, 3 };
+            auto filters = FiltersBuilder(&filters_buffer)
+                .kinds(2, kinds)
+                .author(&pubkey)
+                .get();
+
+            network::subscribe("profile", filters, true);
+        }
 
         data_layer::batch_profile_requests();
         return;
@@ -93,13 +114,31 @@ void app_websocket_event(const AppWebsocketEvent* event) {
 
     ParseError err;
 
-    RelayToClientMessage message;
-    if (!relay_to_client_message_parse(event->data, event->data_length, buffer, &message)) {
+    RelayMessage message;
+    if (!relay_message_parse(event->data, event->data_length, buffer, &message)) {
         printf("message parse error\n");
         return;
     }
 
-    if (message.type != RelayToClientMessage::EVENT) {
+    if (message.type == RelayMessage::EOSE) {
+        printf("eose: %s\n", event->data);
+        bool should_keep_alive = false;
+        for (auto sub_id : subs_to_keep_alive) {
+            if (strcmp(message.eose.subscription_id, sub_id) == 0) {
+                should_keep_alive = true;
+                break;
+            }
+        }
+        if (!should_keep_alive) {
+            StackBufferFixed<64> buffer;
+            auto req = client_message_close(message.eose.subscription_id, &buffer);
+            printf("Request: %s\n", req);
+            platform_websocket_send(event->socket, req);
+        }
+        return;
+    }
+
+    if (message.type != RelayMessage::EVENT) {
         printf("other message: %s\n", event->data);
         return;
     }
@@ -119,7 +158,25 @@ void app_websocket_event(const AppWebsocketEvent* event) {
     data_layer::receive_event(nostr_event);
 }
 
+void network::subscribe(const char* sub_id, const Filters* filters, bool unsub_after_eose) {
+    StackBufferFixed<256> buffer;
+
+    auto req = client_message_req(sub_id, filters, &buffer);
+    printf("Request: %s\n", req);
+    for (auto& ws : sockets) {
+        platform_websocket_send(ws, req);
+    }
+
+    if (!unsub_after_eose) {
+        auto sub_id_len = strlen(sub_id) + 1;
+        auto sub_id_copy = (char*)malloc(sub_id_len);
+        strncpy(sub_id_copy, sub_id, sub_id_len);
+        subs_to_keep_alive.push_back(sub_id_copy);
+    }
+}
+
 void network::send(const char* message) {
+    printf("Request: %s\n", message);
     for (auto& ws : sockets) {
         platform_websocket_send(ws, message);
     }

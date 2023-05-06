@@ -21,7 +21,8 @@ emcc \
     src/models/event.cpp \
     src/models/event_parse.cpp \
     src/models/event_compose.cpp \
-    src/models/relay_message_parse.cpp \
+    src/models/relay_message.cpp \
+    src/models/client_message.cpp \
     src/models/event_stringify.cpp \
     src/models/event_content.cpp \
     src/models/profile.cpp \

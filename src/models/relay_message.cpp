@@ -1,5 +1,5 @@
 //
-//  relay_message_parse.cpp
+//  relay_message.cpp
 //  privavida-core
 //
 //  Created by Bartholomew Joyce on 2023-04-10.
@@ -27,7 +27,7 @@ static inline size_t max(size_t a, size_t b) {
 // ["OK", <event_id>, <true|false>, <message>]
 
 
-struct MessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, MessageReader> {
+struct RelayMessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, RelayMessageReader> {
     enum ReaderState {
         STATE_STARTED,
         STATE_AT_MESSAGE_TYPE,
@@ -47,7 +47,7 @@ struct MessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Me
     };
 
     ReaderState state = STATE_STARTED;
-    RelayToClientMessage* result;
+    RelayMessage* result;
     char* buffer;
 
     bool stop() {
@@ -94,22 +94,22 @@ struct MessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Me
     bool String(const char* str, rapidjson::SizeType length, bool copy) {
         if (state == STATE_AT_MESSAGE_TYPE) {
             if (strncmp("AUTH", str, length) == 0) {
-                result->type = RelayToClientMessage::AUTH;
+                result->type = RelayMessage::AUTH;
                 return next(STATE_AT_AUTH_CHALLENGE_STRING);
             } else if (strncmp("COUNT", str, length) == 0) {
-                result->type = RelayToClientMessage::COUNT;
+                result->type = RelayMessage::COUNT;
                 return next(STATE_AT_COUNT_SUBSCRIPTION_ID);
             } else if (strncmp("EOSE", str, length) == 0) {
-                result->type = RelayToClientMessage::EOSE;
+                result->type = RelayMessage::EOSE;
                 return next(STATE_AT_EOSE_SUBSCRIPTION_ID);
             } else if (strncmp("EVENT", str, length) == 0) {
-                result->type = RelayToClientMessage::EVENT;
+                result->type = RelayMessage::EVENT;
                 return next(STATE_AT_EVENT_SUBSCRIPTION_ID);
             } else if (strncmp("NOTICE", str, length) == 0) {
-                result->type = RelayToClientMessage::NOTICE;
+                result->type = RelayMessage::NOTICE;
                 return next(STATE_AT_NOTICE_MESSAGE);
             } else if (strncmp("OK", str, length) == 0) {
-                result->type = RelayToClientMessage::OK;
+                result->type = RelayMessage::OK;
                 return next(STATE_AT_OK_EVENT_ID);
             }
             return error();
@@ -143,11 +143,11 @@ struct MessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Me
             strncpy(buffer, str, length);
             buffer[length] = '\0';
 
-            if (result->type == RelayToClientMessage::AUTH) {
+            if (result->type == RelayMessage::AUTH) {
                 result->auth.challenge = buffer;
-            } else if (result->type == RelayToClientMessage::OK) {
+            } else if (result->type == RelayMessage::OK) {
                 result->ok.message = buffer;
-            } else if (result->type == RelayToClientMessage::NOTICE) {
+            } else if (result->type == RelayMessage::NOTICE) {
                 result->notice.message = buffer;
             }
 
@@ -185,9 +185,9 @@ struct MessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Me
     }
 };
 
-bool relay_to_client_message_parse(const char* input, size_t input_len, uint8_t* buffer, RelayToClientMessage* result) {
+bool relay_message_parse(const char* input, size_t input_len, uint8_t* buffer, RelayMessage* result) {
 
-    MessageReader handler;
+    RelayMessageReader handler;
     handler.result = result;
     handler.buffer = (char*)buffer;
 
@@ -199,11 +199,11 @@ bool relay_to_client_message_parse(const char* input, size_t input_len, uint8_t*
     rapidjson::StringStream stream(input);
     reader.Parse(stream, handler);
 
-    if (reader.HasParseError() && handler.state != MessageReader::STATE_ENDED) {
+    if (reader.HasParseError() && handler.state != RelayMessageReader::STATE_ENDED) {
         return false;
     }
 
-    if (result->type == RelayToClientMessage::EVENT) {
+    if (result->type == RelayMessage::EVENT) {
         result->event.input = &input[stream.Tell() - 1];
         result->event.input_len = input_len - (stream.Tell() - 1);
     }

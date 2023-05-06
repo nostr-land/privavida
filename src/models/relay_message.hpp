@@ -10,11 +10,11 @@
 #include "event.hpp"
 #include <string>
 
-static const size_t SUB_ID_MAX_LEN = 65;
+#define SUB_ID_MAX_LEN 65
 
-struct RelayToClientMessage {
-
-    enum MessageType {
+struct RelayMessage {
+    
+    enum RelayMessageType {
         AUTH,
         COUNT,
         EOSE,
@@ -23,39 +23,39 @@ struct RelayToClientMessage {
         OK
     };
 
-    struct MessageAuth {
+    struct RelayMessageAuth {
         const char* challenge;
     };
-    struct MessageCount {
+    struct RelayMessageCount {
         char subscription_id[SUB_ID_MAX_LEN];
         uint64_t count;
     };
-    struct MessageEose {
+    struct RelayMessageEose {
         char subscription_id[SUB_ID_MAX_LEN];
     };
-    struct MessageEvent {
+    struct RelayMessageEvent {
         char subscription_id[SUB_ID_MAX_LEN];
         const char* input;
         size_t input_len;
     };
-    struct MessageNotice {
+    struct RelayMessageNotice {
         const char* message;
     };
-    struct MessageOk {
+    struct RelayMessageOk {
         uint8_t event_id[sizeof(EventId)];
         bool ok;
         const char* message;
     };
 
-    MessageType type;
+    RelayMessageType type;
     union {
-        MessageAuth   auth;
-        MessageCount  count;
-        MessageEose   eose;
-        MessageEvent  event;
-        MessageNotice notice;
-        MessageOk     ok;
+        RelayMessageAuth   auth;
+        RelayMessageCount  count;
+        RelayMessageEose   eose;
+        RelayMessageEvent  event;
+        RelayMessageNotice notice;
+        RelayMessageOk     ok;
     };
 };
 
-bool relay_to_client_message_parse(const char* input, size_t input_len, uint8_t* buffer, RelayToClientMessage* result);
+bool relay_message_parse(const char* input, size_t input_len, uint8_t* buffer, RelayMessage* result);

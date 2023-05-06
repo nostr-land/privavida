@@ -9,6 +9,7 @@
 #include "../network/network.hpp"
 #include "../models/hex.hpp"
 #include "../models/nostr_entity.hpp"
+#include "../models/filters.hpp"
 #include <string.h>
 #include <stdio.h>
 #include <rapidjson/writer.h>
@@ -99,42 +100,16 @@ void send_batch() {
     }
 
     static int count = 0;
-
-    rapidjson::StringBuffer sb;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-
-    writer.StartArray();
-
-    writer.String("REQ");
-
     char sub_id[32];
     snprintf(sub_id, sizeof(sub_id), "prof_%d", count++);
-    writer.String(sub_id);
 
-    writer.StartObject();
+    StackBufferFixed<256> filters_buffer;
+    auto filters = FiltersBuilder(&filters_buffer)
+        .kind(0)
+        .authors((uint32_t)batched_requests.size(), &batched_requests[0])
+        .get();
 
-    writer.String("authors");
-    writer.StartArray();
-
-    for (auto& pubkey : batched_requests) {
-        char pubkey_hex[65];
-        hex_encode(pubkey_hex, pubkey.data, sizeof(Pubkey));
-        pubkey_hex[64] = '\0';
-        writer.String(pubkey_hex);
-    }
-
-    writer.EndArray();
-
-    writer.String("kinds");
-    writer.StartArray();
-    writer.Int(0);
-    writer.EndArray();
-
-    writer.EndObject();
-    writer.EndArray();
-
-    printf("REQ: %s\n", sb.GetString());
-    network::send(sb.GetString());
+    network::subscribe(sub_id, filters, false);
 
     batched_requests.clear();
 }

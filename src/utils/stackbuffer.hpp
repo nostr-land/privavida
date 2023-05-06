@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdlib.h>
 #include <assert.h>
 #include "../models/relative.hpp"
