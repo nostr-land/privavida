@@ -10,7 +10,7 @@ list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/event_content.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/event_compose.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/event_compose.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/relay_message_parse.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/relay_message.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/relay_message_parse.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/event_stringify.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/event_stringify.cpp

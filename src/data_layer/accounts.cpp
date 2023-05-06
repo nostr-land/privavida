@@ -7,6 +7,7 @@
 
 #include "accounts.hpp"
 #include "../models/hex.hpp"
+#include "../network/network.hpp"
 #include <app.hpp>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,26 +15,23 @@
 
 namespace data_layer {
 
+constexpr auto ACCOUNT_FILE = "account0.bin";
 static int account_selected = -1;
 static std::vector<Account> accounts;
 
-static bool write_default_account(const char* file_name) {
+static bool write_account(const Account* account) {
+    auto file_name = app::get_user_data_path(ACCOUNT_FILE);
     FILE* f = fopen(file_name, "wb");
     if (!f) {
         printf("Failed to create file: '%s'\n", file_name);
         return false;
     }
 
-    const char* DEFAULT_DATA = "00489ac583fc30cfbee0095dd736ec46468faa8b187e311fda6269c4e18284ed0c";
-    uint8_t default_data[33];
-    hex_decode(default_data, DEFAULT_DATA, sizeof(default_data));
-    if (!fwrite(default_data, 1, sizeof(default_data), f)) {
-        printf("Failed to write to file: '%s'\n", file_name);
-        return false;
-    }
+    bool success = account_store_to_file(account, f);
 
     fclose(f);
-    return true;
+    app::user_data_flush();
+    return success;
 }
 
 bool accounts_load() {
@@ -46,18 +44,12 @@ bool accounts_load() {
     did_load = true;
 
     // For now, we're hard-coding a single account
-    auto file_name = app::get_user_data_path("account.bin");
+    auto file_name = app::get_user_data_path(ACCOUNT_FILE);
     FILE* f = fopen(file_name, "rb");
 
-    // If no account is set up, we start with default hardcoded account
+    // No account set up?
     if (!f) {
-        write_default_account(file_name);
-        app::user_data_flush();
-        f = fopen(file_name, "rb");
-    }
-    if (!f) {
-        printf("Failed to open '%s'\n", file_name);
-        return (load_success = false);
+        return (load_success = true);
     }
 
     // Read the entire file
@@ -81,6 +73,7 @@ bool accounts_load() {
 
     accounts.push_back(account);
     account_selected = 0;
+    network::init();
     return (load_success = true);
 }
 
@@ -89,6 +82,28 @@ const Account* current_account() {
         return NULL;
     }
     return &accounts[account_selected];
+}
+
+bool open_account_with_pubkey(const Pubkey* pubkey) {
+    Account account;
+    if (!account_from_pubkey(&account, pubkey)) return false;
+    if (!write_account(&account)) return false;
+    accounts.clear();
+    accounts.push_back(std::move(account));
+    account_selected = 0;
+    network::init();
+    return true;
+}
+
+bool open_account_with_seckey(const Seckey* seckey) {
+    Account account;
+    if (!account_from_seckey(&account, seckey)) return false;
+    if (!write_account(&account)) return false;
+    accounts.clear();
+    accounts.push_back(std::move(account));
+    account_selected = 0;
+    network::init();
+    return true;
 }
 
 }

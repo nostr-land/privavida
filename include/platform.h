@@ -64,10 +64,10 @@ void app_scroll_event(int x, int y, int dx, int dy);
 // Text input control and event handling
 enum AppTextFlags {
     APP_TEXT_FLAGS_NONE = 0,
-    APP_TEXT_FLAGS_WORD_WRAP = 1,
-    APP_TEXT_FLAGS_MULTILINE = 2,
-    APP_TEXT_FLAGS_TYPE_EMAIL = 4,
-    APP_TEXT_FLAGS_TYPE_PASSWORD = 8
+    APP_TEXT_FLAGS_TYPE_PASSWORD = 1,
+    // APP_TEXT_FLAGS_WORD_WRAP = 1,
+    // APP_TEXT_FLAGS_MULTILINE = 2,
+    // APP_TEXT_FLAGS_TYPE_EMAIL = 4,
 };
 
 typedef struct {

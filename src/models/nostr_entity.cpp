@@ -30,6 +30,8 @@ int32_t NostrEntity::decoded_size(const char* input, uint32_t input_len) {
         type = NOTE;
     } else if (strncmp(input, "npub", strlen("npub")) == 0) {
         type = NPUB;
+    } else if (strncmp(input, "nsec", strlen("nsec")) == 0) {
+        type = NSEC;
     } else if (strncmp(input, "nprofile", strlen("nprofile")) == 0) {
         type = NPROFILE;
     } else if (strncmp(input, "nevent", strlen("nevent")) == 0) {
@@ -44,7 +46,7 @@ int32_t NostrEntity::decoded_size(const char* input, uint32_t input_len) {
         return -1;
     }
 
-    if (type == NOTE || type == NPUB) {
+    if (type == NOTE || type == NPUB || type == NSEC) {
         return sizeof(NostrEntity);
     } else {
         return sizeof(NostrEntity) + input_len;
@@ -85,6 +87,8 @@ bool NostrEntity::decode(NostrEntity* entity, const char* input, uint32_t input_
         entity->type = NOTE;
     } else if (strcmp(prefix, "npub") == 0) {
         entity->type = NPUB;
+    } else if (strcmp(prefix, "nsec") == 0) {
+        entity->type = NSEC;
     } else if (strcmp(prefix, "nprofile") == 0) {
         entity->type = NPROFILE;
     } else if (strcmp(prefix, "nevent") == 0) {
@@ -99,16 +103,20 @@ bool NostrEntity::decode(NostrEntity* entity, const char* input, uint32_t input_
         return FAIL;
     }
 
-    // Parse notes and npubs (non-TLV)
-    if (entity->type == NOTE || entity->type == NPUB) {
-        static_assert(sizeof(EventId) == sizeof(Pubkey));
+    // Parse notes, npubs and nsecs (non-TLV)
+    if (entity->type == NOTE) {
         if (data_len != sizeof(EventId)) return FAIL;
+        memcpy(entity->event_id.data, buffer, sizeof(EventId));
+        return SUCCESS;
 
-        if (entity->type == NOTE) {
-            memcpy(entity->event_id.data, buffer, sizeof(EventId));
-        } else {
-            memcpy(entity->pubkey.data, buffer, sizeof(Pubkey));
-        }
+    } else if (entity->type == NPUB) {
+        if (data_len != sizeof(Pubkey)) return FAIL;
+        memcpy(entity->pubkey.data, buffer, sizeof(Pubkey));
+        return SUCCESS;
+
+    } else if (entity->type == NSEC) {
+        if (data_len != sizeof(Seckey)) return FAIL;
+        memcpy(entity->seckey.data, buffer, sizeof(Seckey));
         return SUCCESS;
     }
 
@@ -220,6 +228,11 @@ void NostrEntity::encode(const NostrEntity* entity, char* output, uint32_t* outp
             prefix = "npub";
             data = entity->pubkey.data;
             data_len = sizeof(Pubkey);
+            break;
+        case NSEC:
+            prefix = "nsec";
+            data = entity->seckey.data;
+            data_len = sizeof(Seckey);
             break;
         case NPROFILE:
             prefix = "nprofile";

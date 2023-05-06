@@ -12,6 +12,7 @@ struct Root {
     static void init();
     static void update();
 
+    static void push_login_view();
     static void push_view_chat(int conversation_id);
     static void push_view_message_inspect(EventLocator event);
     static void pop_view();

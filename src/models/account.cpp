@@ -20,7 +20,7 @@ static void seckey_pad(const Seckey* seckey_in, Seckey* seckey_out) {
     // prevent seckey being stored in plaintext on disk.
     // TODO: find a better method
 
-    const uint8_t PAD[64] = {
+    const uint8_t PAD[32] = {
         0x03, 0x2b, 0x8a, 0xcc, 0x87, 0x4d, 0x01, 0x85,
         0x01, 0x80, 0x3e, 0x37, 0x29, 0x9e, 0x40, 0x1b,
         0xfa, 0xb5, 0x88, 0xb6, 0x1e, 0x65, 0x5f, 0xcd,
@@ -85,6 +85,52 @@ bool account_load_from_file(Account* account, const uint8_t* data, uint32_t len)
             return NULL;
         }
     }
+}
+
+bool account_store_to_file(const Account* account, FILE* fp) {
+
+    // First byte of the file is the account type
+    if (!fwrite(&account->type, 1, 1, fp)) return false;
+
+    switch (account->type) {
+        case Account::PUBKEY_ONLY: {
+            // Write the pubkey
+            if (!fwrite(&account->pubkey.data, sizeof(Pubkey), 1, fp)) return false;
+            return true;
+        }
+
+        case Account::SECKEY_IN_MEMORY: {
+            // Write the padded seckey
+            if (!fwrite(&account->seckey_padded.data, sizeof(Seckey), 1, fp)) return false;
+            return true;
+        }
+
+        case Account::SECKEY_ON_SECURE_DEVICE: {
+            return true;
+        }
+
+        default: {
+            return false;
+        }
+    }
+}
+
+bool account_from_pubkey(Account* account, const Pubkey* pubkey) {
+    account->type = Account::PUBKEY_ONLY;
+    memcpy(&account->pubkey, pubkey, sizeof(Pubkey));
+    return true;
+}
+
+bool account_from_seckey(Account* account, const Seckey* seckey) {
+    account->type = Account::SECKEY_IN_MEMORY;
+
+    if (!get_public_key(seckey, &account->pubkey)) {
+        printf("Failed to compute pubkey from seckey.\n");
+        return false;
+    }
+
+    seckey_pad(seckey, &account->seckey_padded);
+    return true;
 }
 
 void account_sign_event(const Account* account, const Event* event, AccountSignEventCallback cb) {

@@ -81,7 +81,15 @@ bool get_scroll(float x, float y, float width, float height, float* dx, float* d
 
 
 // Text input
+enum AppTextFlags {
+    APP_TEXT_FLAGS_NONE = 0,
+    APP_TEXT_FLAGS_TYPE_PASSWORD = 1,
+    // APP_TEXT_FLAGS_WORD_WRAP = 1,
+    // APP_TEXT_FLAGS_MULTILINE = 2,
+    // APP_TEXT_FLAGS_TYPE_EMAIL = 4,
+};
 struct TextInput {
+
     // The identifier for the view component that currently
     // controls the text input. NULL if there is no text input.
     const void* controller_id;

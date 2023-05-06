@@ -21,6 +21,7 @@ struct NostrEntity {
     enum Type {
         NOTE,
         NPUB,
+        NSEC,
         NPROFILE,
         NEVENT,
         NRELAY,
@@ -31,6 +32,7 @@ struct NostrEntity {
     Type type;
     EventId event_id;
     Pubkey pubkey;
+    Seckey seckey;
     RelPointer<Pubkey>    invite_conversation_pubkey;
     RelPointer<Signature> invite_signature;
     InviteSignatureState  invite_signature_state;

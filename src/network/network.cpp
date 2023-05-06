@@ -10,7 +10,7 @@
 #include <platform.h>
 #include "../models/event_parse.hpp"
 #include "../models/event_stringify.hpp"
-#include "../models/relay_message_parse.hpp"
+#include "../models/relay_message.hpp"
 #include "../models/hex.hpp"
 #include "../data_layer/profiles.hpp"
 #include "../data_layer/accounts.hpp"
@@ -22,6 +22,13 @@ static std::vector<AppWebsocketHandle> sockets;
 void network::init() {
     if (!data_layer::current_account()) {
         return;
+    }
+    if (!sockets.empty()) {
+        auto old_sockets = sockets;
+        sockets.clear();
+        for (auto socket : old_sockets) {
+            platform_websocket_close(socket, 1000, "");
+        }
     }
 
     platform_websocket_open("wss://relay.snort.social", NULL);
@@ -86,13 +93,13 @@ void app_websocket_event(const AppWebsocketEvent* event) {
 
     ParseError err;
 
-    RelayMessage message;
-    if (!relay_message_parse(event->data, event->data_length, buffer, &message)) {
+    RelayToClientMessage message;
+    if (!relay_to_client_message_parse(event->data, event->data_length, buffer, &message)) {
         printf("message parse error\n");
         return;
     }
 
-    if (message.type != RelayMessage::EVENT) {
+    if (message.type != RelayToClientMessage::EVENT) {
         printf("other message: %s\n", event->data);
         return;
     }

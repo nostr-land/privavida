@@ -7,6 +7,7 @@
 
 #pragma once
 #include "event.hpp"
+#include <stdio.h>
 #include <functional>
 
 struct Account {
@@ -23,6 +24,9 @@ struct Account {
 };
 
 bool account_load_from_file(Account* account, const uint8_t* data, uint32_t len);
+bool account_store_to_file(const Account* account, FILE* fp);
+bool account_from_pubkey(Account* account, const Pubkey* pubkey);
+bool account_from_seckey(Account* account, const Seckey* seckey);
 
 typedef std::function<void(bool error, const char* error_reason, const Event* event)> AccountSignEventCallback;
 typedef std::function<void(bool error, const char* error_reason, const char* ciphertext, uint32_t len)> AccountNIP04EncryptCallback;

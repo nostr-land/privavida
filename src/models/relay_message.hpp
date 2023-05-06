@@ -1,5 +1,5 @@
 //
-//  relay_message_parse.hpp
+//  relay_message.hpp
 //  privavida-core
 //
 //  Created by Bartholomew Joyce on 20/07/2018.
@@ -10,10 +10,11 @@
 #include "event.hpp"
 #include <string>
 
-struct RelayMessage {
-    static const size_t SUB_ID_MAX_LEN = 65;
+static const size_t SUB_ID_MAX_LEN = 65;
 
-    enum RelayMessageType {
+struct RelayToClientMessage {
+
+    enum MessageType {
         AUTH,
         COUNT,
         EOSE,
@@ -22,39 +23,39 @@ struct RelayMessage {
         OK
     };
 
-    struct RelayMessageAuth {
+    struct MessageAuth {
         const char* challenge;
     };
-    struct RelayMessageCount {
+    struct MessageCount {
         char subscription_id[SUB_ID_MAX_LEN];
         uint64_t count;
     };
-    struct RelayMessageEose {
+    struct MessageEose {
         char subscription_id[SUB_ID_MAX_LEN];
     };
-    struct RelayMessageEvent {
+    struct MessageEvent {
         char subscription_id[SUB_ID_MAX_LEN];
         const char* input;
         size_t input_len;
     };
-    struct RelayMessageNotice {
+    struct MessageNotice {
         const char* message;
     };
-    struct RelayMessageOk {
+    struct MessageOk {
         uint8_t event_id[sizeof(EventId)];
         bool ok;
         const char* message;
     };
 
-    RelayMessageType type;
+    MessageType type;
     union {
-        RelayMessageAuth   auth;
-        RelayMessageCount  count;
-        RelayMessageEose   eose;
-        RelayMessageEvent  event;
-        RelayMessageNotice notice;
-        RelayMessageOk     ok;
+        MessageAuth   auth;
+        MessageCount  count;
+        MessageEose   eose;
+        MessageEvent  event;
+        MessageNotice notice;
+        MessageOk     ok;
     };
 };
 
-bool relay_message_parse(const char* input, size_t input_len, uint8_t* buffer, RelayMessage* result);
+bool relay_to_client_message_parse(const char* input, size_t input_len, uint8_t* buffer, RelayToClientMessage* result);

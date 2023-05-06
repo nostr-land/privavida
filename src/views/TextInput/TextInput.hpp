@@ -38,9 +38,11 @@ struct TextInput {
     // Methods
     TextInput(State* state);
     TextInput& set_styles(const StyleOptions* styles);
+    TextInput& set_flags(int flags);
     void update();
 
 protected:
     State& state;
     const StyleOptions* styles;
+    int flags;
 };

@@ -157,6 +157,9 @@ void* game_view_controller = NULL;
                                                alpha:config->text_color.a];
         [_textField setText:[NSString stringWithUTF8String:config->content]];
         [_textField setFrame:CGRectMake(config->x, config->y, config->width, config->height)];
+        if (config->flags & APP_TEXT_FLAGS_TYPE_PASSWORD) {
+            [_textField setTextContentType:UITextContentTypePassword];
+        }
         [_textField setHidden:NO];
         [_textField becomeFirstResponder];
         _lastConfig = *config;

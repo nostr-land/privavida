@@ -37,7 +37,25 @@ void Conversations::update() {
     nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
     nvgFill(ui::vg);
 
+    // Header
     constexpr float HEADER_HEIGHT = 70.0;
+    {
+        SubView sub(0, 0, ui::view.width, HEADER_HEIGHT);
+        nvgBeginPath(ui::vg);
+        nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
+        nvgFillColor(ui::vg, COLOR_HEADER);
+        nvgFill(ui::vg);
+
+        nvgBeginPath(ui::vg);
+        nvgStrokeColor(ui::vg, ui::color(0x000000, 0.2));
+        nvgMoveTo(ui::vg, 0, HEADER_HEIGHT - 0.5);
+        nvgLineTo(ui::vg, ui::view.width, HEADER_HEIGHT - 0.5);
+        nvgStroke(ui::vg);
+
+        if (ui::simple_tap(0, 0, ui::view.width, ui::view.height)) {
+            Root::push_login_view();
+        }
+    }
 
     // ScrollView
     constexpr float BLOCK_HEIGHT = 80.0;
@@ -182,20 +200,5 @@ void Conversations::update() {
             nvgRect(ui::vg, BLOCK_HEIGHT, y + BLOCK_HEIGHT, ui::view.width - BLOCK_HEIGHT, 0.5);
             nvgFill(ui::vg);
         }
-    }
-
-    // Header
-    {
-        SubView sub(0, 0, ui::view.width, HEADER_HEIGHT);
-        nvgBeginPath(ui::vg);
-        nvgRect(ui::vg, 0, 0, ui::view.width, ui::view.height);
-        nvgFillColor(ui::vg, COLOR_HEADER);
-        nvgFill(ui::vg);
-
-        nvgBeginPath(ui::vg);
-        nvgStrokeColor(ui::vg, ui::color(0x000000, 0.2));
-        nvgMoveTo(ui::vg, 0, HEADER_HEIGHT - 0.5);
-        nvgLineTo(ui::vg, ui::view.width, HEADER_HEIGHT - 0.5);
-        nvgStroke(ui::vg);
     }
 }

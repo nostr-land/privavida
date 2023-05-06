@@ -5,7 +5,7 @@
 //  Created by Bartholomew Joyce on 2023-04-10.
 //
 
-#include "relay_message_parse.hpp"
+#include "relay_message.hpp"
 #include "hex.hpp"
 
 #include <string.h>
@@ -19,6 +19,7 @@ static inline size_t max(size_t a, size_t b) {
 
 // Message formats
 // ["AUTH", <challenge-string>]
+// ["CLOSE", <subscription_id>]
 // ["COUNT", <subscription_id>, {"count": <integer>}]
 // ["EOSE", <subscription_id>]
 // ["EVENT", <subscription_id>, <event JSON>]
@@ -26,7 +27,7 @@ static inline size_t max(size_t a, size_t b) {
 // ["OK", <event_id>, <true|false>, <message>]
 
 
-struct RelayMessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, RelayMessageReader> {
+struct MessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, MessageReader> {
     enum ReaderState {
         STATE_STARTED,
         STATE_AT_MESSAGE_TYPE,
@@ -46,7 +47,7 @@ struct RelayMessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
     };
 
     ReaderState state = STATE_STARTED;
-    RelayMessage* result;
+    RelayToClientMessage* result;
     char* buffer;
 
     bool stop() {
@@ -93,40 +94,40 @@ struct RelayMessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
     bool String(const char* str, rapidjson::SizeType length, bool copy) {
         if (state == STATE_AT_MESSAGE_TYPE) {
             if (strncmp("AUTH", str, length) == 0) {
-                result->type = RelayMessage::AUTH;
+                result->type = RelayToClientMessage::AUTH;
                 return next(STATE_AT_AUTH_CHALLENGE_STRING);
             } else if (strncmp("COUNT", str, length) == 0) {
-                result->type = RelayMessage::COUNT;
+                result->type = RelayToClientMessage::COUNT;
                 return next(STATE_AT_COUNT_SUBSCRIPTION_ID);
             } else if (strncmp("EOSE", str, length) == 0) {
-                result->type = RelayMessage::EOSE;
+                result->type = RelayToClientMessage::EOSE;
                 return next(STATE_AT_EOSE_SUBSCRIPTION_ID);
             } else if (strncmp("EVENT", str, length) == 0) {
-                result->type = RelayMessage::EVENT;
+                result->type = RelayToClientMessage::EVENT;
                 return next(STATE_AT_EVENT_SUBSCRIPTION_ID);
             } else if (strncmp("NOTICE", str, length) == 0) {
-                result->type = RelayMessage::NOTICE;
+                result->type = RelayToClientMessage::NOTICE;
                 return next(STATE_AT_NOTICE_MESSAGE);
             } else if (strncmp("OK", str, length) == 0) {
-                result->type = RelayMessage::OK;
+                result->type = RelayToClientMessage::OK;
                 return next(STATE_AT_OK_EVENT_ID);
             }
             return error();
 
         } else if (state == STATE_AT_COUNT_SUBSCRIPTION_ID) {
-            if (length >= RelayMessage::SUB_ID_MAX_LEN) return false;
+            if (length >= SUB_ID_MAX_LEN) return false;
             strncpy(result->count.subscription_id, str, length);
             result->count.subscription_id[length] = '\0';
             return next(STATE_AT_COUNT_OBJECT);
 
         } else if (state == STATE_AT_EOSE_SUBSCRIPTION_ID) {
-            if (length >= RelayMessage::SUB_ID_MAX_LEN) return false;
+            if (length >= SUB_ID_MAX_LEN) return false;
             strncpy(result->eose.subscription_id, str, length);
             result->eose.subscription_id[length] = '\0';
             return stop();
 
         } else if (state == STATE_AT_EVENT_SUBSCRIPTION_ID) {
-            if (length >= RelayMessage::SUB_ID_MAX_LEN) return false;
+            if (length >= SUB_ID_MAX_LEN) return false;
             strncpy(result->event.subscription_id, str, length);
             result->eose.subscription_id[length] = '\0';
             return next(STATE_AT_EVENT);
@@ -142,11 +143,11 @@ struct RelayMessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
             strncpy(buffer, str, length);
             buffer[length] = '\0';
 
-            if (result->type == RelayMessage::AUTH) {
+            if (result->type == RelayToClientMessage::AUTH) {
                 result->auth.challenge = buffer;
-            } else if (result->type == RelayMessage::OK) {
+            } else if (result->type == RelayToClientMessage::OK) {
                 result->ok.message = buffer;
-            } else if (result->type == RelayMessage::NOTICE) {
+            } else if (result->type == RelayToClientMessage::NOTICE) {
                 result->notice.message = buffer;
             }
 
@@ -184,9 +185,9 @@ struct RelayMessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
     }
 };
 
-bool relay_message_parse(const char* input, size_t input_len, uint8_t* buffer, RelayMessage* result) {
+bool relay_to_client_message_parse(const char* input, size_t input_len, uint8_t* buffer, RelayToClientMessage* result) {
 
-    RelayMessageReader handler;
+    MessageReader handler;
     handler.result = result;
     handler.buffer = (char*)buffer;
 
@@ -198,11 +199,11 @@ bool relay_message_parse(const char* input, size_t input_len, uint8_t* buffer, R
     rapidjson::StringStream stream(input);
     reader.Parse(stream, handler);
 
-    if (reader.HasParseError() && handler.state != RelayMessageReader::STATE_ENDED) {
+    if (reader.HasParseError() && handler.state != MessageReader::STATE_ENDED) {
         return false;
     }
 
-    if (result->type == RelayMessage::EVENT) {
+    if (result->type == RelayToClientMessage::EVENT) {
         result->event.input = &input[stream.Tell() - 1];
         result->event.input_len = input_len - (stream.Tell() - 1);
     }

@@ -6,6 +6,7 @@ emcc \
     src/utils/timer.cpp \
     src/utils/text_rendering.cpp \
     src/views/Root.cpp \
+    src/views/LoginView.cpp \
     src/views/Conversations.cpp \
     src/views/ChatView/ChatView.cpp \
     src/views/ChatView/ChatViewEntry.cpp \

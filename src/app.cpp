@@ -16,8 +16,6 @@
 #include "utils/timer.hpp"
 #include "utils/text_rendering.hpp"
 #include "views/Root.hpp"
-#include "network/network.hpp"
-#include "data_layer/accounts.hpp"
 
 static bool redraw_requested;
 
@@ -33,9 +31,7 @@ void app_init(NVGcontext* vg_) {
     redraw_requested = true;
     ui::text_rendering_init();
     ui::vg = vg_;
-    if (!data_layer::accounts_load()) return;
     timer::init();
-    network::init();
 
     // nvgCreateFont(vg_, "mono",     app::get_asset_name("PTMono",          "ttf"));
     nvgCreateFont(vg_, "regular",  app::get_asset_name("SFRegular",       "ttf"));

@@ -13,5 +13,7 @@ namespace data_layer {
 
 bool accounts_load();
 const Account* current_account();
+bool open_account_with_pubkey(const Pubkey* pubkey);
+bool open_account_with_seckey(const Seckey* seckey);
 
 }

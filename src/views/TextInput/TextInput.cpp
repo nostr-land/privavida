@@ -34,10 +34,16 @@ TextInput::StyleOptions* TextInput::get_global_styles() {
 TextInput::TextInput(State* _state)
     : state(*_state) {
     styles = get_global_styles();
+    flags = 0;
 }
 
 TextInput& TextInput::set_styles(const StyleOptions* styles) {
     this->styles = styles;
+    return *this;
+}
+
+TextInput& TextInput::set_flags(int flags) {
+    this->flags = flags;
     return *this;
 }
 
@@ -71,7 +77,7 @@ void TextInput::update() {
         text_input.font_size = styles->font_size;
         text_input.line_height = 1.0;
         text_input.text_color = styles->text_color;
-        text_input.flags = 0;
+        text_input.flags = flags;
         if (ui::text_input->controller_id != &state.ref) {
             text_input.content = "";
         }
