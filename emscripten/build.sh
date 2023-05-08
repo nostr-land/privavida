@@ -39,6 +39,7 @@ emcc \
     src/network/network.cpp \
     src/data_layer/accounts.cpp \
     src/data_layer/events.cpp \
+    src/data_layer/relays.cpp \
     src/data_layer/conversations.cpp \
     src/data_layer/profiles.cpp \
     src/data_layer/contact_lists.cpp \

@@ -288,7 +288,7 @@ void app_websocket_event(const AppWebsocketEvent* event) {
             break;
         }
         case RelayMessage::COUNT: {
-            printf("%s COUNT: (we didn't ask for this??)\n", relay_url);
+            printf("%s COUNT: (we didn't ask for this?)\n", relay_url);
             break;
         }
         case RelayMessage::EOSE: {
