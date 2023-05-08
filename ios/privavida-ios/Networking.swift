@@ -164,7 +164,6 @@ class WebSocketHandle: WebSocketDelegate {
     public func didReceive(event: WebSocketEvent, client: WebSocket) {
         switch event {
         case .connected:
-            print("WebSocket connected")
             var event = AppWebsocketEvent()
             event.type = WEBSOCKET_OPEN
             event.socket = self.id
@@ -172,7 +171,6 @@ class WebSocketHandle: WebSocketDelegate {
             app_websocket_event(&event)
 
         case .disconnected:
-            print("WebSocket disconnected")
             var event = AppWebsocketEvent()
             event.type = WEBSOCKET_CLOSE
             event.socket = self.id
@@ -181,7 +179,6 @@ class WebSocketHandle: WebSocketDelegate {
             Networking.sharedInstance.websocketRemove(ws: self.id)
 
         case .cancelled, .error:
-            print("WebSocket error")
             var event = AppWebsocketEvent()
             event.type = WEBSOCKET_ERROR
             event.socket = self.id

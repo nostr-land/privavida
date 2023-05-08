@@ -6,6 +6,7 @@
 //
 
 #include "client_message.hpp"
+#include "event_stringify.hpp"
 #include "hex.hpp"
 #include <rapidjson/writer.h>
 
@@ -59,6 +60,9 @@ const char* client_message_close(const char* subscription_id, StackBuffer* stack
 
 }
 
+const char* client_message_event(const Event* event, StackBuffer* stack_buffer) {
+    return event_stringify(event, stack_buffer, true);
+}
 
 
 void write_filters(rapidjson::Writer<StackBufferWriter>& writer, const Filters* filters) {

@@ -54,6 +54,23 @@ struct StackBuffer {
             size = size_new;
         }
     }
+
+    // This method copies the data stored in the StackBuffer out of the buffer and transfers
+    // ownership of the data to the caller.
+    // If the data is already on the heap, no copy will take place.
+    // If it is on the stack, the data will be copied to the heap and passed to the caller.
+    void* copy_out(size_t size_wanted) {
+        if (!data_is_on_stack) {
+            void* ptr = data;
+            data = NULL;
+            size = 0;
+            return ptr;
+        }
+
+        void* data_heap = malloc(size_wanted);
+        memcpy(data_heap, data, size_wanted);
+        return data_heap;
+    }
 };
 
 struct StackAllocator {

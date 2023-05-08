@@ -1,6 +1,8 @@
 list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/accounts.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/accounts.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/relays.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/relays.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/events.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/events.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/conversations.hpp

@@ -13,172 +13,319 @@
 #include "../models/relay_message.hpp"
 #include "../models/client_message.hpp"
 #include "../models/hex.hpp"
-#include "../data_layer/profiles.hpp"
-#include "../data_layer/accounts.hpp"
 #include "../data_layer/events.hpp"
+#include "../data_layer/relays.hpp"
 #include <string.h>
+#include <memory>
 
-static std::vector<AppWebsocketHandle> sockets;
-static std::vector<char*> subs_to_keep_alive;
+struct RelayTask {
 
-void network::init() {
-    if (!data_layer::current_account()) {
-        return;
-    }
-    if (!sockets.empty()) {
-        auto old_sockets = sockets;
-        sockets.clear();
-        for (auto socket : old_sockets) {
-            platform_websocket_close(socket, 1000, "");
+    enum Type {
+        REQUEST,
+        STREAM,
+        PUBLISH
+    };
+
+    enum State {
+        WAITING_FOR_CONNECTION,
+        READY,
+        ACTIVE,
+        COMPLETED
+    };
+
+    Type type;
+    State state;
+    int32_t relay_id;
+    char subscription_id[65];
+    std::unique_ptr<Filters> filters;
+    std::unique_ptr<Event> event;
+};
+
+struct RelayConnection {
+
+    enum State {
+        CONNECTING,
+        OPEN,
+        CLOSED
+    };
+
+    int32_t relay_id;
+    State state;
+    AppWebsocketHandle socket;
+};
+
+static std::vector<RelayConnection> connections;
+static std::vector<RelayTask> tasks;
+
+static void process_tasks();
+static void generate_new_subscription_id(RelayTask* task) {
+    static int next_sub_id = 0;
+    memset(task->subscription_id, 0, sizeof(RelayTask::subscription_id));
+    snprintf(task->subscription_id, sizeof(RelayTask::subscription_id), "sub%d", next_sub_id++);
+}
+static RelayConnection* get_connection_for_relay(int32_t relay_id) {
+    for (auto& conn : connections) {
+        if (conn.relay_id == relay_id) {
+            return &conn;
         }
     }
 
-    platform_websocket_open("wss://relay.snort.social", NULL);
-    platform_websocket_open("wss://relay.damus.io", NULL);
-    platform_websocket_open("wss://eden.nostr.land", NULL);
+    return NULL;
+}
+static RelayConnection& get_or_create_connection_for_relay(int32_t relay_id) {
+    auto conn = get_connection_for_relay(relay_id);
+    if (conn) {
+        return *conn;
+    }
+
+    auto relay_info = data_layer::get_relay_info(relay_id);
+    assert(relay_info);
+
+    connections.push_back(RelayConnection());
+    auto& new_conn = connections.back();
+    new_conn.relay_id = relay_id;
+    new_conn.state = RelayConnection::CONNECTING;
+    new_conn.socket = platform_websocket_open(relay_info->url.data.get(relay_info), NULL);
+    return new_conn;
+}
+static RelayTask* get_task_for_subscription_id(const char* subscription_id) {
+    for (auto& task : tasks) {
+        if (strcmp(task.subscription_id, subscription_id) == 0) {
+            return &task;
+        }
+    }
+    return NULL;
+}
+static RelayTask* get_task_for_event_id(const EventId* event_id) {
+    for (auto& task : tasks) {
+        if (task.type == RelayTask::PUBLISH && compare_keys(&task.event->id, event_id)) {
+            return &task;
+        }
+    }
+    return NULL;
+}
+
+void network::relay_add_task_request(int32_t relay_id, const Filters* filters) {
+    auto filters_copy = (Filters*)malloc(Filters::size_of(filters));
+    memcpy(filters_copy, filters, Filters::size_of(filters));
+
+    tasks.push_back(RelayTask());
+    auto& task = tasks.back();
+    task.relay_id = relay_id;
+    task.type = RelayTask::REQUEST;
+    task.state = RelayTask::WAITING_FOR_CONNECTION;
+    task.filters = std::unique_ptr<Filters>(filters_copy);
+    generate_new_subscription_id(&task);
+
+    process_tasks();
+}
+
+void network::relay_add_task_stream(int32_t relay_id, const Filters* filters) {
+    auto filters_copy = (Filters*)malloc(Filters::size_of(filters));
+    memcpy(filters_copy, filters, Filters::size_of(filters));
+    filters_copy->limit = 0;
+
+    tasks.push_back(RelayTask());
+    auto& task = tasks.back();
+    task.relay_id = relay_id;
+    task.type = RelayTask::STREAM;
+    task.state = RelayTask::WAITING_FOR_CONNECTION;
+    task.filters = std::unique_ptr<Filters>(filters_copy);
+    generate_new_subscription_id(&task);
+
+    process_tasks();
+}
+
+void network::relay_add_task_publish(int32_t relay_id, const Event* event) {
+    auto event_copy = (Event*)malloc(Event::size_of(event));
+    memcpy(event_copy, event, Event::size_of(event));
+
+    tasks.push_back(RelayTask());
+    auto& task = tasks.back();
+    task.relay_id = relay_id;
+    task.type = RelayTask::PUBLISH;
+    task.state = RelayTask::WAITING_FOR_CONNECTION;
+    task.event = std::unique_ptr<Event>(event_copy);
+    task.subscription_id[0] = '\0';
+
+    process_tasks();
+}
+
+void network::stop_all_tasks() {
+    // On any active tasks we want to unsubscribe
+    for (auto& task : tasks) {
+        if (task.state != RelayTask::ACTIVE) {
+            task.state = RelayTask::COMPLETED;
+            continue;
+        }
+
+        auto conn = get_connection_for_relay(task.relay_id);
+        if (!conn) {
+            continue;
+        }
+
+        switch (task.type) {
+            case RelayTask::REQUEST:
+            case RelayTask::STREAM: {
+                StackBufferFixed<64> req_buffer;
+                auto req = client_message_close(task.subscription_id, &req_buffer);
+                printf("Request: %s\n", req);
+                platform_websocket_send(conn->socket, req);
+                break;
+            }
+            case RelayTask::PUBLISH: {
+                // @TODO report a failure to send this event
+                break;
+            }
+        }
+        task.state = RelayTask::COMPLETED;
+    }
+
+    process_tasks();
+}
+
+void process_tasks() {
+
+    StackBufferFixed<1024> req_buffer;
+
+    // For WAITING_FOR_CONNECTION tasks:
+    //     Get or open a connection to the desired relay
+    //     If the connection is open -> bump the task to READY
+    for (auto& task : tasks) {
+        if (task.state != RelayTask::WAITING_FOR_CONNECTION) continue;
+
+        auto& conn = get_or_create_connection_for_relay(task.relay_id);
+        if (conn.state == RelayConnection::OPEN) {
+            task.state = RelayTask::READY;
+        } else if (conn.state == RelayConnection::CLOSED) {
+            auto relay_info = data_layer::get_relay_info(task.relay_id);
+            printf("WARNING: task has been created for relay %s, but the connection is CLOSED\n", relay_info->url.data.get(relay_info));
+        }
+    }
+
+    // For each READY task, start the task
+    for (auto& task : tasks) {
+        if (task.state != RelayTask::READY) continue;
+
+        auto conn = get_connection_for_relay(task.relay_id);
+        if (!conn || conn->state != RelayConnection::OPEN) continue;
+
+        switch (task.type) {
+            case RelayTask::REQUEST:
+            case RelayTask::STREAM: {
+                auto req = client_message_req(task.subscription_id, task.filters.get(), &req_buffer);
+                printf("Request: %s\n", req);
+                platform_websocket_send(conn->socket, req);
+                break;
+            }
+            case RelayTask::PUBLISH: {
+                auto req = client_message_event(task.event.get(), &req_buffer);
+                printf("Request: %s\n", req);
+                platform_websocket_send(conn->socket, req);
+                break;
+            }
+        }
+        task.state = RelayTask::ACTIVE;
+    }
+
+    // Finally, remove all COMPLETED tasks
+    for (long i = tasks.size() - 1; i >= 0; --i) {
+        if (tasks[i].state == RelayTask::COMPLETED) {
+            tasks.erase(tasks.begin() + i);
+        }
+    }
+
 }
 
 void app_websocket_event(const AppWebsocketEvent* event) {
 
+    RelayConnection* conn = NULL;
+    for (auto& other_conn : connections) {
+        if (other_conn.socket == event->socket) {
+            conn = &other_conn;
+        }
+    }
+    if (!conn) return;
+
+    auto relay_info = data_layer::get_relay_info(conn->relay_id);
+    auto relay_url  = relay_info->url.data.get(relay_info);
+
+    // Process open, close and error
     if (event->type == WEBSOCKET_OPEN) {
-        printf("websocket open!\n");
-        sockets.push_back(event->socket);
-
-        auto pubkey = data_layer::current_account()->pubkey;
-
-        StackBufferFixed<128> text_buffer;
-        StackBufferFixed<128> filters_buffer;
-
-        // "dms_sent" subscription
-        {
-            auto filters = FiltersBuilder(&filters_buffer)
-                .kind(4)
-                .author(&pubkey)
-                .get();
-
-            network::subscribe("dms_sent", filters, false);
-        }
-
-        // "dms_received" subscription
-        {
-            auto filters = FiltersBuilder(&filters_buffer)
-                .kind(4)
-                .p_tag(&pubkey)
-                .get();
-
-            network::subscribe("dms_recv", filters, false);
-        }
-
-        // "profile" subscription (fetches kind 0 metadata and kind 3 contact list)
-        {
-            uint32_t kinds[2] = { 0, 3 };
-            auto filters = FiltersBuilder(&filters_buffer)
-                .kinds(2, kinds)
-                .author(&pubkey)
-                .get();
-
-            network::subscribe("profile", filters, true);
-        }
-
-        data_layer::batch_profile_requests();
-        return;
-
+        printf("Websocket open: %s\n", relay_url);
+        conn->state = RelayConnection::OPEN;
     } else if (event->type == WEBSOCKET_CLOSE) {
-        printf("websocket close!\n");
-        for (auto i = 0; i < sockets.size(); ++i) {
-            if (sockets[i] == event->socket) {
-                sockets.erase(sockets.begin() + i);
-                break;
-            }
-        }
-        return;
+        printf("Websocket close: %s\n", relay_url);
+        conn->state = RelayConnection::CLOSED;
     } else if (event->type == WEBSOCKET_ERROR) {
-        printf("websocket error!\n");
-        for (auto i = 0; i < sockets.size(); ++i) {
-            if (sockets[i] == event->socket) {
-                sockets.erase(sockets.begin() + i);
-                break;
-            }
-        }
-        return;
-    } else if (event->type != WEBSOCKET_MESSAGE) {
+        printf("Websocket error: %s\n", relay_url);
+        conn->state = RelayConnection::CLOSED;
+    }
+
+    if (event->type != WEBSOCKET_MESSAGE) {
+        process_tasks();
         return;
     }
+    // Past this point we are processing only WEBSOCKET_MESSAGE events
 
     if (event->data_length == 0) {
         printf("received empty string\n");
         return;
     }
 
-    uint8_t buffer[event->data_length];
-
-    ParseError err;
+    uint8_t stack_buffer_data[event->data_length];
+    StackBuffer stack_buffer(stack_buffer_data, event->data_length);
 
     RelayMessage message;
-    if (!relay_message_parse(event->data, event->data_length, buffer, &message)) {
+    if (!relay_message_parse(event->data, event->data_length, &stack_buffer, &message)) {
         printf("message parse error\n");
         return;
     }
 
-    if (message.type == RelayMessage::EOSE) {
-        printf("eose: %s\n", event->data);
-        bool should_keep_alive = false;
-        for (auto sub_id : subs_to_keep_alive) {
-            if (strcmp(message.eose.subscription_id, sub_id) == 0) {
-                should_keep_alive = true;
+    switch (message.type) {
+        case RelayMessage::AUTH: {
+            printf("%s AUTH: (not supported yet!)\n", relay_url);
+            break;
+        }
+        case RelayMessage::COUNT: {
+            printf("%s COUNT: (we didn't ask for this??)\n", relay_url);
+            break;
+        }
+        case RelayMessage::EOSE: {
+            printf("%s EOSE: %s\n", relay_url, message.eose.subscription_id);
+            auto task = get_task_for_subscription_id(message.eose.subscription_id);
+            if (task && task->type == RelayTask::REQUEST) {
+                task->state = RelayTask::COMPLETED;
+                process_tasks();
+            }
+            break;
+        }
+        case RelayMessage::EVENT: {
+            Event* nostr_event;
+            ParseError err = event_parse(message.event.input, message.event.input_len, &stack_buffer, &nostr_event);
+            if (err) {
+                printf("event invalid (parse error): %d\n", (int)err);
                 break;
             }
+
+            data_layer::receive_event(nostr_event);
+
+            break;
         }
-        if (!should_keep_alive) {
-            StackBufferFixed<64> buffer;
-            auto req = client_message_close(message.eose.subscription_id, &buffer);
-            printf("Request: %s\n", req);
-            platform_websocket_send(event->socket, req);
+        case RelayMessage::NOTICE: {
+            printf("%s NOTICE: %s\n", relay_url, message.notice.message);
+            break;
         }
-        return;
-    }
-
-    if (message.type != RelayMessage::EVENT) {
-        printf("other message: %s\n", event->data);
-        return;
-    }
-
-    EventParseResult res;
-    err = event_parse(message.event.input, message.event.input_len, buffer, res);
-    if (err) {
-        printf("event invalid (parse error): %d\n", (int)err);
-        printf("data: %s\n", message.event.input);
-        return;
-    }
-
-    uint8_t nostr_event_buf[res.event_size];
-    Event* nostr_event = (Event*)nostr_event_buf;
-    event_create(nostr_event, buffer, res);
-
-    data_layer::receive_event(nostr_event);
-}
-
-void network::subscribe(const char* sub_id, const Filters* filters, bool unsub_after_eose) {
-    StackBufferFixed<256> buffer;
-
-    auto req = client_message_req(sub_id, filters, &buffer);
-    printf("Request: %s\n", req);
-    for (auto& ws : sockets) {
-        platform_websocket_send(ws, req);
-    }
-
-    if (!unsub_after_eose) {
-        auto sub_id_len = strlen(sub_id) + 1;
-        auto sub_id_copy = (char*)malloc(sub_id_len);
-        strncpy(sub_id_copy, sub_id, sub_id_len);
-        subs_to_keep_alive.push_back(sub_id_copy);
-    }
-}
-
-void network::send(const char* message) {
-    printf("Request: %s\n", message);
-    for (auto& ws : sockets) {
-        platform_websocket_send(ws, message);
+        case RelayMessage::OK: {
+            printf("%s OK: %s - %s\n", relay_url, message.ok.ok ? "true" : "false", message.ok.message);
+            auto task = get_task_for_event_id(&message.ok.event_id);
+            if (task) {
+                // @TODO: handle publish errors
+                task->state = RelayTask::COMPLETED;
+                process_tasks();
+            }
+            break;
+        }
     }
 }
 

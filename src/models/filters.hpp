@@ -1,8 +1,8 @@
 //
-//  event_stringify.hpp
+//  filters.hpp
 //  privavida-core
 //
-//  Created by Bartholomew Joyce on 2023-04-10.
+//  Created by Bartholomew Joyce on 2023-05-07.
 //
 
 #pragma once

@@ -8,5 +8,8 @@
 #pragma once
 
 #include "event.hpp"
+#include "../utils/stackbuffer.hpp"
 
-void event_stringify(const Event* event, char* output);
+const char* event_stringify(const Event* event, StackBuffer* stack_buffer, bool wrap_in_event_message = false);
+// When wrap_in_event_message is false you will get back <nostr event JSON>
+// When wrap_in_event_message is true  you will get back ["EVENT",<nostr event JSON>]

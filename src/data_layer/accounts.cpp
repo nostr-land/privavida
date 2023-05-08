@@ -6,6 +6,8 @@
 //
 
 #include "accounts.hpp"
+#include "relays.hpp"
+#include "profiles.hpp"
 #include "../models/hex.hpp"
 #include "../network/network.hpp"
 #include <app.hpp>
@@ -18,6 +20,57 @@ namespace data_layer {
 constexpr auto ACCOUNT_FILE = "account0.bin";
 static int account_selected = -1;
 static std::vector<Account> accounts;
+
+static void open_default_subscriptions() {
+    network::stop_all_tasks();
+    
+    auto account = current_account();
+    if (!account) return;
+    
+    StackBufferFixed<128> filters_buffer;
+
+    // "dms_sent" subscription
+    {
+        auto filters = FiltersBuilder(&filters_buffer)
+            .kind(4)
+            .author(&account->pubkey)
+            .get();
+
+        for (auto relay_id : get_default_relays()) {
+            network::relay_add_task_request(relay_id, filters);
+            network::relay_add_task_stream(relay_id, filters);
+        }
+    }
+
+    // "dms_received" subscription
+    {
+        auto filters = FiltersBuilder(&filters_buffer)
+            .kind(4)
+            .p_tag(&account->pubkey)
+            .get();
+
+        for (auto relay_id : get_default_relays()) {
+            network::relay_add_task_request(relay_id, filters);
+            network::relay_add_task_stream(relay_id, filters);
+        }
+    }
+
+    // "profile" subscription (fetches kind 0 metadata and kind 3 contact list)
+    {
+        uint32_t kinds[2] = { 0, 3 };
+        auto filters = FiltersBuilder(&filters_buffer)
+            .kinds(2, kinds)
+            .author(&account->pubkey)
+            .get();
+
+        for (auto relay_id : get_default_relays()) {
+            network::relay_add_task_request(relay_id, filters);
+            network::relay_add_task_stream(relay_id, filters);
+        }
+    }
+
+    data_layer::batch_profile_requests();
+}
 
 static bool write_account(const Account* account) {
     auto file_name = app::get_user_data_path(ACCOUNT_FILE);
@@ -73,7 +126,7 @@ bool accounts_load() {
 
     accounts.push_back(account);
     account_selected = 0;
-    network::init();
+    open_default_subscriptions();
     return (load_success = true);
 }
 
@@ -91,7 +144,7 @@ bool open_account_with_pubkey(const Pubkey* pubkey) {
     accounts.clear();
     accounts.push_back(std::move(account));
     account_selected = 0;
-    network::init();
+    open_default_subscriptions();
     return true;
 }
 
@@ -102,7 +155,7 @@ bool open_account_with_seckey(const Seckey* seckey) {
     accounts.clear();
     accounts.push_back(std::move(account));
     account_selected = 0;
-    network::init();
+    open_default_subscriptions();
     return true;
 }
 

@@ -58,6 +58,24 @@ struct EventContentToken {
     RelPointer<NostrEntity> entity;
 };
 
+struct ReceiptInfo {
+    int32_t relay_id;
+    uint64_t receipt_time;
+};
+
+struct PublishInfo {
+
+    enum Status {
+        SENDING,
+        ACCEPTED,
+        REJECTED
+    };
+
+    Status status;
+    int32_t relay_id;
+
+};
+
 //
 /// Event
 //
@@ -91,6 +109,11 @@ struct Event {
     RelArray<EventContentToken> content_tokens;
     RelArray<ETag> e_tags;
     RelArray<PTag> p_tags;
+
+    // Metadata
+    bool sent_by_client;
+    RelArray<ReceiptInfo> receipt_info;
+    RelArray<PublishInfo> publish_info;
 
     uint8_t  __buffer[];
 

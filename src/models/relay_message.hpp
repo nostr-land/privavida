@@ -8,6 +8,7 @@
 #pragma once
 
 #include "event.hpp"
+#include "../utils/stackbuffer.hpp"
 #include <string>
 
 #define SUB_ID_MAX_LEN 65
@@ -42,7 +43,7 @@ struct RelayMessage {
         const char* message;
     };
     struct RelayMessageOk {
-        uint8_t event_id[sizeof(EventId)];
+        EventId event_id;
         bool ok;
         const char* message;
     };
@@ -58,4 +59,4 @@ struct RelayMessage {
     };
 };
 
-bool relay_message_parse(const char* input, size_t input_len, uint8_t* buffer, RelayMessage* result);
+bool relay_message_parse(const char* input, size_t input_len, StackBuffer* stack_buffer, RelayMessage* result);

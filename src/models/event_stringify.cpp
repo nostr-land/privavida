@@ -9,23 +9,47 @@
 #include "hex.hpp"
 #include <rapidjson/writer.h>
 
-void event_stringify(const Event* event, char* output) {
+// This is struct that implements the rapidjson interface for
+// an output stream. This allows us to stream the output from
+// rapidjson into a StackBuffer
+// @TODO: dedupe this as it exists both in client_message.cpp & here
+struct StackBufferWriter {
+    typedef char Ch;
 
-    auto _base = (const void*)event;
-    char buffer[128];
+    StackBuffer& sb;
+    uint32_t len;
 
-    rapidjson::StringBuffer sb;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    StackBufferWriter(StackBuffer* sb) : sb(*sb), len(0) {}
+    void Put(char c) {
+        sb.reserve(len + 1);
+        ((char*)sb.data)[len++] = c;
+    }
+    void Flush() {
+        Put('\0');
+    }
+};
+
+const char* event_stringify(const Event* event, StackBuffer* stack_buffer, bool wrap_in_event_message) {
+
+    StackBufferWriter sb(stack_buffer);
+    rapidjson::Writer<StackBufferWriter> writer(sb);
+
+    char hex_buffer[128];
+
+    if (wrap_in_event_message) {
+        writer.StartArray();
+        writer.String("EVENT");
+    }
 
     writer.StartObject();
 
     writer.String("id");
-    hex_encode(buffer, event->id.data, sizeof(event->id));
-    writer.String(buffer, sizeof(event->id) * 2);
+    hex_encode(hex_buffer, event->id.data, sizeof(event->id));
+    writer.String(hex_buffer, sizeof(event->id) * 2);
 
     writer.String("pubkey");
-    hex_encode(buffer, event->pubkey.data, sizeof(event->pubkey));
-    writer.String(buffer, sizeof(event->pubkey) * 2);
+    hex_encode(hex_buffer, event->pubkey.data, sizeof(event->pubkey));
+    writer.String(hex_buffer, sizeof(event->pubkey) * 2);
 
     writer.String("kind");
     writer.Uint(event->kind);
@@ -34,25 +58,29 @@ void event_stringify(const Event* event, char* output) {
     writer.Uint64(event->created_at);
 
     writer.String("content");
-    writer.String(event->content.data.get(_base), event->content.size);
+    writer.String(event->content.data.get(event), event->content.size);
 
     writer.String("tags");
     writer.StartArray();
     for (int i = 0; i < event->tags.size; ++i) {
         writer.StartArray();
-        auto tag = event->tags.get(_base, i).get(_base);
+        auto tag = event->tags.get(event, i).get(event);
         for (int j = 0; j < tag.size; ++j) {
-            writer.String(tag[j].data.get(_base), tag[j].size);
+            writer.String(tag[j].data.get(event), tag[j].size);
         }
         writer.EndArray();
     }
     writer.EndArray();
 
     writer.String("sig");
-    hex_encode(buffer, event->sig.data, sizeof(event->sig));
-    writer.String(buffer, sizeof(event->sig) * 2);
+    hex_encode(hex_buffer, event->sig.data, sizeof(event->sig));
+    writer.String(hex_buffer, sizeof(event->sig) * 2);
 
     writer.EndObject();
 
-    strcpy(output, sb.GetString());
+    if (wrap_in_event_message) {
+        writer.EndArray();
+    }
+
+    return (const char*)stack_buffer->data;
 }

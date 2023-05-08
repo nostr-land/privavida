@@ -357,7 +357,7 @@ static inline size_t max(size_t a, size_t b) {
     return a < b ? b : a;
 }
 
-ParseError event_parse(const char* input, size_t input_len, uint8_t* tlv_out, EventParseResult& result) {
+static ParseError event_parse_tlv(const char* input, size_t input_len, uint8_t* tlv_out, EventParseResult& result) {
 
     EventReader handler;
     handler.buffer_ptr = tlv_out;
@@ -389,7 +389,7 @@ ParseError event_parse(const char* input, size_t input_len, uint8_t* tlv_out, Ev
     return PARSE_NO_ERR;
 }
 
-void event_create(Event* event, const uint8_t* tlv, const EventParseResult& result) {
+static void event_create_from_tlv(Event* event, const uint8_t* tlv, const EventParseResult& result) {
     
     auto _base = (void*)event;
     memset(_base, 0, sizeof(Event));
@@ -565,4 +565,20 @@ void event_create(Event* event, const uint8_t* tlv, const EventParseResult& resu
 
         }
     }
+}
+
+ParseError event_parse(const char* input, size_t input_len, StackBuffer* stack_buffer, Event** event_out) {
+
+    uint8_t tlv[input_len];
+    EventParseResult result;
+    ParseError err = event_parse_tlv(input, input_len, tlv, result);
+    if (err) {
+        return err;
+    }
+
+    stack_buffer->reserve(result.event_size);
+    *event_out = (Event*)stack_buffer->data;
+    event_create_from_tlv(*event_out, tlv, result);
+    return PARSE_NO_ERR;
+
 }

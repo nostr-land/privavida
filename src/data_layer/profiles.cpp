@@ -6,6 +6,7 @@
 //
 
 #include "profiles.hpp"
+#include "relays.hpp"
 #include "../network/network.hpp"
 #include "../models/hex.hpp"
 #include "../models/nostr_entity.hpp"
@@ -99,17 +100,15 @@ void send_batch() {
         return;
     }
 
-    static int count = 0;
-    char sub_id[32];
-    snprintf(sub_id, sizeof(sub_id), "prof_%d", count++);
-
     StackBufferFixed<256> filters_buffer;
     auto filters = FiltersBuilder(&filters_buffer)
         .kind(0)
         .authors((uint32_t)batched_requests.size(), &batched_requests[0])
         .get();
 
-    network::subscribe(sub_id, filters, false);
+    for (auto relay_id : get_default_relays()) {
+        network::relay_add_task_request(relay_id, filters);
+    }
 
     batched_requests.clear();
 }

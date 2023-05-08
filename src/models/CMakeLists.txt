@@ -14,6 +14,8 @@ list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/relay_message.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/client_message.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/client_message.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filters.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/relay_info.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/event_stringify.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/event_stringify.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/profile.hpp

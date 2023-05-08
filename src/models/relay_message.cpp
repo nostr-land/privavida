@@ -48,7 +48,7 @@ struct RelayMessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
 
     ReaderState state = STATE_STARTED;
     RelayMessage* result;
-    char* buffer;
+    StackBuffer* stack_buffer;
 
     bool stop() {
         state = STATE_ENDED;
@@ -134,12 +134,14 @@ struct RelayMessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
 
         } else if (state == STATE_AT_OK_EVENT_ID) {
             if (length != 2 * sizeof(EventId)) return false;
-            if (!hex_decode(result->ok.event_id, str, sizeof(EventId))) return false;
+            if (!hex_decode(result->ok.event_id.data, str, sizeof(EventId))) return false;
             return next(STATE_AT_OK_BOOLEAN);
 
         } else if (state == STATE_AT_AUTH_CHALLENGE_STRING ||
                    state == STATE_AT_OK_MESSAGE ||
                    state == STATE_AT_NOTICE_MESSAGE) {
+            stack_buffer->reserve(length + 1);
+            auto buffer = (char*)stack_buffer->data;
             strncpy(buffer, str, length);
             buffer[length] = '\0';
 
@@ -185,11 +187,11 @@ struct RelayMessageReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
     }
 };
 
-bool relay_message_parse(const char* input, size_t input_len, uint8_t* buffer, RelayMessage* result) {
+bool relay_message_parse(const char* input, size_t input_len, StackBuffer* stack_buffer, RelayMessage* result) {
 
     RelayMessageReader handler;
     handler.result = result;
-    handler.buffer = (char*)buffer;
+    handler.stack_buffer = stack_buffer;
 
     auto stack_size = max(input_len, 512);
     char stack_memory[stack_size];

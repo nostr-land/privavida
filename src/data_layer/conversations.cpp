@@ -7,6 +7,7 @@
 
 #include "conversations.hpp"
 #include "accounts.hpp"
+#include "relays.hpp"
 #include "../models/event_compose.hpp"
 #include "../models/event_stringify.hpp"
 #include "../models/event_content.hpp"
@@ -136,15 +137,12 @@ void send_direct_message_2(int conversation_id, const char* ciphertext) {
     event_compose(event, &draft);
 
     account_sign_event(account, event, [](bool error, const char* error_reason, const Event* signed_event) {
-
+        
         if (error) return;
-
-        char out_event[1024];
-        event_stringify(signed_event, out_event);
-        char out_relay_message[1024];
-        snprintf(out_relay_message, sizeof(out_relay_message), "[\"EVENT\",%s]", out_event);
-
-        network::send(out_relay_message);
+        
+        for (auto relay_id : get_default_relays()) {
+            network::relay_add_task_publish(relay_id, signed_event);
+        }
     });
 
 }

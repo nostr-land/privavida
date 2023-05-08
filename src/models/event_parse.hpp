@@ -8,6 +8,7 @@
 #pragma once
 
 #include "event.hpp"
+#include "../utils/stackbuffer.hpp"
 #include <string>
 
 enum ParseError {
@@ -36,15 +37,6 @@ enum ParseError {
     PARSE_ERR_DUPLICATE_TAGS,
 };
 
-enum RelayMessageType {
-    MESSAGE_TYPE_AUTH,
-    MESSAGE_TYPE_COUNT,
-    MESSAGE_TYPE_EOSE,
-    MESSAGE_TYPE_EVENT,
-    MESSAGE_TYPE_NOTICE,
-    MESSAGE_TYPE_OK
-};
-
 struct EventParseResult {
     uint32_t event_size;
     uint32_t num_tags;
@@ -53,19 +45,4 @@ struct EventParseResult {
     uint32_t num_tag_values;
 };
 
-struct RelayMessageParseResult {
-    RelayMessageType message_type;
-    char subscription_id[65];
-    uint8_t event_id[sizeof(EventId)];
-    bool ok;
-    const char* message;
-    uint64_t count;
-
-    bool has_event;
-    const char* event_input;
-    size_t event_input_len;
-};
-
-ParseError event_parse(const char* input, size_t input_len, uint8_t* tlv_out, EventParseResult& result);
-
-void event_create(Event* event_out, const uint8_t* tlv, const EventParseResult& result);
+ParseError event_parse(const char* input, size_t input_len, StackBuffer* stack_buffer, Event** event_out);
