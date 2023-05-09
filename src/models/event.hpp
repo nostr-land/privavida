@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include "relative.hpp"
 #include "keys.hpp"
+#include "relay_info.hpp"
 #include "nostr_entity.hpp"
 
 enum EventValidState {
@@ -59,7 +60,7 @@ struct EventContentToken {
 };
 
 struct ReceiptInfo {
-    int32_t relay_id;
+    RelayId relay_id;
     uint64_t receipt_time;
 };
 
@@ -72,7 +73,7 @@ struct PublishInfo {
     };
 
     Status status;
-    int32_t relay_id;
+    RelayId relay_id;
 
 };
 
@@ -112,8 +113,8 @@ struct Event {
 
     // Metadata
     bool sent_by_client;
-    RelArray<ReceiptInfo> receipt_info;
-    RelArray<PublishInfo> publish_info;
+    RelDynamicArray<ReceiptInfo> receipt_info;
+    RelDynamicArray<PublishInfo> publish_info;
 
     uint8_t  __buffer[];
 

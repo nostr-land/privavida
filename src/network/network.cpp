@@ -18,6 +18,8 @@
 #include <string.h>
 #include <memory>
 
+constexpr int MAX_CONCURRENT_REQUESTS_PER_RELAY = 3;
+
 struct RelayTask {
 
     enum Type {
@@ -27,6 +29,7 @@ struct RelayTask {
     };
 
     enum State {
+        QUEUED,
         WAITING_FOR_CONNECTION,
         READY,
         ACTIVE,
@@ -35,7 +38,7 @@ struct RelayTask {
 
     Type type;
     State state;
-    int32_t relay_id;
+    RelayId relay_id;
     char subscription_id[65];
     std::unique_ptr<Filters> filters;
     std::unique_ptr<Event> event;
@@ -49,9 +52,10 @@ struct RelayConnection {
         CLOSED
     };
 
-    int32_t relay_id;
+    RelayId relay_id;
     State state;
     AppWebsocketHandle socket;
+    int32_t num_concurrent_requests;
 };
 
 static std::vector<RelayConnection> connections;
@@ -86,6 +90,7 @@ static RelayConnection& get_or_create_connection_for_relay(int32_t relay_id) {
     new_conn.relay_id = relay_id;
     new_conn.state = RelayConnection::CONNECTING;
     new_conn.socket = platform_websocket_open(relay_info->url.data.get(relay_info), NULL);
+    new_conn.num_concurrent_requests = 0;
     return new_conn;
 }
 static RelayTask* get_task_for_subscription_id(const char* subscription_id) {
@@ -105,7 +110,7 @@ static RelayTask* get_task_for_event_id(const EventId* event_id) {
     return NULL;
 }
 
-void network::relay_add_task_request(int32_t relay_id, const Filters* filters) {
+void network::relay_add_task_request(RelayId relay_id, const Filters* filters) {
     auto filters_copy = (Filters*)malloc(Filters::size_of(filters));
     memcpy(filters_copy, filters, Filters::size_of(filters));
 
@@ -113,14 +118,14 @@ void network::relay_add_task_request(int32_t relay_id, const Filters* filters) {
     auto& task = tasks.back();
     task.relay_id = relay_id;
     task.type = RelayTask::REQUEST;
-    task.state = RelayTask::WAITING_FOR_CONNECTION;
+    task.state = RelayTask::QUEUED;
     task.filters = std::unique_ptr<Filters>(filters_copy);
     generate_new_subscription_id(&task);
 
     process_tasks();
 }
 
-void network::relay_add_task_stream(int32_t relay_id, const Filters* filters) {
+void network::relay_add_task_stream(RelayId relay_id, const Filters* filters) {
     auto filters_copy = (Filters*)malloc(Filters::size_of(filters));
     memcpy(filters_copy, filters, Filters::size_of(filters));
     filters_copy->limit = 0;
@@ -129,14 +134,14 @@ void network::relay_add_task_stream(int32_t relay_id, const Filters* filters) {
     auto& task = tasks.back();
     task.relay_id = relay_id;
     task.type = RelayTask::STREAM;
-    task.state = RelayTask::WAITING_FOR_CONNECTION;
+    task.state = RelayTask::QUEUED;
     task.filters = std::unique_ptr<Filters>(filters_copy);
     generate_new_subscription_id(&task);
 
     process_tasks();
 }
 
-void network::relay_add_task_publish(int32_t relay_id, const Event* event) {
+void network::relay_add_task_publish(RelayId relay_id, const Event* event) {
     auto event_copy = (Event*)malloc(Event::size_of(event));
     memcpy(event_copy, event, Event::size_of(event));
 
@@ -144,7 +149,7 @@ void network::relay_add_task_publish(int32_t relay_id, const Event* event) {
     auto& task = tasks.back();
     task.relay_id = relay_id;
     task.type = RelayTask::PUBLISH;
-    task.state = RelayTask::WAITING_FOR_CONNECTION;
+    task.state = RelayTask::QUEUED;
     task.event = std::unique_ptr<Event>(event_copy);
     task.subscription_id[0] = '\0';
 
@@ -188,6 +193,31 @@ void process_tasks() {
 
     StackBufferFixed<1024> req_buffer;
 
+    // For QUEUED tasks:
+    //     If the tasks are STREAM or PUBLISH events we
+    //     bump them automatically to WAITING_FOR_CONNECTION.
+    //     If the tasks are REQUEST events we want to only
+    //     bump them when the relay is not at its concurrent
+    //     requests limit.
+    for (auto& task : tasks) {
+        if (task.state != RelayTask::QUEUED) continue;
+
+        switch (task.type) {
+            case RelayTask::STREAM:
+            case RelayTask::PUBLISH: {
+                task.state = RelayTask::WAITING_FOR_CONNECTION;
+                break;
+            }
+            case RelayTask::REQUEST: {
+                auto conn = get_connection_for_relay(task.relay_id);
+                if (!conn || conn->num_concurrent_requests < MAX_CONCURRENT_REQUESTS_PER_RELAY) {
+                    task.state = RelayTask::WAITING_FOR_CONNECTION;
+                }
+                break;
+            }
+        }
+    }
+
     // For WAITING_FOR_CONNECTION tasks:
     //     Get or open a connection to the desired relay
     //     If the connection is open -> bump the task to READY
@@ -211,7 +241,13 @@ void process_tasks() {
         if (!conn || conn->state != RelayConnection::OPEN) continue;
 
         switch (task.type) {
-            case RelayTask::REQUEST:
+            case RelayTask::REQUEST: {
+                auto req = client_message_req(task.subscription_id, task.filters.get(), &req_buffer);
+                printf("Request: %s\n", req);
+                platform_websocket_send(conn->socket, req);
+                conn->num_concurrent_requests++;
+                break;
+            }
             case RelayTask::STREAM: {
                 auto req = client_message_req(task.subscription_id, task.filters.get(), &req_buffer);
                 printf("Request: %s\n", req);
@@ -238,6 +274,8 @@ void process_tasks() {
 }
 
 void app_websocket_event(const AppWebsocketEvent* event) {
+
+    uint64_t event_time = time(NULL);
 
     RelayConnection* conn = NULL;
     for (auto& other_conn : connections) {
@@ -273,8 +311,8 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         return;
     }
 
-    uint8_t stack_buffer_data[event->data_length];
-    StackBuffer stack_buffer(stack_buffer_data, event->data_length);
+    uint8_t stack_buffer_data[event->data_length * 2];
+    StackBuffer stack_buffer(stack_buffer_data, event->data_length * 2);
 
     RelayMessage message;
     if (!relay_message_parse(event->data, event->data_length, &stack_buffer, &message)) {
@@ -294,10 +332,17 @@ void app_websocket_event(const AppWebsocketEvent* event) {
         case RelayMessage::EOSE: {
             printf("%s EOSE: %s\n", relay_url, message.eose.subscription_id);
             auto task = get_task_for_subscription_id(message.eose.subscription_id);
-            if (task && task->type == RelayTask::REQUEST) {
-                task->state = RelayTask::COMPLETED;
-                process_tasks();
-            }
+            if (!task || task->type != RelayTask::REQUEST) break;
+
+            // For REQUEST tasks, upon receiving EOSE, we close the subscription
+            StackBufferFixed<64> req_buffer;
+            auto req = client_message_close(task->subscription_id, &req_buffer);
+            printf("Request: %s\n", req);
+            platform_websocket_send(conn->socket, req);
+            conn->num_concurrent_requests--;
+
+            task->state = RelayTask::COMPLETED;
+            process_tasks();
             break;
         }
         case RelayMessage::EVENT: {
@@ -308,7 +353,7 @@ void app_websocket_event(const AppWebsocketEvent* event) {
                 break;
             }
 
-            data_layer::receive_event(nostr_event);
+            data_layer::receive_event(nostr_event, relay_info->id, event_time);
 
             break;
         }

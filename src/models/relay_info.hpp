@@ -12,12 +12,14 @@
 #include "../utils/stackbuffer.hpp"
 #include <string.h>
 
+typedef int16_t RelayId;
+
 struct RelayInfo {
 
     // Relay info header (contains size)
     uint32_t __size;
 
-    int32_t id;
+    RelayId id;
     RelString url;
 
     uint8_t __buffer[];
@@ -36,10 +38,10 @@ struct RelayInfoBuilder {
         buffer_used = sizeof(RelayInfo);
         buffer->reserve(buffer_used);
 
-        memset(relay(), 0, sizeof(RelayInfo));
+        memset(get(), 0, sizeof(RelayInfo));
     }
-    RelayInfoBuilder& id(int32_t id) {
-        relay()->id = id;
+    RelayInfoBuilder& id(RelayId id) {
+        get()->id = id;
         return *this;
     }
     RelayInfoBuilder& url(const char* url) {
@@ -50,18 +52,18 @@ struct RelayInfoBuilder {
 
         memcpy((int8_t*)buffer->data + buffer_used, url, size);
 
-        relay()->url = RelString(len, buffer_used);
+        get()->url = RelString(len, buffer_used);
         buffer_used += size;
 
         return *this;
     }
-    RelayInfo* get() {
-        relay()->__size = buffer_used;
-        return relay();
+    RelayInfo* finish() {
+        get()->__size = buffer_used;
+        return get();
     }
 
 private:
-    RelayInfo* relay() {
+    RelayInfo* get() {
         return (RelayInfo*)buffer->data;
     }
 };

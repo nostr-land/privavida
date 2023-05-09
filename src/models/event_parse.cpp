@@ -6,6 +6,7 @@
 //
 
 #include "event_parse.hpp"
+#include "event_builder.hpp"
 #include "hex.hpp"
 
 #include <string.h>
@@ -13,88 +14,43 @@
 #include <stdio.h>
 #include <rapidjson/reader.h>
 
-// This parser is designed to work without doing any heap allocations.
-// The way it manages to do this by building an intermediate
-// representation of the JSON data that is gauranteed to be smaller
-// than the source string.
-// This intermediate representation is a simple kind of TLV (type-length-value)
-// binary encoding of a Nostr event. It is similar to NIP-19 bech32-encoded
-// TLV values, however it supports two length encodings: 16-bit and 32-bit
+#define FLAG_HAS_ID         0x01
+#define FLAG_HAS_PUBKEY     0x02
+#define FLAG_HAS_SIG        0x04
+#define FLAG_HAS_KIND       0x08
+#define FLAG_HAS_CONTENT    0x10
+#define FLAG_HAS_CREATED_AT 0x20
+#define FLAG_HAS_TAGS       0x40
 
-
-// There are 9 value types (including a TYPE_END value to signal the end)
-enum TLV_Type : uint8_t {
-    TYPE_END        = 0x00,
-    TYPE_ID         = 0x01,
-    TYPE_PUBKEY     = 0x02,
-    TYPE_SIG        = 0x03,
-    TYPE_KIND       = 0x04,
-    TYPE_CONTENT    = 0x05,
-    TYPE_CREATED_AT = 0x06,
-    TYPE_TAG        = 0x07, // Start of a tag
-    TYPE_TAG_VAL    = 0x08, // Start of a tag value
-
-    TYPE_FLAG_32BIT = 0x80, // When flag is set, length is encoded in 4 bytes
+struct EventIntermediateRepresentation {
+    uint8_t   flags;
+    EventId   id;
+    Pubkey    pubkey;
+    Signature sig;
+    uint32_t  kind;
+    uint64_t  created_at;
+    uint8_t*  content_and_tags;
+    uint8_t*  content_and_tags_end;
+    int       num_tags;
+    int       num_tag_values;
+    int       num_e_tags;
+    int       num_p_tags;
 };
 
-// Tags are encoded using TYPE_TAG and TYPE_TAG_VAL.
-//
-//  [
-//    ["e", "abcd"],
-//    ["p", "abcd", "wss://"],
-//    ["title", "hi"]
-//  ]
-//              |
-//              |    becomes
-//              |
-//              V
-//
-//    TYPE_TAG(e), TYPE_TAG_VAL(abcd),
-//    TYPE_TAG(p), TYPE_TAG_VAL(abcd), TYPE_TAG_VAL(wss://),
-//    TYPE_TAG(title), TYPE_TAG_VAL(hi)
-//
+// On the first pass the content and tags are encoded
+// together into one uint8_t array. It's broken into
+// parts, there's a one byte TYPE followed by a
+// NULL-terminated string for the data
+enum TLV_Type : uint8_t {
+    TYPE_END        = 0x00,
+    TYPE_CONTENT    = 0x01,
+    TYPE_TAG        = 0x02, // Start of a tag
+    TYPE_TAG_VALUE  = 0x03, // Start of a tag value
+};
 
-
-static void write_tlv(uint8_t*& buffer_ptr, uint8_t type, uint32_t length, const uint8_t* value) {
-
-    union {
-        uint8_t  bytes[4];
-        uint16_t len16;
-        uint32_t len32;
-    };
-
-    // Write type and length
-    if (length < (1 << 16)) {
-        len16 = (unsigned short)length;
-        *buffer_ptr++ = type;
-        *buffer_ptr++ = bytes[0];
-        *buffer_ptr++ = bytes[1];
-    } else {
-        len32 = length;
-        *buffer_ptr++ = type | TYPE_FLAG_32BIT;
-        *buffer_ptr++ = bytes[0];
-        *buffer_ptr++ = bytes[1];
-        *buffer_ptr++ = bytes[2];
-        *buffer_ptr++ = bytes[3];
-    }
-
-    // Write value
-    memcpy(buffer_ptr, value, length);
-    buffer_ptr += length;
-}
-
-static void write_end(uint8_t*& buffer_ptr) {
-    *buffer_ptr++ = TYPE_END;
-}
-
-#define FLAG_PARSED_ID         0x01
-#define FLAG_PARSED_PUBKEY     0x02
-#define FLAG_PARSED_SIG        0x04
-#define FLAG_PARSED_KIND       0x08
-#define FLAG_PARSED_CONTENT    0x10
-#define FLAG_PARSED_CREATED_AT 0x20
-#define FLAG_PARSED_TAGS       0x40
-
+// The EventReader struct implements rapidjson's BaseReaderHandler
+// class. It receives tokens as they are parsed by rapidjson and
+// turns them into an EventIntermediateRepresentation struct
 struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, EventReader> {
     enum ReaderState {
         STATE_STARTED,
@@ -112,16 +68,10 @@ struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Even
         STATE_ENDED
     };
 
+    EventIntermediateRepresentation event;
     ParseError err = PARSE_NO_ERR;
     ReaderState state = STATE_STARTED;
     int other_depth;
-    uint8_t flags = 0;
-    uint8_t* buffer_ptr;
-    int num_tags = 0;
-    int num_e_tags = 0;
-    int num_p_tags = 0;
-    int num_tag_values = 0;
-    int text_content_len = 0;
     bool is_first_element = false;
 
     bool error(ParseError err) {
@@ -147,7 +97,6 @@ struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Even
         return false;
     }
     bool done() {
-        write_end(buffer_ptr);
         state = STATE_ENDED;
         return false;
     }
@@ -182,11 +131,10 @@ struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Even
             state = other_depth ? STATE_IN_OTHER : STATE_IN_ROOT;
         } else if (state == STATE_AT_KIND) {
             state = STATE_IN_ROOT;
-            write_tlv(buffer_ptr, TYPE_KIND, 4, (uint8_t*)&u);
+            event.kind = u;
         } else if (state == STATE_AT_CREATED_AT) {
             state = STATE_IN_ROOT;
-            uint64_t value = u;
-            write_tlv(buffer_ptr, TYPE_CREATED_AT, 8, (uint8_t*)&value);
+            event.created_at = u;
         } else {
             return error();
         }
@@ -205,7 +153,7 @@ struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Even
             state = other_depth ? STATE_IN_OTHER : STATE_IN_ROOT;
         } else if (state == STATE_AT_CREATED_AT) {
             state = STATE_IN_ROOT;
-            write_tlv(buffer_ptr, TYPE_CREATED_AT, 8, (uint8_t*)&u);
+            event.created_at = u;
         } else {
             return error();
         }
@@ -223,34 +171,26 @@ struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Even
             state = other_depth ? STATE_IN_OTHER : STATE_IN_ROOT;
         } else if (state == STATE_AT_ID) {
             if (length != 2 * sizeof(EventId)) return error();
-            uint8_t bytes[sizeof(EventId)];
-            if (!hex_decode(bytes, str, sizeof(EventId))) return error();
-            write_tlv(buffer_ptr, TYPE_ID, length, bytes);
+            if (!hex_decode(event.id.data, str, sizeof(EventId))) return error();
             state = STATE_IN_ROOT;
         } else if (state == STATE_AT_PUBKEY) {
             if (length != 2 * sizeof(Pubkey)) return error();
-            uint8_t bytes[sizeof(Pubkey)];
-            if (!hex_decode(bytes, str, sizeof(Pubkey))) return error();
-            write_tlv(buffer_ptr, TYPE_PUBKEY, length, bytes);
+            if (!hex_decode(event.pubkey.data, str, sizeof(Pubkey))) return error();
             state = STATE_IN_ROOT;
         } else if (state == STATE_AT_SIG) {
             if (length != 2 * sizeof(Signature)) return error();
-            uint8_t bytes[sizeof(Signature)];
-            if (!hex_decode(bytes, str, sizeof(Signature))) return error();
-            write_tlv(buffer_ptr, TYPE_SIG, length, bytes);
+            if (!hex_decode(event.sig.data, str, sizeof(Signature))) return error();
             state = STATE_IN_ROOT;
         } else if (state == STATE_AT_CONTENT) {
-            write_tlv(buffer_ptr, TYPE_CONTENT, length, (const uint8_t*)str);
-            text_content_len += length + 1;
+            write_content_or_tag(TYPE_CONTENT, length, (const uint8_t*)str);
             state = STATE_IN_ROOT;
         } else if (state == STATE_IN_TAG) {
-            uint8_t type = is_first_element ? TYPE_TAG : TYPE_TAG_VAL;
+            uint8_t type = is_first_element ? TYPE_TAG : TYPE_TAG_VALUE;
             if (is_first_element && length == 1) {
-                if (str[0] == 'e') num_e_tags++;
-                if (str[0] == 'p') num_p_tags++;
+                if (str[0] == 'e') event.num_e_tags++;
+                if (str[0] == 'p') event.num_p_tags++;
             }
-            write_tlv(buffer_ptr, type, length, (const uint8_t*)str);
-            text_content_len += length + 1;
+            write_content_or_tag(type, length, (const uint8_t*)str);
             is_first_element = false;
         } else {
             return error();
@@ -272,32 +212,32 @@ struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Even
         if (state != STATE_IN_ROOT)  return error();
 
         if (strcmp("id", str) == 0) {
-            if (flags & FLAG_PARSED_ID) return error(PARSE_ERR_DUPLICATE_ID);
-            flags |= FLAG_PARSED_ID;
+            if (event.flags & FLAG_HAS_ID) return error(PARSE_ERR_DUPLICATE_ID);
+            event.flags |= FLAG_HAS_ID;
             state = STATE_AT_ID;
         } else if (strcmp("pubkey", str) == 0) {
-            if (flags & FLAG_PARSED_PUBKEY) return error(PARSE_ERR_DUPLICATE_PUBKEY);
-            flags |= FLAG_PARSED_PUBKEY;
+            if (event.flags & FLAG_HAS_PUBKEY) return error(PARSE_ERR_DUPLICATE_PUBKEY);
+            event.flags |= FLAG_HAS_PUBKEY;
             state = STATE_AT_PUBKEY;
         } else if (strcmp("sig", str) == 0) {
-            if (flags & FLAG_PARSED_SIG) return error(PARSE_ERR_DUPLICATE_SIG);
-            flags |= FLAG_PARSED_SIG;
+            if (event.flags & FLAG_HAS_SIG) return error(PARSE_ERR_DUPLICATE_SIG);
+            event.flags |= FLAG_HAS_SIG;
             state = STATE_AT_SIG;
         } else if (strcmp("kind", str) == 0) {
-            if (flags & FLAG_PARSED_KIND) return error(PARSE_ERR_DUPLICATE_KIND);
-            flags |= FLAG_PARSED_KIND;
+            if (event.flags & FLAG_HAS_KIND) return error(PARSE_ERR_DUPLICATE_KIND);
+            event.flags |= FLAG_HAS_KIND;
             state = STATE_AT_KIND;
         } else if (strcmp("created_at", str) == 0) {
-            if (flags & FLAG_PARSED_CREATED_AT) return error(PARSE_ERR_DUPLICATE_CREATED_AT);
-            flags |= FLAG_PARSED_CREATED_AT;
+            if (event.flags & FLAG_HAS_CREATED_AT) return error(PARSE_ERR_DUPLICATE_CREATED_AT);
+            event.flags |= FLAG_HAS_CREATED_AT;
             state = STATE_AT_CREATED_AT;
         } else if (strcmp("content", str) == 0) {
-            if (flags & FLAG_PARSED_CONTENT) return error(PARSE_ERR_DUPLICATE_CONTENT);
-            flags |= FLAG_PARSED_CONTENT;
+            if (event.flags & FLAG_HAS_CONTENT) return error(PARSE_ERR_DUPLICATE_CONTENT);
+            event.flags |= FLAG_HAS_CONTENT;
             state = STATE_AT_CONTENT;
         } else if (strcmp("tags", str) == 0) {
-            if (flags & FLAG_PARSED_TAGS) return error(PARSE_ERR_DUPLICATE_TAGS);
-            flags |= FLAG_PARSED_TAGS;
+            if (event.flags & FLAG_HAS_TAGS) return error(PARSE_ERR_DUPLICATE_TAGS);
+            event.flags |= FLAG_HAS_TAGS;
             state = STATE_AT_TAGS;
         } else {
             state = STATE_IN_OTHER;
@@ -337,15 +277,23 @@ struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Even
             }
         } else if (state == STATE_IN_TAG) {
             if (elementCount == 0) return error();
-            num_tag_values += elementCount;
+            event.num_tag_values += elementCount;
             state = STATE_IN_TAGS;
         } else if (state == STATE_IN_TAGS) {
-            num_tags += elementCount;
+            event.num_tags += elementCount;
             state = STATE_IN_ROOT;
         } else {
             return error();
         }
         return true;
+    }
+
+    void write_content_or_tag(uint8_t type, uint32_t length, const uint8_t* value) {
+        auto& ptr = event.content_and_tags_end;
+        *ptr++ = type;
+        memcpy(ptr, value, length);
+        ptr += length;
+        *ptr++ = 0; // NULL terminate
     }
 };
 
@@ -357,10 +305,14 @@ static inline size_t max(size_t a, size_t b) {
     return a < b ? b : a;
 }
 
-static ParseError event_parse_tlv(const char* input, size_t input_len, uint8_t* tlv_out, EventParseResult& result) {
+ParseError event_parse(const char* input, size_t input_len, StackBuffer* stack_buffer, Event** event_out) {
 
+    uint8_t content_and_tags_buffer[input_len];
+    
     EventReader handler;
-    handler.buffer_ptr = tlv_out;
+    handler.event = { 0 };
+    handler.event.content_and_tags     = content_and_tags_buffer;
+    handler.event.content_and_tags_end = content_and_tags_buffer;
 
     auto stack_size = max(input_len, 512);
     char stack_memory[stack_size];
@@ -373,212 +325,90 @@ static ParseError event_parse_tlv(const char* input, size_t input_len, uint8_t* 
     if (reader.HasParseError() && handler.state != EventReader::STATE_ENDED) {
         return handler.err;
     }
-
-    result.event_size = align_8(
-        sizeof(Event) +
-        align_8(handler.text_content_len) +
-        handler.num_tags * sizeof(RelArray<RelArray<RelString>>) +
-        handler.num_tag_values * sizeof(RelArray<RelString>) +
-        handler.num_e_tags * sizeof(ETag) +
-        handler.num_p_tags * sizeof(PTag)
-    );
-    result.num_tags = handler.num_tags;
-    result.num_e_tags = handler.num_e_tags;
-    result.num_p_tags = handler.num_p_tags;
-    result.num_tag_values = handler.num_tag_values;
-    return PARSE_NO_ERR;
-}
-
-static void event_create_from_tlv(Event* event, const uint8_t* tlv, const EventParseResult& result) {
     
-    auto _base = (void*)event;
-    memset(_base, 0, sizeof(Event));
+    EventBuilder builder(stack_buffer);
 
-    int fixed_size = sizeof(Event);
-    int total_size = result.event_size;
+    if (handler.event.flags & FLAG_HAS_ID) {
+        builder.id(&handler.event.id);
+    } else {
+        return PARSE_ERR_MISSING_ID;
+    }
+
+    if (handler.event.flags & FLAG_HAS_PUBKEY) {
+        builder.pubkey(&handler.event.pubkey);
+    } else {
+        return PARSE_ERR_MISSING_PUBKEY;
+    }
     
-    int tags_size   = sizeof(RelArray<RelString>) * result.num_tags;
-    int e_tags_size = sizeof(ETag) * result.num_e_tags;
-    int p_tags_size = sizeof(PTag) * result.num_p_tags;
-    int vals_size   = sizeof(RelString) * result.num_tag_values;
+    if (handler.event.flags & FLAG_HAS_SIG) {
+        builder.sig(&handler.event.sig);
+    } else {
+        return PARSE_ERR_MISSING_SIG;
+    }
+    
+    if (handler.event.flags & FLAG_HAS_KIND) {
+        builder.kind(handler.event.kind);
+    } else {
+        return PARSE_ERR_MISSING_KIND;
+    }
+    
+    if (handler.event.flags & FLAG_HAS_CREATED_AT) {
+        builder.created_at(handler.event.created_at);
+    } else {
+        return PARSE_ERR_MISSING_CREATED_AT;
+    }
 
-    int data_offset   = fixed_size;
-    int tags_offset   = fixed_size;
-    int e_tags_offset = fixed_size + tags_size;
-    int p_tags_offset = fixed_size + tags_size + e_tags_size;
-    int vals_offset   = fixed_size + tags_size + e_tags_size + p_tags_size;
-    int text_offset   = fixed_size + tags_size + e_tags_size + p_tags_size + vals_size;
+    // As we know the total sizes of all tags & tag values we can make sure the EventBuilder won't allocate
+    // any extra data on the heap by overriding the builder's internal StackArrays
+    typedef EventBuilder::SizeAndOffset Pair;
+    Pair stack_tags[handler.event.num_tags];
+    Pair stack_tag_values[handler.event.num_tag_values];
+    char stack_tag_content[input_len];
+    ETag stack_e_tags[handler.event.num_e_tags];
+    PTag stack_p_tags[handler.event.num_p_tags];
+    builder.tags.buffer.reset(stack_tags, handler.event.num_tags * sizeof(Pair));
+    builder.tag_values.buffer.reset(stack_tag_values, handler.event.num_tag_values * sizeof(Pair));
+    builder.tag_content.buffer.reset(stack_tag_content, input_len);
+    builder.e_tags.buffer.reset(stack_e_tags, handler.event.num_e_tags * sizeof(ETag));
+    builder.p_tags.buffer.reset(stack_p_tags, handler.event.num_p_tags * sizeof(PTag));
 
-    event->__header__ = (Event::VERSION << 24) | (uint32_t)total_size;
+    const char* tag_values[handler.event.num_tag_values];
+    int tag_values_count = 0;
 
-    event->tags.size = result.num_tags;
-    event->tags.data.offset = tags_offset;
-    Array<RelArray<RelString>> tags = event->tags.get(_base);
-
-    RelArray<RelString> tag_values;
-    tag_values.size = 0;
-    tag_values.data.offset = vals_offset;
-
-    event->e_tags.data.offset = e_tags_offset;
-    event->p_tags.data.offset = p_tags_offset;
-
-    int tag_index = 0;
-    int tag_value_index = 0;
-
-    // Pull out all TLV values and transfer them to the Event
-    const uint8_t* ch = tlv;
-    while (*ch != TYPE_END) {
+    // Pull out the content and tags data
+    const uint8_t* ch = handler.event.content_and_tags;
+    while (ch < handler.event.content_and_tags_end) {
         uint8_t field_type = *ch++;
-
-        uint32_t len;
-        if (field_type & TYPE_FLAG_32BIT) {
-            field_type ^= TYPE_FLAG_32BIT;
-            len = *(uint32_t*)ch;
-            ch += 4;
-        } else {
-            len = *(uint16_t*)ch;
-            ch += 2;
-        }
+        auto str = (const char*)ch;
+        auto len = (uint32_t)strlen(str);
+        ch += len + 1;
 
         switch (field_type) {
-            case TYPE_ID: {
-                memcpy(event->id.data, ch, sizeof(event->id));
-                break;
-            }
-            case TYPE_PUBKEY: {
-                memcpy(event->pubkey.data, ch, sizeof(event->pubkey));
-                break;
-            }
-            case TYPE_SIG: {
-                memcpy(event->sig.data, ch, sizeof(event->sig));
-                break;
-            }
-            case TYPE_KIND: {
-                event->kind = *(uint32_t*)ch;
-                break;
-            }
             case TYPE_CONTENT: {
-                RelString str;
-                str.data.offset = text_offset;
-                str.size = len;
-                text_offset += len + 1;
-                
-                auto ptr = &str.get(_base, 0);
-                memcpy(ptr, ch, len);
-                ptr[len] = '\0';
-
-                event->content = str;
-                
-                break;
-            }
-            case TYPE_CREATED_AT: {
-                event->created_at = *(uint64_t*)ch;
+                builder.content(str, len);
                 break;
             }
             case TYPE_TAG: {
-                RelString str;
-                str.data.offset = text_offset;
-                str.size = len;
-                text_offset += len + 1;
-
-                auto ptr = &str.get(_base, 0);
-                memcpy(ptr, ch, len);
-                ptr[len] = '\0';
-
-                RelArray<RelString>& tag = tags[tag_index];
-                tag = tag_values;
-                tag.size = 1;
-                tag.data += tag_value_index;
-                
-                tag_values.get(_base, tag_value_index) = str;
-                tag_value_index++;
-                tag_index++;
-                break;
-            }
-            case TYPE_TAG_VAL: {
-                RelString str;
-                str.data.offset = text_offset;
-                str.size = len;
-                text_offset += len + 1;
-
-                auto ptr = &str.get(_base, 0);
-                memcpy(ptr, ch, len);
-                ptr[len] = '\0';
-
-                RelArray<RelString>& tag = tags[tag_index - 1];
-                tag.size += 1;
-                
-                tag_values.get(_base, tag_value_index) = str;
-                tag_value_index++;
-                break;
-            }
-        }
-
-        ch += len;
-    }
-
-    // Pull out e and p tags
-    for (int i = 0; i < tags.size; ++i) {
-        auto tag = tags[i].get(_base);
-        if (tag.size < 2 || tag[0].size != 1) continue;
-
-        auto t = tag[0].data.get(_base)[0];
-        if (t == 'e') {
-
-            // Expecting:
-            // ["e", <event-id>] or
-            // ["e", <event-id>, <relay-url>] or
-            // ["e", <event-id>, <relay-url>, <marker>]
-
-            ETag e_tag;
-            e_tag.index = i;
-            e_tag.marker = ETag::NO_MARKER;
-
-            if (tag[1].size != 2 * sizeof(EventId)) continue;
-            if (!hex_decode(e_tag.event_id.data, tag[1].data.get(_base), sizeof(EventId))) continue;
-
-            if (tag.size == 4) {
-                auto marker = tag[3].data.get(_base);
-                if (strcmp(marker, "reply")) {
-                    e_tag.marker = ETag::REPLY;
-                } else if (strcmp(marker, "root")) {
-                    e_tag.marker = ETag::ROOT;
-                } else if (strcmp(marker, "mention")) {
-                    e_tag.marker = ETag::MENTION;
+                if (tag_values_count) {
+                    Array<const char*> tag(tag_values_count, tag_values);
+                    builder.tag(&tag);
+                    tag_values_count = 0;
                 }
+                // @IMPORTANT: fall through to TYPE_TAG_VALUE case!
             }
-
-            event->e_tags.get(_base, event->e_tags.size++) = e_tag;
-
-        } else if (t == 'p') {
-
-            // Expecting:
-            // ["p", <pubkey>]
-
-            PTag p_tag;
-            p_tag.index = i;
-
-            if (tag[1].size != 2 * sizeof(Pubkey)) continue;
-            if (!hex_decode(p_tag.pubkey.data, tag[1].data.get(_base), sizeof(Pubkey))) continue;
-
-            event->p_tags.get(_base, event->p_tags.size++) = p_tag;
-
+            case TYPE_TAG_VALUE: {
+                tag_values[tag_values_count++] = str;
+                break;
+            }
         }
     }
-}
-
-ParseError event_parse(const char* input, size_t input_len, StackBuffer* stack_buffer, Event** event_out) {
-
-    uint8_t tlv[input_len];
-    EventParseResult result;
-    ParseError err = event_parse_tlv(input, input_len, tlv, result);
-    if (err) {
-        return err;
+    
+    if (tag_values_count) {
+        Array<const char*> tag(tag_values_count, tag_values);
+        builder.tag(&tag);
+        tag_values_count = 0;
     }
 
-    stack_buffer->reserve(result.event_size);
-    *event_out = (Event*)stack_buffer->data;
-    event_create_from_tlv(*event_out, tlv, result);
+    *event_out = builder.finish();
     return PARSE_NO_ERR;
-
 }

@@ -8,7 +8,7 @@
 #include "conversations.hpp"
 #include "accounts.hpp"
 #include "relays.hpp"
-#include "../models/event_compose.hpp"
+#include "../models/event_builder.hpp"
 #include "../models/event_stringify.hpp"
 #include "../models/event_content.hpp"
 #include "../models/nip31.hpp"
@@ -122,19 +122,16 @@ void send_direct_message_2(int conversation_id, const char* ciphertext) {
     auto account = data_layer::current_account();
     auto& conv = conversations[conversation_id];
 
-    EventDraft draft = { 0 };
-    draft.pubkey = account->pubkey;
-    draft.kind = 4;
-    draft.content = ciphertext;
-
-    PTag p_tags[1];
-    p_tags[0].pubkey = conv.counterparty;
-    draft.p_tags.data = p_tags;
-    draft.p_tags.size = 1;
-
-    uint8_t event_buffer[event_compose_size(&draft)];
-    auto event = (Event*)event_buffer;
-    event_compose(event, &draft);
+    size_t event_size_guess = sizeof(Event) + strlen(ciphertext) + 256;
+    uint8_t event_buffer[event_size_guess];
+    StackBuffer event_sb(event_buffer, event_size_guess);
+    
+    auto event = EventBuilder(&event_sb)
+        .kind(4)
+        .pubkey(&account->pubkey)
+        .p_tag(&conv.counterparty)
+        .content(ciphertext)
+        .finish();
 
     account_sign_event(account, event, [](bool error, const char* error_reason, const Event* signed_event) {
         

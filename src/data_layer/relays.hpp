@@ -12,8 +12,8 @@
 
 namespace data_layer {
 
-const RelayInfo* get_relay_info(int32_t relay_id);
+const RelayInfo* get_relay_info(RelayId relay_id);
 const RelayInfo* get_relay_info(const char* relay_url);
-Array<int32_t> get_default_relays();
+Array<RelayId> get_default_relays();
 
 }

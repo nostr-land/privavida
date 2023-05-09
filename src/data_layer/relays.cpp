@@ -12,7 +12,7 @@ namespace data_layer {
 
 static std::vector<RelayInfo*> relays;
 
-const RelayInfo* get_relay_info(int32_t relay_id) {
+const RelayInfo* get_relay_info(RelayId relay_id) {
     for (auto relay : relays) {
         if (relay->id == relay_id) {
             return relay;
@@ -32,12 +32,12 @@ const RelayInfo* get_relay_info(const char* relay_url) {
         }
     }
 
-    static int32_t next_id = 1;
+    static RelayId next_id = 1;
     StackBufferFixed<128> buffer;
     auto relay = RelayInfoBuilder(&buffer)
         .id(next_id++)
         .url(relay_url)
-        .get();
+        .finish();
 
     auto relay_copy = (RelayInfo*)malloc(RelayInfo::size_of(relay));
     memcpy(relay_copy, relay, RelayInfo::size_of(relay));
@@ -46,13 +46,13 @@ const RelayInfo* get_relay_info(const char* relay_url) {
     return relay_copy;
 }
 
-Array<int32_t> get_default_relays() {
-    static int32_t relays[] = {
+Array<RelayId> get_default_relays() {
+    static RelayId relays[] = {
         get_relay_info("wss://relay.damus.io")->id,
         get_relay_info("wss://relay.snort.io")->id,
         get_relay_info("wss://eden.nostr.land")->id
     };
-    return Array<int32_t>(3, relays);
+    return Array<RelayId>(3, relays);
 }
 
 }

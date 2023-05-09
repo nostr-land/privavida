@@ -104,7 +104,7 @@ void send_batch() {
     auto filters = FiltersBuilder(&filters_buffer)
         .kind(0)
         .authors((uint32_t)batched_requests.size(), &batched_requests[0])
-        .get();
+        .finish();
 
     for (auto relay_id : get_default_relays()) {
         network::relay_add_task_request(relay_id, filters);

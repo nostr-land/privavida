@@ -89,3 +89,31 @@ struct RelArray {
 };
 
 typedef RelArray<char> RelString;
+
+template <typename T>
+struct RelDynamicArray {
+    uint32_t size;
+    uint32_t space;
+    RelPointer<T> data;
+
+    RelDynamicArray() = default;
+    RelDynamicArray(uint32_t size, uint32_t space, uint32_t data) : size(size), space(space), data(data) {}
+    Array<T> get(void* base) const {
+        return Array<T>(size, data.get(base));
+    }
+    const Array<T> get(const void* base) const {
+        return Array<T>(size, const_cast<T*>(data.get(base)));
+    }
+    T& get(void* base, size_t index) const {
+        return data.get(base)[index];
+    }
+    const T& get(const void* base, size_t index) const {
+        return data.get(base)[index];
+    }
+    bool can_push_back() const {
+        return space > size;
+    }
+    void push_back(void* base, const T& item) {
+        data.get(base)[size++] = item;
+    }
+};

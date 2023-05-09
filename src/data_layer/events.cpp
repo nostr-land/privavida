@@ -15,6 +15,8 @@
 #include <app.hpp>
 #include <vector>
 
+#include "../models/event_stringify.hpp"
+
 namespace data_layer {
 
 std::vector<Event*> events;
@@ -23,11 +25,30 @@ static EventLocator store_event_by_copying(Event* event);
 static EventLocator store_event_without_copying(Event* event);
 static void handle_kind_4(Event* event);
 
-void receive_event(Event* event) {
+void receive_event(Event* event, int32_t relay_id, uint64_t receipt_time) {
 
     // Have we already received this event?
     for (auto& event_other : events) {
         if (compare_keys(&event_other->id, &event->id)) {
+
+            // Add/update receipt info
+            bool has_receipt = false;
+            for (auto& receipt : event_other->receipt_info.get(event_other)) {
+                if (receipt.relay_id == relay_id) {
+                    if (receipt.receipt_time < receipt_time) {
+                        receipt.receipt_time = receipt_time;
+                    }
+                    has_receipt = true;
+                    break;
+                }
+            }
+            if (!has_receipt && event_other->receipt_info.can_push_back()) {
+                ReceiptInfo receipt;
+                receipt.relay_id = relay_id;
+                receipt.receipt_time = receipt_time;
+                event_other->receipt_info.push_back(event_other, receipt);
+            }
+
             return;
         }
     }
@@ -36,6 +57,14 @@ void receive_event(Event* event) {
     if (!event_validate(event)) {
         printf("event invalid: %s\n", event->validity == EVENT_INVALID_ID ? "INVALID_ID" : "INVALID_SIG");
         return;
+    }
+
+    // Add receipt info
+    if (event->receipt_info.can_push_back()) {
+        ReceiptInfo receipt;
+        receipt.relay_id = relay_id;
+        receipt.receipt_time = receipt_time;
+        event->receipt_info.push_back(event, receipt);
     }
 
     switch (event->kind) {

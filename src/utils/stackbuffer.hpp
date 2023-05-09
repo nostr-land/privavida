@@ -71,6 +71,12 @@ struct StackBuffer {
         memcpy(data_heap, data, size_wanted);
         return data_heap;
     }
+
+    void reset(void* data, size_t size) {
+        this->data = data;
+        this->size = size;
+        this->data_is_on_stack = true;
+    }
 };
 
 struct StackAllocator {

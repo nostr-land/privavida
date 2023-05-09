@@ -8,8 +8,7 @@ list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/event_parse.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/event_content.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/event_content.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/event_compose.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/event_compose.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/event_builder.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/relay_message.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/relay_message.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/client_message.hpp

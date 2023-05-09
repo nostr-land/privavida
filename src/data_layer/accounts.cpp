@@ -34,7 +34,7 @@ static void open_default_subscriptions() {
         auto filters = FiltersBuilder(&filters_buffer)
             .kind(4)
             .author(&account->pubkey)
-            .get();
+            .finish();
 
         for (auto relay_id : get_default_relays()) {
             network::relay_add_task_request(relay_id, filters);
@@ -47,7 +47,7 @@ static void open_default_subscriptions() {
         auto filters = FiltersBuilder(&filters_buffer)
             .kind(4)
             .p_tag(&account->pubkey)
-            .get();
+            .finish();
 
         for (auto relay_id : get_default_relays()) {
             network::relay_add_task_request(relay_id, filters);
@@ -61,7 +61,7 @@ static void open_default_subscriptions() {
         auto filters = FiltersBuilder(&filters_buffer)
             .kinds(2, kinds)
             .author(&account->pubkey)
-            .get();
+            .finish();
 
         for (auto relay_id : get_default_relays()) {
             network::relay_add_task_request(relay_id, filters);
